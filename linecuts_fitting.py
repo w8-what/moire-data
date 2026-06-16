@@ -10,7 +10,7 @@ IN = Path('source_data')
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 SC_THRESHOLD = 20.0
 
-FUNCTIONS = {linear, quadratic}
+FUNCTIONS = {linear, quadratic, sublinear}
 
 plt.rcParams.update({
     'font.family': 'DejaVu Sans',
@@ -40,8 +40,8 @@ def fit_score(pcov):
 def fitting_linecuts(T, roh, min_window = 10) -> dict:
 
     t_curr = T[0]
-    fit_left = None
-    fit_right = None
+    fit_left = {None : None}
+    fit_right = {None : None}
     dict_T = {}
 
     len_T = len(T)
@@ -64,7 +64,7 @@ def fitting_linecuts(T, roh, min_window = 10) -> dict:
                 if curr_fit_score < max_fit_score:
                     best_j = j
                     max_fit_score = curr_fit_score
-                    fit_right = function.__name__
+                    fit_right = {function.__name__ : popt}
             j += 1
 
         dict_T.update({T[i] : (fit_left, fit_right)})
@@ -72,7 +72,7 @@ def fitting_linecuts(T, roh, min_window = 10) -> dict:
         i = best_j
         fit_left = fit_right
     
-    dict_T.update({T[len_T-1] : (fit_left, None)})
+    dict_T.update({T[len_T-1] : (fit_left, {None : None})})
 
     print(dict_T)
     return dict_T
@@ -87,78 +87,88 @@ def fitting_linecuts(T, roh, min_window = 10) -> dict:
 # and 'roh', array of resistivity, and 'T', array of temperatures for the axis
 # Output: Plots of (1) graph of regular roh vs T (2) graph of regular roh
 # vs T with critical T's and different coloring for different behaviors
-def plot_behavior_fits(params, T, roh, critical_Ts) -> None:
+# Generating linecut roh v. T plots with smooth fits
+def plot_behavior_fits(params, T, roh, critical_ts) -> None:
 
-    plt.suptitle(params[0] + " = " + str(params[1]))
+    # Create a mapping from function names (strings) back to the actual callable functions
+    # This assumes your global FUNCTIONS = {linear, quadratic} is still present in the file
+    func_map = {f.__name__: f for f in FUNCTIONS}
+
+    plt.suptitle(f"{params[0]} = {params[1]}")
     
-
     # Plotting (1) raw data
     plt.subplot(1, 2, 1)
-    plt.plot(T, roh)
-    plt.ylabel("Resistivity (? units ?)")
+    plt.plot(T, roh, marker='o', markerfacecolor='none', markeredgecolor='black', linestyle='none')
+    plt.ylabel("Resistivity (Ω·cm)") 
     plt.xlabel("Temperature (K)")
     plt.title("Raw Data")
 
     # Plotting (2) colored behavior fits
     plt.subplot(1, 2, 2)
-    plt.plot(T, roh)
+    plt.title("Behavior Fits")
+    plt.ylabel("Resistivity (Ω·cm)")
+    plt.xlabel("Temperature (K)")
 
-    # Plotting critical Ts and labeling phases 
+    # Plot the raw data points in the background (zorder=1)
+    plt.plot(T, roh, marker='o', markerfacecolor='none', markeredgecolor='gray', linestyle='none', alpha=0.5, zorder=1)
+
+    crit_t_keys = list(critical_ts.keys())
     
-    # Extract critical T's (the boundaries of our windows)
-    crit_t_keys = list(critical_Ts.keys())
-    
-    # Dynamically assign a unique color to each phase (behavior)
-    unique_phases = set(val[1] for val in critical_Ts.values() if val[1] is not None)
+    # Dynamically assign a unique color to each phase by inspecting the right-side fits
+    unique_phases = set()
+    for val in critical_ts.values():
+        right_fit = val[1]
+        if right_fit:
+            phase_name = list(right_fit.keys())[0]
+            unique_phases.add(phase_name)
+            
     color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
     phase_colors = {phase: color_cycle[i % len(color_cycle)] for i, phase in enumerate(unique_phases)}
 
     plotted_labels = set()
 
-    # Plot each phase segment
+    # Plot each smoothed phase segment ON TOP of the raw data dots (zorder=2)
     for i in range(len(crit_t_keys) - 1):
         t_start = crit_t_keys[i]
         t_end = crit_t_keys[i+1]
         
-        # Find indices in the T array to slice the segment
-        idx_start = np.where(T == t_start)[0][0]
-        idx_end = np.where(T == t_end)[0][0]
+        # Extract the right-side behavior dictionary for this window
+        right_info = critical_ts[t_start][1] 
         
-        # Slice T and roh (adding +1 to idx_end so segments connect visually)
-        T_seg = T[idx_start:idx_end+1]
-        roh_seg = roh[idx_start:idx_end+1]
+        if not right_info:
+            continue
+            
+        # Extract the phase name and the optimal parameters
+        phase = list(right_info.keys())[0]
+        popt = right_info[phase]
         
-        # Get the right-side behavior for this window
-        phase = critical_Ts[t_start][1] 
+        # Generate dense T values for a mathematically smooth curve
+        T_smooth = np.linspace(t_start, t_end, 200)
+        
+        # Evaluate the mathematical function using the unpacked *popt parameters
+        roh_smooth = func_map[phase](T_smooth, *popt)
+        
         color = phase_colors.get(phase, 'black')
-        
-        # Ensure we only add each phase to the legend once
         label = phase if phase not in plotted_labels else ""
         if phase: 
             plotted_labels.add(phase)
             
-        plt.plot(T_seg, roh_seg, color=color, label=label, linewidth=2)
+        # Plotting the smooth segment line overlay
+        plt.plot(T_smooth, roh_smooth, color=color, label=label, linewidth=2.5, zorder=2)
 
-    # Plotting critical Ts as distinct red dots
-    for t_crit in crit_t_keys[1:-1]: # Skip the first and last bounds
+    # Plotting critical Ts as distinct solid red dots on the very top (zorder=3)
+    for t_crit in crit_t_keys[1:-1]: 
         idx = np.where(T == t_crit)[0][0]
-        plt.plot(t_crit, roh[idx], 'ro', markersize=6, zorder=5) 
+        plt.plot(t_crit, roh[idx], marker='o', color='red', markersize=6, linestyle='none', zorder=3) 
     
     # Add critical T to the legend
-    plt.plot([], [], 'ro', markersize=6, label="Critical $T$")
+    plt.plot([], [], marker='o', color='red', markersize=6, linestyle='none', label="Critical T")
     plt.legend()
 
-
-    plt.ylabel("Resistivity (? units ?)")
-    plt.xlabel("Temperature (K)")
-    plt.title("Behavior Fits")
-
     # Saving plots to path
-    path = OUT / f"fit: {params[0]} = {params[1]}.png"
+    path = OUT / f"fit_{params[0]}_{params[1]}.png" 
     plt.savefig(path, dpi=250, bbox_inches='tight')
     plt.close()
-
-
 
 
 
@@ -182,4 +192,4 @@ def test_behavior_fits(E: int, numLinecuts: int) -> None:
         currCol += spacing
 
 
-test_behavior_fits(99, 12)
+test_behavior_fits(99, 20)
