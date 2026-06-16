@@ -59,12 +59,12 @@ def fitting_linecuts(T, roh, min_window = 10) -> dict:
         while j < len_T:
             # Fits the range over all possible functions
             for function in FUNCTIONS:
-                popt, pcov = scipy.optimize.curve_fit(function, T, roh)
+                popt, pcov = scipy.optimize.curve_fit(function, T[i:j], roh[i:j])
                 curr_fit_score = fit_score(pcov)
                 if curr_fit_score < max_fit_score:
                     best_j = j
                     max_fit_score = curr_fit_score
-                    fit_right = str(function)
+                    fit_right = function.__name__
             j += 1
 
         dict_T.update({T[i] : (fit_left, fit_right)})
@@ -87,7 +87,7 @@ def fitting_linecuts(T, roh, min_window = 10) -> dict:
 # and 'roh', array of resistivity, and 'T', array of temperatures for the axis
 # Output: Plots of (1) graph of regular roh vs T (2) graph of regular roh
 # vs T with critical T's and different coloring for different behaviors
-def plot_behavior_fits(params, T, roh, dict) -> None:
+def plot_behavior_fits(params, T, roh, critical_Ts) -> None:
 
     plt.suptitle(params[0] + " = " + str(params[1]))
     
@@ -102,6 +102,53 @@ def plot_behavior_fits(params, T, roh, dict) -> None:
     # Plotting (2) colored behavior fits
     plt.subplot(1, 2, 2)
     plt.plot(T, roh)
+
+    # Plotting critical Ts and labeling phases 
+    
+    # Extract critical T's (the boundaries of our windows)
+    crit_t_keys = list(critical_Ts.keys())
+    
+    # Dynamically assign a unique color to each phase (behavior)
+    unique_phases = set(val[1] for val in critical_Ts.values() if val[1] is not None)
+    color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    phase_colors = {phase: color_cycle[i % len(color_cycle)] for i, phase in enumerate(unique_phases)}
+
+    plotted_labels = set()
+
+    # Plot each phase segment
+    for i in range(len(crit_t_keys) - 1):
+        t_start = crit_t_keys[i]
+        t_end = crit_t_keys[i+1]
+        
+        # Find indices in the T array to slice the segment
+        idx_start = np.where(T == t_start)[0][0]
+        idx_end = np.where(T == t_end)[0][0]
+        
+        # Slice T and roh (adding +1 to idx_end so segments connect visually)
+        T_seg = T[idx_start:idx_end+1]
+        roh_seg = roh[idx_start:idx_end+1]
+        
+        # Get the right-side behavior for this window
+        phase = critical_Ts[t_start][1] 
+        color = phase_colors.get(phase, 'black')
+        
+        # Ensure we only add each phase to the legend once
+        label = phase if phase not in plotted_labels else ""
+        if phase: 
+            plotted_labels.add(phase)
+            
+        plt.plot(T_seg, roh_seg, color=color, label=label, linewidth=2)
+
+    # Plotting critical Ts as distinct red dots
+    for t_crit in crit_t_keys[1:-1]: # Skip the first and last bounds
+        idx = np.where(T == t_crit)[0][0]
+        plt.plot(t_crit, roh[idx], 'ro', markersize=6, zorder=5) 
+    
+    # Add critical T to the legend
+    plt.plot([], [], 'ro', markersize=6, label="Critical $T$")
+    plt.legend()
+
+
     plt.ylabel("Resistivity (? units ?)")
     plt.xlabel("Temperature (K)")
     plt.title("Behavior Fits")
@@ -135,4 +182,4 @@ def test_behavior_fits(E: int, numLinecuts: int) -> None:
         currCol += spacing
 
 
-test_behavior_fits(99, 5)
+test_behavior_fits(99, 12)
