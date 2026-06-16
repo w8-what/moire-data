@@ -1,0 +1,129 @@
+field_mV_nm,scale,nu,T_K,method
+-96,TN,0.98,0.8,local minimum / insulating onset in smoothed log(Rxx)
+-96,TN,0.985,2.7,local minimum / insulating onset in smoothed log(Rxx)
+-96,TN,0.99,2.7,local minimum / insulating onset in smoothed log(Rxx)
+-96,TN,0.995,2.4,local minimum / insulating onset in smoothed log(Rxx)
+-96,TN,1.0,2.2,local minimum / insulating onset in smoothed log(Rxx)
+-96,TN,1.005,2.0,local minimum / insulating onset in smoothed log(Rxx)
+-96,TN,1.01,2.0,local minimum / insulating onset in smoothed log(Rxx)
+-96,TN,1.015,1.1,local minimum / insulating onset in smoothed log(Rxx)
+-96,Tc,0.914,0.1,Rxx <= 20 ohm threshold
+-96,Tc,0.915,0.1,Rxx <= 20 ohm threshold
+-96,Tc,0.916,0.1,Rxx <= 20 ohm threshold
+-96,Tc,0.918,0.12,Rxx <= 20 ohm threshold
+-96,Tc,0.919,0.14,Rxx <= 20 ohm threshold
+-96,Tc,0.92,0.16,Rxx <= 20 ohm threshold
+-96,Tc,0.921,0.16,Rxx <= 20 ohm threshold
+-96,Tc,0.922,0.16,Rxx <= 20 ohm threshold
+-96,Tc,0.923,0.18,Rxx <= 20 ohm threshold
+-96,Tc,0.924,0.16,Rxx <= 20 ohm threshold
+-96,Tc,0.925,0.2,Rxx <= 20 ohm threshold
+-96,Tc,0.926,0.2,Rxx <= 20 ohm threshold
+-96,Tc,0.927,0.2,Rxx <= 20 ohm threshold
+-96,Tc,0.928,0.22,Rxx <= 20 ohm threshold
+-96,Tc,0.929,0.22,Rxx <= 20 ohm threshold
+-96,Tc,0.93,0.22,Rxx <= 20 ohm threshold
+-96,Tc,0.931,0.22,Rxx <= 20 ohm threshold
+-96,Tc,0.932,0.24,Rxx <= 20 ohm threshold
+-96,Tc,0.933,0.24,Rxx <= 20 ohm threshold
+-96,Tc,0.934,0.24,Rxx <= 20 ohm threshold
+-96,Tc,0.935,0.24,Rxx <= 20 ohm threshold
+-96,Tc,0.936,0.28,Rxx <= 20 ohm threshold
+-96,Tc,0.937,0.28,Rxx <= 20 ohm threshold
+-96,Tc,0.938,0.26,Rxx <= 20 ohm threshold
+-96,Tc,0.939,0.28,Rxx <= 20 ohm threshold
+-96,Tc,0.94,0.28,Rxx <= 20 ohm threshold
+-96,Tc,0.941,0.26,Rxx <= 20 ohm threshold
+-96,Tc,0.942,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.943,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.944,0.3,Rxx <= 20 ohm threshold
+-96,Tc,0.945,0.3,Rxx <= 20 ohm threshold
+-96,Tc,0.946,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.947,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.948,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.949,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.95,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.951,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.952,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.953,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.954,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.955,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.956,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.957,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.958,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.959,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.96,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.961,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.962,0.34,Rxx <= 20 ohm threshold
+-96,Tc,0.963,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.964,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.965,0.3,Rxx <= 20 ohm threshold
+-96,Tc,0.966,0.3,Rxx <= 20 ohm threshold
+-96,Tc,0.967,0.3,Rxx <= 20 ohm threshold
+-96,Tc,0.968,0.24,Rxx <= 20 ohm threshold
+-96,Tc,0.969,0.26,Rxx <= 20 ohm threshold
+-96,Tc,0.97,0.24,Rxx <= 20 ohm threshold
+-96,Tc,0.971,0.22,Rxx <= 20 ohm threshold
+-96,Tc,0.972,0.22,Rxx <= 20 ohm threshold
+-96,Tc,0.973,0.22,Rxx <= 20 ohm threshold
+-96,Tc,0.974,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.975,0.32,Rxx <= 20 ohm threshold
+-96,Tc,0.976,0.28,Rxx <= 20 ohm threshold
+-96,Tc,0.982,0.24,Rxx <= 20 ohm threshold
+-96,Tc,0.983,0.12,Rxx <= 20 ohm threshold
+-96,Tc,0.984,0.1,Rxx <= 20 ohm threshold
+-96,Tc,0.985,0.24,Rxx <= 20 ohm threshold
+-96,Tc,1.015,0.16,Rxx <= 20 ohm threshold
+-96,Tc,1.016,0.2,Rxx <= 20 ohm threshold
+-96,Tc,1.017,0.22,Rxx <= 20 ohm threshold
+-96,Tc,1.018,0.26,Rxx <= 20 ohm threshold
+-96,Tc,1.019,0.26,Rxx <= 20 ohm threshold
+-96,Tc,1.02,0.26,Rxx <= 20 ohm threshold
+-96,Tc,1.021,0.26,Rxx <= 20 ohm threshold
+-96,Tc,1.022,0.28,Rxx <= 20 ohm threshold
+-96,Tc,1.023,0.26,Rxx <= 20 ohm threshold
+-96,Tc,1.024,0.26,Rxx <= 20 ohm threshold
+-96,Tc,1.025,0.28,Rxx <= 20 ohm threshold
+-96,Tc,1.026,0.28,Rxx <= 20 ohm threshold
+-96,Tc,1.027,0.26,Rxx <= 20 ohm threshold
+-96,Tc,1.028,0.22,Rxx <= 20 ohm threshold
+-96,Tc,1.029,0.22,Rxx <= 20 ohm threshold
+-96,Tc,1.03,0.22,Rxx <= 20 ohm threshold
+-96,Tc,1.031,0.22,Rxx <= 20 ohm threshold
+-96,Tc,1.032,0.18,Rxx <= 20 ohm threshold
+-96,Tc,1.033,0.2,Rxx <= 20 ohm threshold
+-96,Tc,1.034,0.18,Rxx <= 20 ohm threshold
+-96,Tc,1.035,0.18,Rxx <= 20 ohm threshold
+-96,Tc,1.036,0.18,Rxx <= 20 ohm threshold
+-96,Tc,1.037,0.18,Rxx <= 20 ohm threshold
+-96,Tc,1.038,0.14,Rxx <= 20 ohm threshold
+-96,Tc,1.039,0.14,Rxx <= 20 ohm threshold
+-96,Tc,1.04,0.1,Rxx <= 20 ohm threshold
+-96,Tc,1.041,0.1,Rxx <= 20 ohm threshold
+-96,Tc,1.042,0.1,Rxx <= 20 ohm threshold
+-96,Tcoh,0.83,1.35,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,0.838,1.16,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,0.846,0.94,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,0.854,0.65,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,0.862,0.35,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,0.87,0.11,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,0.878,0.0,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,1.046,0.0,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,1.053,0.5,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,1.061,1.1,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,1.069,1.95,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,1.077,2.85,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,1.087,3.6,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,1.101,4.0,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tcoh,1.13,4.0,"quadratic low-T fit, continuity enforced / regularized"
+-96,Tprime,0.882,0.0,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.892,0.8,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.901,1.07,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.911,1.25,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.921,1.34,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.93,1.34,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.94,1.25,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.95,1.07,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.96,0.8,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.969,0.45,"high-T linear fit deviation, continuity enforced / regularized"
+-96,Tprime,0.979,0.0,"high-T linear fit deviation, continuity enforced / regularized"

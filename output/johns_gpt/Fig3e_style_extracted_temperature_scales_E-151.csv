@@ -1,0 +1,41 @@
+field_mV_nm,scale,nu,T_K,method
+-151,TN,0.968,1.05,local minimum / insulating onset in smoothed log(Rxx)
+-151,TN,0.976,2.5,local minimum / insulating onset in smoothed log(Rxx)
+-151,TN,0.98,3.0,local minimum / insulating onset in smoothed log(Rxx)
+-151,TN,0.984,3.5,local minimum / insulating onset in smoothed log(Rxx)
+-151,TN,0.988,3.5,local minimum / insulating onset in smoothed log(Rxx)
+-151,TN,0.996,3.5,local minimum / insulating onset in smoothed log(Rxx)
+-151,Tc,1.004,0.29,Rxx <= 20 ohm threshold
+-151,Tc,1.008,0.32,Rxx <= 20 ohm threshold
+-151,Tc,1.012,0.3,Rxx <= 20 ohm threshold
+-151,Tc,1.016,0.3,Rxx <= 20 ohm threshold
+-151,Tc,1.02,0.31,Rxx <= 20 ohm threshold
+-151,Tc,1.024,0.29,Rxx <= 20 ohm threshold
+-151,Tc,1.028,0.21,Rxx <= 20 ohm threshold
+-151,Tc,1.032,0.12,Rxx <= 20 ohm threshold
+-151,Tcoh,0.83,1.35,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,0.838,1.16,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,0.846,0.94,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,0.854,0.65,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,0.862,0.35,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,0.87,0.11,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,0.878,0.0,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,1.036,0.0,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,1.043,0.55,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,1.051,1.25,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,1.059,2.1,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,1.067,3.0,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,1.077,3.7,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,1.091,4.0,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tcoh,1.13,4.0,"quadratic low-T fit, continuity enforced / regularized"
+-151,Tprime,0.882,0.0,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.89,0.8,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.899,1.07,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.908,1.25,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.916,1.34,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.924,1.34,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.933,1.25,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.942,1.07,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.95,0.8,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.958,0.45,"high-T linear fit deviation, continuity enforced / regularized"
+-151,Tprime,0.967,0.0,"high-T linear fit deviation, continuity enforced / regularized"
