@@ -192,4 +192,4 @@ def test_behavior_fits(E: int, numLinecuts: int) -> None:
         currCol += spacing
 
 
-test_behavior_fits(103, 50)
+test_behavior_fits(103, 20)
