@@ -33,9 +33,9 @@ def load_field(E):
 
 def find_SC(T, roh) -> dict:
 
-    intervals_dict = {}
+    intervals_dict = ((0, 1), "SC")
 
-    below_threshold = roh < SC_THRESHOLD
+    # below_threshold = roh < SC_THRESHOLD
     
     # make it so that 
     # detects a sharp drop in resistivity, and if it drops below the threshold
