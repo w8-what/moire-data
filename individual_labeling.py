@@ -2,16 +2,16 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
-import scipy.optimize
 from functions import *
 from decimal import Decimal
+
+from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 
 OUT = Path('output/individual_labeling')
 IN = Path('source_data')
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 SC_THRESHOLD = 20.0
 
-PHASES = ["SC", "sublin_M", "SM", "FL", "AFM_M", "AFM_I"]
 
 plt.rcParams.update({
     'font.family': 'DejaVu Sans',
@@ -31,17 +31,50 @@ def load_field(E):
     return T, nu, R
 
 
+def contiguous_regions(mask):
+    """
+    Given a Boolean array, return inclusive index intervals where mask is True.
+
+    Example:
+        mask = [False, True, True, False, True]
+        returns [(1, 2), (4, 4)]
+    """
+    mask = np.asarray(mask, dtype=bool)
+    true_idx = np.flatnonzero(mask)
+
+    if len(true_idx) == 0:
+        return []
+
+    breaks = np.where(np.diff(true_idx) > 1)[0]
+
+    starts = np.r_[true_idx[0], true_idx[breaks + 1]]
+    ends = np.r_[true_idx[breaks], true_idx[-1]]
+
+    return list(zip(starts, ends))
+
+
 def find_SC(T, roh) -> dict:
 
-    intervals_dict = ((0, 1), "SC")
+    candidates = []
 
-    # below_threshold = roh < SC_THRESHOLD
-    
-    # make it so that 
-    # detects a sharp drop in resistivity, and if it drops below the threshold
-    # basically flag all resistivity below the threshold as that? 
+    below = roh < SC_THRESHOLD
+    intervals = contiguous_regions(below)
 
-    return intervals_dict
+    for interval in intervals:
+        candidate = {}
+        candidate.update({"phase": "SC"})
+
+        print(interval)
+
+        left, right = interval
+        left_temp = T[left]; right_temp = T[right]
+
+        candidate.update({"fit_range": (left_temp, right_temp)})
+        candidate.update({"confidence": 0.9})
+
+        candidates.append(candidate)
+
+    return candidates
 
 
 def find_sublin_M(T, roh):
@@ -70,30 +103,33 @@ def find_AFM_I(T, roh):
 
 
 # Generating linecut roh v. T plots
-def plot_behavior_fits(params, T, roh, intervals) -> None:
+def plot_behavior_fits(params, T, roh, candidates) -> None:
 
-    # Create a mapping from function names (strings) back to the actual callable functions
-    
+    filling = Decimal(params[1]).quantize(Decimal("0.000"))
+    param_string = str(params[0]) + " = " + str(filling)
+
     # Plotting (1) raw data
     plt.plot(T, roh, marker='o', markerfacecolor='none', markeredgecolor='black', linestyle='none')
     plt.ylabel("Resistivity (Ω·cm)") 
     plt.xlabel("Temperature (K)")
-    plt.title("Lines with Fits")
+    plt.title(param_string)
     plt.xlim(0)
     plt.ylim(0)
 
-    for interval in intervals:
-        if interval is None:
-            continue
+    print(str(params[0]) + " = " + str(params[1]))
+    print(candidates)
 
+    for candidate in candidates:
+
+        phase = candidate.get("phase")
+        fit_range = candidate.get("fit_range")
         # TODO: Shade phase with color and add label onto the graph 
-        plt.fill_betweenx(range(int(max(roh)+0.5)), interval[0][0], interval[0][1], alpha = 0.5)
+        plt.fill_betweenx(range(int(max(roh)+0.5)), fit_range[0], fit_range[1], alpha = 0.5)
 
         
 
     # Saving plots to path
-    filling = Decimal(params[1]).quantize(Decimal("0.000"))
-    path = OUT / f"fit_{params[0]}_{filling}.png" 
+    path = OUT / Path(param_string + ".png")
     plt.savefig(path, dpi=250, bbox_inches='tight')
     plt.close()
 
@@ -113,13 +149,16 @@ def test_behavior_fits(E: int, numLinecuts: int) -> None:
         linecut_roh = R[:, currColInt]
 
         # Finding intervals for each phase
-        intervals = []
+        candidates = []
         for phase in PHASES:
             func = globals().get(f"find_{phase}")
-            intervals.append(func(T, linecut_roh))
+            result = func(T, linecut_roh)
+            if result is not None:
+                candidates.extend(result)
 
-        plot_behavior_fits(("Filling", nu[currColInt]), T, linecut_roh, intervals)
+        # Plotting the intervals
+        plot_behavior_fits(("Filling", nu[currColInt]), T, linecut_roh, candidates)
 
         currCol += spacing
 
-test_behavior_fits(103, 20)
+test_behavior_fits(103, 50)
