@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
+
 from pathlib import Path
-from functions import *
 from decimal import Decimal
 
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
@@ -31,7 +32,7 @@ def load_field(E):
     return T, nu, R
 
 
-def contiguous_regions(mask):
+def contiguous_regions(mask) -> list:
     """
     Given a Boolean array, return inclusive index intervals where mask is True.
 
@@ -52,8 +53,114 @@ def contiguous_regions(mask):
 
     return list(zip(starts, ends))
 
+import numpy as np
 
-def find_SC(T, roh) -> dict:
+import numpy as np
+from scipy.signal import savgol_filter
+from scipy.interpolate import PchipInterpolator
+
+def smooth_rho(T, rho, window_frac=0.08, polyorder=1):
+    """
+    Lightly smooth rho(T) when T is unevenly spaced.
+
+    Same signature as before:
+        smooth_rho(T, rho, window_frac=0.08, polyorder=2)
+
+    Difference:
+        window_frac is now interpreted as a fraction of the T-range,
+        not a fraction of the number of indices.
+    """
+
+    T = np.asarray(T, dtype=float)
+    rho = np.asarray(rho, dtype=float)
+
+    rho_out = np.full_like(rho, np.nan, dtype=float)
+
+    mask = np.isfinite(T) & np.isfinite(rho)
+    if np.sum(mask) < polyorder + 3:
+        return rho.copy()
+
+    T_valid = T[mask]
+    rho_valid = rho[mask]
+
+    order = np.argsort(T_valid)
+    T_sorted = T_valid[order]
+    rho_sorted = rho_valid[order]
+
+    # Combine duplicate T values using median rho
+    unique_T = np.unique(T_sorted)
+    if len(unique_T) < len(T_sorted):
+        rho_unique = np.array([
+            np.median(rho_sorted[T_sorted == t]) for t in unique_T
+        ])
+        T_sorted = unique_T
+        rho_sorted = rho_unique
+
+    if len(T_sorted) < polyorder + 3:
+        rho_out[mask] = rho_valid
+        return rho_out
+
+    dT = np.diff(T_sorted)
+    dT = dT[dT > 0]
+
+    if len(dT) == 0:
+        rho_out[mask] = rho_valid
+        return rho_out
+
+    # Uniform grid spacing based on actual temperature spacing
+    grid_step = np.median(dT)
+
+    T_grid = np.arange(
+        T_sorted.min(),
+        T_sorted.max() + grid_step,
+        grid_step
+    )
+
+    # Interpolate uneven data onto uniform T grid
+    interp_raw = PchipInterpolator(T_sorted, rho_sorted)
+    rho_grid = interp_raw(T_grid)
+
+    # Convert fractional T-window into SavGol index-window
+    T_range = T_sorted.max() - T_sorted.min()
+    window_T = window_frac * T_range
+
+    window_length = int(round(window_T / grid_step))
+
+    # SavGol requirements
+    window_length = max(window_length, polyorder + 3)
+    if window_length % 2 == 0:
+        window_length += 1
+
+    if window_length >= len(T_grid):
+        window_length = len(T_grid) - 1
+        if window_length % 2 == 0:
+            window_length -= 1
+
+    if window_length <= polyorder:
+        rho_out[mask] = rho_valid
+        return rho_out
+
+    # Smooth on uniform grid
+    rho_grid_smooth = savgol_filter(
+        rho_grid,
+        window_length=window_length,
+        polyorder=polyorder,
+        mode="interp"
+    )
+
+    # Interpolate smoothed curve back to original uneven T points
+    interp_smooth = PchipInterpolator(T_grid, rho_grid_smooth)
+    rho_smooth_valid = interp_smooth(T_valid)
+
+    rho_out[mask] = rho_smooth_valid
+
+    return rho_out
+
+
+
+def find_SC(T, roh) -> list:
+
+    # TODO: there is a gap at the botton that is not shaded by the region
 
     candidates = []
 
@@ -62,13 +169,11 @@ def find_SC(T, roh) -> dict:
 
     for interval in intervals:
         candidate = {}
-        candidate.update({"phase": "SC"})
-
-        print(interval)
 
         left, right = interval
         left_temp = T[left]; right_temp = T[right]
 
+        candidate.update({"phase": "SC"})
         candidate.update({"fit_range": (left_temp, right_temp)})
         candidate.update({"confidence": 0.9})
 
@@ -103,31 +208,40 @@ def find_AFM_I(T, roh):
 
 
 # Generating linecut roh v. T plots
-def plot_behavior_fits(params, T, roh, candidates) -> None:
+def plot_behavior_fits(params, T, rho, candidates) -> None:
 
     filling = Decimal(params[1]).quantize(Decimal("0.000"))
     param_string = str(params[0]) + " = " + str(filling)
 
-    # Plotting (1) raw data
-    plt.plot(T, roh, marker='o', markerfacecolor='none', markeredgecolor='black', linestyle='none')
-    plt.ylabel("Resistivity (Ω·cm)") 
-    plt.xlabel("Temperature (K)")
-    plt.title(param_string)
-    plt.xlim(0)
-    plt.ylim(0)
-
     print(str(params[0]) + " = " + str(params[1]))
     print(candidates)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.2, 5.12), dpi=180)
+    fig.suptitle(param_string)
+
+    for ax in (ax1, ax2):
+        ax.set_ylabel("Resistivity (Ω·cm)") 
+        ax.set_xlabel("Temperature (K)")
+        ax.set_xlim(0, int(max(T)+0.5))
+        ax.set_ylim(0, int(max(rho)+0.5))
+        
+
+    ax1.set_title("Raw Data")
+    ax2.set_title("Smoothed Data + Behavior Fits")
+
+    ax1.plot(T, rho, marker='o', markerfacecolor='none', markeredgecolor='navy', linestyle='none')
+
+    smoothed_rho = smooth_rho(T, rho)
+    ax2.plot(T, smoothed_rho, marker='o', markerfacecolor='none', markeredgecolor='navy', linestyle='none')
 
     for candidate in candidates:
 
         phase = candidate.get("phase")
         fit_range = candidate.get("fit_range")
         # TODO: Shade phase with color and add label onto the graph 
-        plt.fill_betweenx(range(int(max(roh)+0.5)), fit_range[0], fit_range[1], alpha = 0.5)
+        ax2.axvspan(fit_range[0], fit_range[1], 0, int(max(rho)+0.5), alpha = 0.5)
 
         
-
     # Saving plots to path
     path = OUT / Path(param_string + ".png")
     plt.savefig(path, dpi=250, bbox_inches='tight')
@@ -150,6 +264,7 @@ def test_behavior_fits(E: int, numLinecuts: int) -> None:
 
         # Finding intervals for each phase
         candidates = []
+        print(PHASES)
         for phase in PHASES:
             func = globals().get(f"find_{phase}")
             result = func(T, linecut_roh)
@@ -161,4 +276,4 @@ def test_behavior_fits(E: int, numLinecuts: int) -> None:
 
         currCol += spacing
 
-test_behavior_fits(103, 50)
+test_behavior_fits(103, 75)
