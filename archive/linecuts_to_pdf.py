@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 from decimal import Decimal
-from functions import *
+from archive.functions import *
 from matplotlib.backends.backend_pdf import PdfPages
 
 OUT = Path('output/manual_fitting')
