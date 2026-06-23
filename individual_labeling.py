@@ -59,31 +59,90 @@ def find_SC(T, roh) -> list:
 def find_sublin_M(T, roh):
     return None
 
-def find_SM(T, roh):
+def find_SM(T, rho):
     return None
 
-def find_FL(T, roh):
+def find_FL(T, rho):
     return None
 
-def find_AFM(T, roh):
-    return None
+
+def find_AFM(T, rho):
+    """
+    Detect candidate AFM-like upturn/minimum features.
+    """
+
+    smoothed_rho = smooth_rho(T, rho)
+    dr_dT = np.gradient(smoothed_rho, T)
+    d2r_dT2 = np.gradient(dr_dT, T)
+
+    cp_threshold = 1
+    temp_window = 0.5
+    squish_factor = 1000
+
+    candidates_i = []
+    candidates_score = []
+    scored_i = []
+
+    for i in range(len(dr_dT)):
+        if abs(dr_dT[i]) < cp_threshold and d2r_dT2[i] > 0:
+            candidates_i.append(i)
+
+    for i in candidates_i:
+        slope_sum = 0.0
+        j = i - 1
+        size = 0
+
+        while j > 0 and d2r_dT2[j] > 0:
+            slope_sum += dr_dT[j]
+            j -= 1
+            size += 1
+
+        if j == 0:
+            start = max(0, np.searchsorted(T, T[i] - temp_window))
+            end = i
+
+            if end <= start:
+                continue
+
+            average = dr_dT[start:end].mean()
+
+        elif size > 0:
+            average = slope_sum / size
+
+        else:
+            continue
+
+        if not np.isfinite(average):
+            continue
+
+        score = (2 / np.pi) * np.arctan(-average / squish_factor)
+
+        candidates_score.append(score)
+        scored_i.append(i)
+
+    if len(candidates_score) == 0:
+        return None
+
+    best_pos, val = max(enumerate(candidates_score), key=lambda p: p[1])
+    best_i = scored_i[best_pos]
+
+    return [{
+        "phase": "AFM",
+        "confidence": float(np.clip(val, 0, 1)),
+        "fit_range": (0, T[best_i])
+    }]
+
+
 
 
 # TODO: add AFM-M and AFM-I (separate detection)
 
-# def find_AFM_M(T, roh):
+# def find_AFM_M(T, rho):
 #     return None
 
 
 # def find_AFM_I(T, roh):
 #     return None
-
-
-
-
-
-
-
 
 
 # Generating linecut roh v. T plots
@@ -123,8 +182,11 @@ def plot_behavior_fits(params: dict, T: np.ndarray, rho: np.ndarray, candidates:
 
         phase = candidate.get("phase")
         fit_range = candidate.get("fit_range")
+
         # TODO: Shade phase with color and add label onto the graph 
-        ax2.axvspan(fit_range[0], fit_range[1], 0, int(max(rho)+0.5), alpha = 0.5)
+        ax2.axvspan(fit_range[0], fit_range[1], alpha = candidate["confidence"], 
+                    color = PHASE_COLORS.get(phase), label = PHASE_LABELS.get(phase))
+        
 
         
     # Saving plots to path

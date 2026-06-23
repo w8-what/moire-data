@@ -35,7 +35,7 @@ def contiguous_regions(mask) -> list:
     return list(zip(starts, ends))
 
 
-def smooth_rho(T, rho, window_frac=0.08, polyorder=1):
+def smooth_rho(T, rho, window_frac=0.08, polyorder=2):
     """
     Lightly smooth rho(T) when T is unevenly spaced.
 
