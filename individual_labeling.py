@@ -222,4 +222,6 @@ def test_behavior_fits(E: int, numLinecuts: int) -> None:
         plot_behavior_fits({"E" : E, "Filling" : nu[currColInt]}, T, linecut_roh, candidates)
         currCol += spacing
 
-test_behavior_fits(176, 150)
+
+for field in FIELDS:
+    test_behavior_fits(field, 20)
