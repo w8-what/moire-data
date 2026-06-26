@@ -43,58 +43,32 @@ def load_field(E):
 
 # Extract candidate transition temperatures from sharp turns 
 
+
 def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
 
     threshold = sensitivity * 100
-    snr_threshold = 3
 
-    rho_smoothed = smooth_rho(T, rho)
-    dpdT = np.gradient(T, rho_smoothed)
-    d2pdT2 = np.gradient(T, dpdT)
+    rho_smoothed = smooth_rho(rho, T)
+    dpdT = np.gradient(rho_smoothed, T)
+    d2pdT2 = np.gradient(dpdT, T)
 
-    # create mask for dpdT < threshold (clustering? basically if theres a hole -> fill it, or if theres a single dot, ignore)
-    dpdT_mask = dpdT < threshold
+    # create mask for abs(dpdT) < threshold (clustering? basically if theres a hole -> fill it, or if theres a single dot, ignore)
+    dpdT_mask = abs(dpdT) < threshold
     dpdT_mask = clean_boolean_mask(dpdT_mask)
 
-    snr, _, _, _ = robust_snr(T, d2pdT2) 
-    d2pdT2_mask = (snr > snr_threshold) & (d2pdT2 > 0)
+    d2pdT2_mask = (d2pdT2 > 0)
     d2pdT2_mask = clean_boolean_mask(d2pdT2_mask)
 
+    mask = dpdT_mask & d2pdT2_mask
+    print(mask)
+
+    candidates = T[mask]
     candidate_upturns = []
 
-    for left, right in contiguous_regions(d2pdT2_mask):
-        region = slice(left, right + 1)
-        region_len = right - left + 1
-
-        if region_len <= 0:
-            continue
-
-        # Require at least 50% overlap with dpdT condition
-        overlap_fraction = np.mean(dpdT_mask[region])
-
-        if overlap_fraction < 0.5:
-            continue
-
-        snr_region = snr[region]
-
-        if not np.any(np.isfinite(snr_region)):
-            continue
-
-        # Peak = strongest SNR point inside the region
-        local_peak = np.argmax(snr_region)
-        peak_i = left + local_peak
-
-        mean_snr = np.mean(snr_region)
-        max_snr = np.max(snr_region)
-
-        # Normalize score from 0 to 1 based on mean SNR
-        # score = 0 near threshold, approaches 1 for strong regions
-        score = 1.0 - np.exp(-(mean_snr - snr_threshold) / 3.0)
-        score = float(np.clip(score, 0.0, 1.0))
-
+    for cand in candidates:
         candidate = {
-            "T" : float(T[int((left + right + 0.5)/2)]),
-            "confidence" : score,
+            "T" : cand,
+            "confidence" : 0.5,
 
             "phase_left" : "AFM",
             "phase_right" : None
@@ -106,6 +80,7 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
 
 
 
+
 # Extract candidate transition temperatures from change in curve fits (metallic transitions)
 
 def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
@@ -114,28 +89,24 @@ def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
 
 
 
-
 # Plot candidate transition temperatures, along with candidate phases (if suggested)
 
 def plot_single_linecut(params, T, rho, candidates) -> None:
  
-    # --- title string from params ---
     param_string = "  ".join(
         f"{k} = {fmt4(v)}" for k, v in params.items()
     )
  
-    # --- derived curves ---
-    rho_smoothed = smooth_rho(T, rho)
+    # Derived curves
+    rho_smoothed = smooth_rho(rho, T)
     dpdT_raw      = np.gradient(rho,          T)
     dpdT_smoothed = np.gradient(rho_smoothed, T)
+
+
+    dlnpdlnT = np.gradient(np.log(np.clip(rho_smoothed, 0, np.inf)), np.log(np.clip(T, 0, np.inf)))
  
     # --- layout: 1 row × 2 cols ---
-    fig, (ax1, ax2) = plt.subplots(
-        1, 2,
-        figsize=(16, 5),
-        dpi=150,
-        constrained_layout=True,
-    )
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 5), dpi=150, constrained_layout=True)
     fig.suptitle(param_string, fontsize=9, y=1.02)
  
     # ── shared axis labels ──────────────────────────────────────────────────
@@ -144,42 +115,18 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
         ax.set_ylabel("Resistivity (Ω)")
         ax.tick_params(which='both', direction='in', top=True, right=True)
  
-    # ── ax1 : raw data ──────────────────────────────────────────────────────
     ax1.set_title("Raw Data")
+    ax1.plot(T, rho, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
  
-    ax1.plot(
-        T, rho,
-        marker='o', markersize=3,
-        markerfacecolor='none', markeredgecolor='#1a3a6b',
-        linewidth=1.0, color='#1a3a6b',
-        label='Raw ρ(T)',
-    )
-    ax1.fill_between(T, rho, alpha=0.12, color='#1a3a6b')
- 
-    ax1.legend(frameon=False, fontsize=7)
- 
-    # ── ax2 : smoothed + transition markers ────────────────────────────────
     ax2.set_title("Smoothed Data + Candidate Transitions")
- 
-    # faint raw underneath for reference
-    ax2.plot(
-        T, rho,
-        marker='o', markersize=2.5,
-        markerfacecolor='none', markeredgecolor='#aaaaaa',
-        linewidth=0.6, color='#aaaaaa', alpha=0.6,
-        label='Raw ρ(T)',
-        zorder=1,
-    )
- 
-    # smoothed curve on top
-    ax2.plot(
-        T, rho_smoothed,
-        linewidth=1.8, color='#c0392b',
-        label='Smoothed ρ(T)',
-        zorder=2,
-    )
-    ax2.fill_between(T, rho_smoothed, alpha=0.10, color='#c0392b', zorder=1)
- 
+    ax2.plot(T, rho_smoothed, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
+
+    ax3.set_title("dln(P)/dln(T)")
+    ax3.plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
+
+    
+
+
     # --- transition temperature markers ------------------------------------
     # Sort by temperature so staggered labels alternate neatly
     sorted_candidates = sorted(candidates, key=lambda c: c["T"])
@@ -238,9 +185,7 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
             s=28, color='#c0392b', zorder=5,
             edgecolors='white', linewidths=0.6,
         )
- 
-    ax2.legend(frameon=False, fontsize=7, loc='upper left')
- 
+  
     # ── save ────────────────────────────────────────────────────────────────
     safe_name = param_string.replace("/", "_").replace(" ", "_")
     path = OUT / Path(safe_name + ".png")
@@ -266,6 +211,7 @@ def plot_all_linecuts(E: int, numLines: int) -> None:
         linecut_rho = R[:, currColInt]
 
         # Plotting the intervals
+        print(f"{nu[currColInt]=}")
         candidates = extract_upturns(T, linecut_rho)
         candidates += extract_metallic_transitions(T, linecut_rho, candidates)
 
@@ -273,7 +219,7 @@ def plot_all_linecuts(E: int, numLines: int) -> None:
 
         currCol += spacing
 
-plot_all_linecuts(103, 20)
+plot_all_linecuts(103, 50)
 
 
 

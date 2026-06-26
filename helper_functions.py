@@ -35,7 +35,7 @@ def contiguous_regions(mask) -> list:
     return list(zip(starts, ends))
 
 
-def robust_snr(T, x, background_window_T=2.0, polyorder=2):
+def robust_snr(x, T, background_window_T=2.0, polyorder=2):
     """
     Robust residual-MAD SNR for a signal x(T).
 
@@ -160,7 +160,7 @@ def clean_boolean_mask(mask, max_gap=1, min_len=3):
     return mask
 
 
-def smooth_rho(T, rho, window_frac=0.08, polyorder=2):
+def smooth_rho(rho, T, window_frac=0.08, polyorder=2):
     """
     Lightly smooth rho(T) when T is unevenly spaced.
 
@@ -256,4 +256,5 @@ def smooth_rho(T, rho, window_frac=0.08, polyorder=2):
     rho_out[mask] = rho_smooth_valid
 
     return rho_out
+
 
