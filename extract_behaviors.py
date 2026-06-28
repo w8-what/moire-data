@@ -125,7 +125,9 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
     ax3.plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
 
     
-
+    for ax in (ax1, ax2, ax3):
+        ax.set_xlim(0)
+        ax.set_ylim(0)
 
     # --- transition temperature markers ------------------------------------
     # Sort by temperature so staggered labels alternate neatly
