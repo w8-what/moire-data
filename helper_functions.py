@@ -1,9 +1,17 @@
 
 import math
 import numpy as np
+import pandas as pd 
 
 from scipy.signal import savgol_filter
 from scipy.interpolate import PchipInterpolator
+
+def load_field(E, IN):
+    df = pd.read_csv(IN / f'Rxx_matrix_E-{E}mV_nm.csv')
+    T = df.iloc[:, 0].astype(float).to_numpy()
+    nu = np.array([float(c) for c in df.columns[1:]])
+    R = df.iloc[:, 1:].astype(float).to_numpy()
+    return T, nu, R
 
 def fmt4(x):
     if x == 0:
@@ -160,102 +168,6 @@ def clean_boolean_mask(mask, max_gap=1, min_len=3):
     return mask
 
 
-def smooth_rho(rho, T, window_frac=0.1, polyorder=1):
-    """
-    Lightly smooth rho(T) when T is unevenly spaced.
-
-    Same signature as before:
-        smooth_rho(T, rho, window_frac=0.08, polyorder=2)
-
-    Difference:
-        window_frac is now interpreted as a fraction of the T-range,
-        not a fraction of the number of indices.
-    """
-
-    T = np.asarray(T, dtype=float)
-    rho = np.asarray(rho, dtype=float)
-
-    rho_out = np.full_like(rho, np.nan, dtype=float)
-
-    mask = np.isfinite(T) & np.isfinite(rho)
-    if np.sum(mask) < polyorder + 3:
-        return rho.copy()
-
-    T_valid = T[mask]
-    rho_valid = rho[mask]
-
-    order = np.argsort(T_valid)
-    T_sorted = T_valid[order]
-    rho_sorted = rho_valid[order]
-
-    # Combine duplicate T values using median rho
-    unique_T = np.unique(T_sorted)
-    if len(unique_T) < len(T_sorted):
-        rho_unique = np.array([
-            np.median(rho_sorted[T_sorted == t]) for t in unique_T
-        ])
-        T_sorted = unique_T
-        rho_sorted = rho_unique
-
-    if len(T_sorted) < polyorder + 3:
-        rho_out[mask] = rho_valid
-        return rho_out
-
-    dT = np.diff(T_sorted)
-    dT = dT[dT > 0]
-
-    if len(dT) == 0:
-        rho_out[mask] = rho_valid
-        return rho_out
-
-    # Uniform grid spacing based on actual temperature spacing
-    grid_step = np.median(dT)
-
-    T_grid = np.arange(
-        T_sorted.min(),
-        T_sorted.max() + grid_step,
-        grid_step
-    )
-
-    # Interpolate uneven data onto uniform T grid
-    interp_raw = PchipInterpolator(T_sorted, rho_sorted)
-    rho_grid = interp_raw(T_grid)
-
-    # Convert fractional T-window into SavGol index-window
-    T_range = T_sorted.max() - T_sorted.min()
-    window_T = window_frac * T_range
-
-    window_length = int(round(window_T / grid_step))
-
-    # SavGol requirements
-    window_length = max(window_length, polyorder + 3)
-    if window_length % 2 == 0:
-        window_length += 1
-
-    if window_length >= len(T_grid):
-        window_length = len(T_grid) - 1
-        if window_length % 2 == 0:
-            window_length -= 1
-
-    if window_length <= polyorder:
-        rho_out[mask] = rho_valid
-        return rho_out
-
-    # Smooth on uniform grid
-    rho_grid_smooth = savgol_filter(
-        rho_grid,
-        window_length=window_length,
-        polyorder=polyorder,
-        mode="interp"
-    )
-
-    # Interpolate smoothed curve back to original uneven T points
-    interp_smooth = PchipInterpolator(T_grid, rho_grid_smooth)
-    rho_smooth_valid = interp_smooth(T_valid)
-
-    rho_out[mask] = rho_smooth_valid
-
-    return rho_out
 
 # ----- HELPER FUNCTIONS FOR ADAPTIVE SMOOTHING -----
 
@@ -291,7 +203,7 @@ def local_poly(T, y, x0, h, deg=2):
     return beta[0]
 
 
-def adaptive_smooth(rho, T, deg=1, h_min=0.5, h_max=None, sensitivity=2):
+def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=3):
     dT = np.median(np.diff(T))
     Tr = T[-1] - T[0]
 
