@@ -13,6 +13,9 @@ FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 SC_THRESHOLD = 20.0
 
 
+
+# old script that shades regions of AFM/linear/sublinear/SC, etc
+
 plt.rcParams.update({
     'font.family': 'DejaVu Sans',
     'font.size': 9,
