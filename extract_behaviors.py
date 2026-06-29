@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 import os 
 from pathlib import Path
 
-from helper_functions import fmt4, contiguous_regions, smooth_rho, clean_boolean_mask, robust_snr
+from helper_functions import fmt4, contiguous_regions, smooth_rho, clean_boolean_mask, robust_snr, adaptive_smooth
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 from hampel import hampel
 
-OUT = Path('output/extract_behaviors')
+OUT = Path('output/extract_behaviors_adaptive_smooth')
 IN = Path('source_data')
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 
@@ -48,7 +48,7 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
 
     threshold = sensitivity * 100
 
-    rho_smoothed = smooth_rho(rho, T)
+    rho_smoothed = adaptive_smooth(rho, T)
     dpdT = np.gradient(rho_smoothed, T)
     d2pdT2 = np.gradient(dpdT, T)
 
@@ -98,7 +98,7 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
     )
  
     # Derived curves
-    rho_smoothed = smooth_rho(rho, T)
+    rho_smoothed = adaptive_smooth(rho, T)
     dpdT_raw      = np.gradient(rho,          T)
     dpdT_smoothed = np.gradient(rho_smoothed, T)
 
@@ -222,6 +222,10 @@ def plot_all_linecuts(E: int, numLines: int) -> None:
         currCol += spacing
 
 plot_all_linecuts(103, 50)
+plot_all_linecuts(96.2, 10)
+plot_all_linecuts(176, 10)
+
+
 
 
 
