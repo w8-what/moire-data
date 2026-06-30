@@ -108,7 +108,7 @@ def local_poly(T, y, x0, h, deg=2):
     return beta[0]
 
 
-def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=3):
+def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
     dT = np.median(np.diff(T))
     Tr = T[-1] - T[0]
 

@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
 
 import os 
 from pathlib import Path
@@ -10,7 +11,7 @@ from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_fie
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 from hampel import hampel
 
-OUT = Path('output/extract_behaviors_adaptive_smooth_default')
+OUT = Path('output/debug')
 IN = Path('source_data')
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 
@@ -20,6 +21,7 @@ if not os.path.exists(OUT):
 # Extract candidate transition temperatures from sharp turns 
 def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
 
+    candidate_upturns = []
     threshold = sensitivity * 100
 
     # rho = hampel(rho).filtered_data
@@ -27,21 +29,11 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
     dpdT = np.gradient(rho_smoothed, T)
     d2pdT2 = np.gradient(dpdT, T)
 
-    # create mask for abs(dpdT) < threshold (clustering? basically if theres a hole -> fill it, or if theres a single dot, ignore)
-    dpdT_mask = abs(dpdT) < threshold
-    dpdT_mask = clean_boolean_mask(dpdT_mask)
+    peaks, prop = find_peaks(-rho_smoothed)
 
-    d2pdT2_mask = (d2pdT2 > 0)
-    d2pdT2_mask = clean_boolean_mask(d2pdT2_mask)
-
-    mask = dpdT_mask & d2pdT2_mask
-
-    candidates = T[mask]
-    candidate_upturns = []
-
-    for cand in candidates:
+    for idx in peaks:
         candidate = {
-            "T" : cand,
+            "T" : T[idx],
             "confidence" : 0.5,
 
             "phase_left" : "AFM",
@@ -109,7 +101,8 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
         phase_left = cand["phase_left"]
         phase_right = cand["phase_right"]
 
-        rho_at_T_t = np.interp(T_t, T, rho_smoothed)
+        
+        rho_at_T_t = rho_smoothed[np.where(T == T_t)]
         axes[1].scatter(T_t, rho_at_T_t, color = "red", alpha = 0.8)
         axes[1].axvline(T_t, linewidth = 1, linestyle='--', color = "grey", zorder=3)
 
@@ -121,13 +114,13 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
  
 
 # Go through each linecut; extract and plot all candidate transition temperature 
-def plot_all_linecuts(E: int, numLines: int) -> None:
+def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> None:
 
     # TODO: learn np.linspace thats endpoint inclusive for clearer code
 
     T, nu, R = load_field(E, IN)
-
     row, col = R.shape
+
     currCol = 0
     spacing = (col - 1) / (numLines - 1)
 
@@ -140,10 +133,16 @@ def plot_all_linecuts(E: int, numLines: int) -> None:
         candidates = extract_upturns(T, linecut_rho)
         candidates += extract_metallic_transitions(T, linecut_rho, candidates)
 
+        print(candidates)
+
         plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates)
 
         currCol += spacing
 
-plot_all_linecuts(103, 50)
-plot_all_linecuts(96.2, 10)
-plot_all_linecuts(176, 10)
+# plot_all_linecuts(103, 100)
+# plot_all_linecuts(96.2, 10)
+# plot_all_linecuts(176, 10)
+
+for field in FIELDS:
+    plot_all_linecuts(field, 30)
+
