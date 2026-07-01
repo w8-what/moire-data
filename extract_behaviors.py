@@ -3,15 +3,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
+from scipy.stats import norm
 
 import os 
 from pathlib import Path
 
-from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_field
+from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_field, mad
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 from hampel import hampel
 
-OUT = Path('output/debug')
+OUT = Path('output/extract_behaviors')
 IN = Path('source_data')
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 
@@ -31,10 +32,37 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
 
     peaks, prop = find_peaks(-rho_smoothed)
 
+    dpdT_neg = dpdT[np.where(dpdT < 0)] # array of all negative dpdT values
+    med_dpdT_neg = np.median(dpdT_neg)
+    mad_dpdT_neg = mad(dpdT_neg)
+    med_d2pdT2 = np.median(d2pdT2)
+    mad_d2pdT2 = mad(d2pdT2)
+
     for idx in peaks:
+
+        # Percentile of second deriverative at candidate assuming normal distribution 
+        curvature_score = norm.cdf((d2pdT2[idx] - med_d2pdT2) / mad_d2pdT2)
+
+        # Finds range of cliff using by stopping when concavity changes
+        # Calculates score by finding average slope in cliff range and comparing to median slope (in negative slopes)
+
+        kernel = np.ones(3)/3
+        d2pdT2_moving_average = np.convolve(d2pdT2, kernel, mode = "same")
+
+        idx_l = idx; sum = 0
+        while idx_l > 0 or d2pdT2_moving_average[idx_l] < 0:
+            sum += dpdT[idx_l]
+            idx_l -= 1
+
+        avg_dpdT_cliff = 0 if idx_l == 0 else np.mean(dpdT[idx_l:idx])
+        left_cliff_score = norm.cdf(-(avg_dpdT_cliff - med_dpdT_neg) / mad_dpdT_neg) # more negative z-score is desirable here (steeper slope)
+
+        # Combines scores
+        comb_score = 0.5 * curvature_score + 0.5 * left_cliff_score
+
         candidate = {
             "T" : T[idx],
-            "confidence" : 0.5,
+            "confidence" : comb_score,
 
             "phase_left" : "AFM",
             "phase_right" : None
