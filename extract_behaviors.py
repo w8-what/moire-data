@@ -8,11 +8,11 @@ from scipy.stats import norm
 import os 
 from pathlib import Path
 
-from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_field, mad
+from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_field, mad, smooth_mask, contiguous_regions
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 from hampel import hampel
 
-OUT = Path('output/extract_behaviors')
+OUT = Path('output/extract_behaviors_metallic')
 IN = Path('source_data')
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 
@@ -35,37 +35,53 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
     dpdT_neg = dpdT[np.where(dpdT < 0)] # array of all negative dpdT values
     med_dpdT_neg = np.median(dpdT_neg)
     mad_dpdT_neg = mad(dpdT_neg)
+
     med_d2pdT2 = np.median(d2pdT2)
     mad_d2pdT2 = mad(d2pdT2)
+
+    kernel = np.ones(3)/3
+    d2pdT2_moving_average = np.convolve(d2pdT2, kernel, mode = "same")
+    rho_span = np.max(rho_smoothed) - np.min(rho_smoothed)
+
 
     for idx in peaks:
 
         # Percentile of second deriverative at candidate assuming normal distribution 
         curvature_score = norm.cdf((d2pdT2[idx] - med_d2pdT2) / mad_d2pdT2)
 
-        # Finds range of cliff using by stopping when concavity changes
-        # Calculates score by finding average slope in cliff range and comparing to median slope (in negative slopes)
-
-        kernel = np.ones(3)/3
-        d2pdT2_moving_average = np.convolve(d2pdT2, kernel, mode = "same")
-
-        idx_l = idx; sum = 0
-        while idx_l > 0 or d2pdT2_moving_average[idx_l] < 0:
-            sum += dpdT[idx_l]
+        # Finds features of cliff using by stopping when concavity changes
+        idx_l = idx
+        while idx_l > 0 and d2pdT2_moving_average[idx_l] > 0:
             idx_l -= 1
 
-        avg_dpdT_cliff = 0 if idx_l == 0 else np.mean(dpdT[idx_l:idx])
-        left_cliff_score = norm.cdf(-(avg_dpdT_cliff - med_dpdT_neg) / mad_dpdT_neg) # more negative z-score is desirable here (steeper slope)
+        # Calculates cliff_slope_score by comparing average slope in range to median using MAD
+        avg_dpdT_cliff = 0 if (idx_l == 0 or idx_l == idx) else np.mean(dpdT[idx_l:idx])
+        cliff_slope_score = norm.cdf(-(avg_dpdT_cliff - med_dpdT_neg) / mad_dpdT_neg) # more negative z-score is desirable here (steeper slope)
 
-        # Combines scores
-        comb_score = 0.5 * curvature_score + 0.5 * left_cliff_score
+        # Calculates cliff_size_score by comparing vertical size of cliff in range to half of total rho span
+        cliff_size = abs(rho_smoothed[idx_l] - rho_smoothed[idx])
+        cliff_size_score = 0 if (idx_l == 0 or idx_l == idx) else 2 * cliff_size / rho_span
+
+        # print(f"{idx_l=}")
+        # print(f"{T[idx_l]=}")
+        # print(f"{curvature_score=}")
+        # print(f"{cliff_slope_score=}")
+        # print(f"{cliff_size_score=}\n")
+
+        # print(f"{(d2pdT2_moving_average[idx_l] - med_d2pdT2) / mad_d2pdT2 =}")
+
+
+        comb_score = 0.2 * curvature_score + 0.2 * cliff_slope_score + 0.6 * cliff_size_score
+        comb_score = float(f"{comb_score:.3g}")
 
         candidate = {
             "T" : T[idx],
             "confidence" : comb_score,
 
             "phase_left" : "AFM",
-            "phase_right" : None
+            "phase_right" : None,
+            "left_fit" : None,
+            "right_fit" : None
         }
 
         candidate_upturns.append(candidate)
@@ -74,6 +90,49 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
 
 # Extract candidate transition temperatures from change in curve fits (metallic transitions)
 def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
+        
+    T_left = 0 if len(candidates) == 0 else np.argmin(np.abs(T - candidates[-1].get("T"))) # Getting index of left most T
+    rho_smoothed = adaptive_smooth(hampel(rho).filtered_data, T)
+    dpdT = np.gradient(rho_smoothed, T) # Splice data to include right range only
+    dpdT_pos = np.hstack((smooth_mask((dpdT > 0)[0:T_left]), smooth_mask((dpdT[T_left:] > 0)))) # Mask of spliced data (right side)
+
+    i = T_left
+    curr_is_pos = dpdT_pos[i]
+    phase_right = "Metal" if curr_is_pos else "Insulator"
+
+    if T_left == 0 :
+        candidate = {
+            "T" : T[0],
+            "confidence" : 0.9,
+
+            "phase_left" : None,
+            "phase_right" : phase_right,
+            "left_fit" : None,
+            "right_fit" : None
+        }
+        candidates.append(candidate)
+    else:
+        candidates[-1].update({"phase_right" : phase_right})
+    
+
+
+
+    while i < len(T):
+
+
+        
+
+        # add the right class for the first point
+        # when you find a sign flip
+        #     inset a new T to candidates 
+        #     add the left sign to candidates
+        # add the final point
+        # add the left sign to the final last point 
+
+
+
+
+
 
     return []
 
@@ -108,32 +167,36 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
         ax.set_ylim(0)
 
 
-    # axes[2].set_title("n")
-    # axes[2].plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
+    axes[3].set_title("n")
+    axes[3].plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
 
-    axes[2].set_title("Second Deriveratives")
-    axes[2].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[2].fill_between(T, d2pdT2, alpha = 0.5)
+    # axes[2].set_title("Second Deriveratives")
+    # axes[2].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    # axes[2].fill_between(T, d2pdT2, alpha = 0.5)
     
-    axes[3].set_title("First Deriveratives")
-    axes[3].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[3].fill_between(T, dpdT, alpha = 0.5)
+    axes[2].set_title("First Deriveratives")
+    axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    axes[2].fill_between(T, dpdT, alpha = 0.5)
 
 
-
-    # Plotting transition points 
+    # Plotting transition points and fitted lines 
     for cand in candidates:
 
         T_t = cand["T"]
-        conf = cand["confidence"]
+        conf = cand["confidence"] 
         phase_left = cand["phase_left"]
         phase_right = cand["phase_right"]
 
-        
-        rho_at_T_t = rho_smoothed[np.where(T == T_t)]
+        rho_at_T_t = rho_smoothed[np.argmin(np.abs(T - T_t))]
         axes[1].scatter(T_t, rho_at_T_t, color = "red", alpha = 0.8)
         axes[1].axvline(T_t, linewidth = 1, linestyle='--', color = "grey", zorder=3)
 
+        max_rho = np.max(rho_smoothed)
+        top_half = rho_at_T_t > (max_rho/2)
+        y_text = 0.8 * max_rho if top_half else 0.2 * max_rho
+        axes[1].annotate(f"{conf=}", xy=(T_t, rho_at_T_t), xytext=(T_t, y_text),
+            bbox=dict(boxstyle="round", fc="0.8", alpha = 0.8),
+            arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=10, connectionstyle="angle,angleA=0,angleB=90,rad=10", alpha = 0.8))
 
     # Save to path
     path = OUT / Path(param_string + ".png")
@@ -145,7 +208,6 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
 def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> None:
 
     # TODO: learn np.linspace thats endpoint inclusive for clearer code
-
     T, nu, R = load_field(E, IN)
     row, col = R.shape
 
@@ -157,20 +219,18 @@ def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> Non
         linecut_rho = R[:, currColInt]
 
         # Plotting the intervals
-        print(f"{nu[currColInt]=}")
+        print(f"{nu[currColInt]=}\n")
         candidates = extract_upturns(T, linecut_rho)
         candidates += extract_metallic_transitions(T, linecut_rho, candidates)
 
-        print(candidates)
-
         plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates)
-
         currCol += spacing
 
-# plot_all_linecuts(103, 100)
-# plot_all_linecuts(96.2, 10)
-# plot_all_linecuts(176, 10)
 
-for field in FIELDS:
-    plot_all_linecuts(field, 30)
+
+# for field in FIELDS:
+#     plot_all_linecuts(field, 30)
+
+plot_all_linecuts(103, 10)
+
 

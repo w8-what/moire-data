@@ -73,6 +73,32 @@ def clean_boolean_mask(mask, max_gap=1, min_len=3):
     return mask
 
 
+# ----- HELPER FUNCTIONS FOR METALLIC EXTRACTION -----
+
+
+def smooth_mask(mask, min_len=3):
+    mask = np.asarray(mask, dtype=bool).copy()
+
+    while True:
+        # Run boundaries: starts inclusive, ends exclusive
+        edges = np.r_[0, np.flatnonzero(mask[1:] != mask[:-1]) + 1, len(mask)]
+        lengths = np.diff(edges)
+
+        bad = np.flatnonzero(lengths < min_len)
+        if len(bad) == 0 or len(edges) <= 2:
+            return mask
+
+        # Remove the shortest bad run first; this avoids weird simultaneous flips
+        i = bad[np.argmin(lengths[bad])]
+        s, e = edges[i], edges[i + 1]
+
+        if i == 0:
+            mask[s:e] = mask[e]          # left edge: merge right
+        elif i == len(lengths) - 1:
+            mask[s:e] = mask[s - 1]      # right edge: merge left
+        else:
+            mask[s:e] = mask[s - 1]      # interior: left/right are same for bool runs
+
 
 # ----- HELPER FUNCTIONS FOR ADAPTIVE SMOOTHING -----
 
