@@ -13,13 +13,13 @@ def load_field(E, IN):
     nu = np.array([float(c) for c in df.columns[1:]])
     R  = df.iloc[:, 1:].astype(float).to_numpy()
 
-    # Keep only rows where T is finite and the whole rho linecut is finite
-    mask = np.isfinite(T) & np.all(np.isfinite(R), axis=1)
-    T, R = T[mask], R[mask]
+    # # Keep only rows where T is finite and the whole rho linecut is finite
+    # mask = np.isfinite(T) & np.all(np.isfinite(R), axis=1)
+    # T, R = T[mask], R[mask]
 
-    # Sort rows by increasing temperature; R rows must follow T
-    idx = np.argsort(T)
-    T, R = T[idx], R[idx]
+    # # Sort rows by increasing temperature; R rows must follow T
+    # idx = np.argsort(T)
+    # T, R = T[idx], R[idx]
 
     return T, nu, R
 
@@ -118,16 +118,16 @@ def mad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
-def local_poly(T, y, x0, h, deg=2):
+def local_poly(T, rho, rho0, h, deg=2):
     # Use a temperature window, not a point-count window.
-    idx = np.abs(T - x0) <= h
+    idx = np.abs(T - rho0) <= h
 
     # Local polynomial needs enough points to fit stably.
     if idx.sum() < deg + 2:
-        idx = np.argsort(np.abs(T - x0))[:deg + 2]
+        idx = np.argsort(np.abs(T - rho0))[:deg + 2]
 
-    x = T[idx] - x0
-    yy = y[idx]
+    x = T[idx] - rho0
+    y = rho[idx]
 
     # Tricube weights: closer points matter more.
     u = np.abs(x) / h
@@ -138,7 +138,7 @@ def local_poly(T, y, x0, h, deg=2):
 
     # Weighted least squares.
     sw = np.sqrt(w)
-    beta = np.linalg.lstsq(X * sw[:, None], yy * sw, rcond=None)[0]
+    beta = np.linalg.lstsq(X * sw[:, None], y * sw, rcond=None)[0]
 
     # beta[0] is the fitted value at x0 because x = T - x0.
     return beta[0]
@@ -183,14 +183,15 @@ def weighted_mad(x, w):
     return 1.4826 * mad
 
 
-def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=1):
+
+def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
     dT = np.median(np.diff(T))
     Tr = T[-1] - T[0]
 
     # h_min prevents the smoother from chasing noise.
     # h_max is the broad window used in smooth/background regions.
     h_min = 3 * dT if h_min is None else h_min
-    h_max = 0.2 * Tr if h_max is None else h_max
+    h_max = 0.15 * Tr if h_max is None else h_max
 
     # First pass: broad smooth so curvature is not dominated by raw noise.
     rough = np.array([local_poly(T, rho, t, h_max, deg) for t in T])
@@ -199,10 +200,9 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=1):
     d1 = np.gradient(rough, T)
     d2 = np.gradient(d1, T)
     sharp = np.abs(d2)
-    w = T_weights(T)
 
     # MAD-score = how unusually sharp this point is compared to this linecut.
-    score = (sharp - weighted_median(sharp, w)) / weighted_mad(sharp, w)
+    score = (sharp - np.median(sharp)) / mad(sharp)
     score = np.clip(score, 0, 8)
 
     # Large score -> shrink smoothing window to preserve transition.
@@ -210,11 +210,44 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=1):
     h = h_max / (1 + score / sensitivity)
     h = np.clip(h, h_min, h_max)
 
-    # deg_adaptive = []
-    # for _ in h:
-    #     deg_adaptive.append(deg + 1) if deg > 4 else deg_adaptive.append(deg)
-
     # Final pass: adaptive smoothing with local temperature window.
     smooth = np.array([local_poly(T, rho, T[i], h[i], deg) for i in range(len(T))])
 
     return smooth
+
+
+# def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=1):
+#     dT = np.median(np.diff(T))
+#     Tr = T[-1] - T[0]
+
+#     # h_min prevents the smoother from chasing noise.
+#     # h_max is the broad window used in smooth/background regions.
+#     h_min = 3 * dT if h_min is None else h_min
+#     h_max = 0.2 * Tr if h_max is None else h_max
+
+#     # First pass: broad smooth so curvature is not dominated by raw noise.
+#     rough = np.array([local_poly(T, rho, t, h_max, deg) for t in T])
+
+#     # Curvature estimates where the curve bends sharply.
+#     d1 = np.gradient(rough, T)
+#     d2 = np.gradient(d1, T)
+#     sharp = np.abs(d2)
+#     w = T_weights(T)
+
+#     # MAD-score = how unusually sharp this point is compared to this linecut.
+#     score = (sharp - weighted_median(sharp, w)) / weighted_mad(sharp, w)
+#     score = np.clip(score, 0, 8)
+
+#     # Large score -> shrink smoothing window to preserve transition.
+#     # Small score -> use large window to smooth boring regions.
+#     h = h_max / (1 + score / sensitivity)
+#     h = np.clip(h, h_min, h_max)
+
+#     # deg_adaptive = []
+#     # for _ in h:
+#     #     deg_adaptive.append(deg + 1) if deg > 4 else deg_adaptive.append(deg)
+
+#     # Final pass: adaptive smoothing with local temperature window.
+#     smooth = np.array([local_poly(T, rho, T[i], h[i], deg) for i in range(len(T))])
+
+#     return smooth

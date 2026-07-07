@@ -12,7 +12,7 @@ from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_fie
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 from hampel import hampel
 
-OUT = Path('output/test_smoothing')
+OUT = Path('output/test_smoothing_2')
 IN = Path('source_data')
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 
@@ -186,40 +186,15 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
     # axes[3].set_title("n")
     # axes[3].plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
 
-    # d2pdT2 = hampel(d2pdT2).filtered_data
-    # d2pdT2 = moving_average(d2pdT2, T)
-    # axes[2].set_title("Second Deriveratives")
-    # axes[2].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    # axes[2].fill_between(T, d2pdT2, alpha = 0.5)
+    d2pdT2 = hampel(d2pdT2).filtered_data
+    d2pdT2 = moving_average(d2pdT2, T)
+    axes[3].set_title("Second Deriveratives")
+    axes[3].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    axes[3].fill_between(T, d2pdT2, alpha = 0.5)
 
-
-    dT = np.median(np.diff(T))
-    Tr = T[-1] - T[0]
-    h_min = 3 * dT 
-    h_max = 0.2 * Tr 
-    rough = np.array([local_poly(T, rho, t, h_max, 1) for t in T])
-    d1 = np.gradient(rough, T)
-    d2 = np.gradient(d1, T)
-
-    sharp = np.abs(d2)
-    w = T_weights(T)
-
-    # MAD-score = how unusually sharp this point is compared to this linecut.
-    score = (sharp - weighted_median(sharp, w)) / weighted_mad(sharp, w)
-    score = np.clip(score, 0, 8)
-
-    axes[2].set_title("Score")
-    axes[2].plot(T, score, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[2].fill_between(T, score, alpha = 0.5)
-
-
-    axes[3].set_title("d2 of Local Poly Smooth")
-    axes[3].plot(T, d2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[3].fill_between(T, d2, alpha = 0.5)
-    
-    # axes[2].set_title("First Deriveratives")
-    # axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    # axes[2].fill_between(T, dpdT, alpha = 0.5)
+    axes[2].set_title("First Deriveratives")
+    axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    axes[2].fill_between(T, dpdT, alpha = 0.5)
 
     for candidate in candidates:
         print(candidate)
