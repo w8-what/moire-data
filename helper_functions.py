@@ -141,7 +141,7 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
     # h_min prevents the smoother from chasing noise.
     # h_max is the broad window used in smooth/background regions.
     h_min = 3 * dT if h_min is None else h_min
-    h_max = 0.15 * Tr if h_max is None else h_max
+    h_max = 0.2 * Tr if h_max is None else h_max
 
     # First pass: broad smooth so curvature is not dominated by raw noise.
     rough = np.array([local_poly(T, rho, t, h_max, deg) for t in T])
@@ -164,3 +164,18 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
     smooth = np.array([local_poly(T, rho, T[i], h[i], deg) for i in range(len(T))])
 
     return smooth
+
+def moving_average(rho, T, window = None):
+
+    window = (np.max(T) - np.min(T)) * 0.2 if window is None else window
+    half = window / 2
+
+    left  = np.searchsorted(T, T - half, side="left")
+    right = np.searchsorted(T, T + half, side="right")
+
+    crho = np.r_[0, np.cumsum(rho)]
+    n = right - left
+
+    rho_sm = (crho[right] - crho[left]) / n
+
+    return rho_sm

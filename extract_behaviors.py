@@ -8,11 +8,11 @@ from scipy.stats import norm
 import os 
 from pathlib import Path
 
-from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_field, mad, smooth_mask, contiguous_regions
+from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_field, mad, smooth_mask, contiguous_regions, moving_average
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 from hampel import hampel
 
-OUT = Path('output/extract_behaviors_metallic')
+OUT = Path('output/test_smoothing')
 IN = Path('source_data')
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 
@@ -138,6 +138,7 @@ def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
                 "right_fit" : None
             }
             candidates.append(candidate)
+        prev_is_pos = curr_is_pos
         i += 1
 
     candidate = {
@@ -161,7 +162,7 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
     rho_smoothed = adaptive_smooth(hampel(rho).filtered_data, T)
     dpdT = np.gradient(rho_smoothed, T)
     d2pdT2 = np.gradient(dpdT, T)
-    dlnpdlnT = np.gradient(np.log(np.clip(rho_smoothed, 0, np.inf)), np.log(np.clip(T, 0, np.inf)))
+    # dlnpdlnT = np.gradient(np.log(np.clip(rho_smoothed, 0, np.inf)), np.log(np.clip(T, 0, np.inf)))
  
     # Plotting 2x2 grid
     fig, axes = plt.subplots(2, 2, figsize=(15, 12), dpi=150, constrained_layout=True)
@@ -182,16 +183,17 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
         ax.set_ylim(0)
 
 
-    axes[3].set_title("n")
-    axes[3].plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
+    # axes[3].set_title("n")
+    # axes[3].plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
 
-    axes[2].set_title("Second Deriveratives")
-    axes[2].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[2].fill_between(T, d2pdT2, alpha = 0.5)
+    d2pdT2 = moving_average(d2pdT2, T)
+    axes[3].set_title("Second Deriveratives")
+    axes[3].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    axes[3].fill_between(T, d2pdT2, alpha = 0.5)
     
-    # axes[2].set_title("First Deriveratives")
-    # axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    # axes[2].fill_between(T, dpdT, alpha = 0.5)
+    axes[2].set_title("First Deriveratives")
+    axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    axes[2].fill_between(T, dpdT, alpha = 0.5)
 
     for candidate in candidates:
         print(candidate)
@@ -238,8 +240,9 @@ def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> Non
         linecut_rho = R[:, currColInt]
 
         # Plotting the intervals
-        print(f"{nu[currColInt]=}\n")
-        candidates = extract_upturns(T, linecut_rho)
+        print(f"{nu[currColInt]=}")
+        print(f"{E=}\n")
+        candidates = sorted(extract_upturns(T, linecut_rho), key = lambda d: d["T"])
         candidates = extract_metallic_transitions(T, linecut_rho, candidates)
 
         plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates)
@@ -247,9 +250,13 @@ def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> Non
 
 
 
-# for field in FIELDS:
-#     plot_all_linecuts(field, 30)
+for field in FIELDS:
+    plot_all_linecuts(field, 20)
 
-plot_all_linecuts(103, 50)
+# plot_all_linecuts(103, 50)
+
+# plot_all_linecuts(74, 30)
+# plot_all_linecuts(151, 30)
+# plot_all_linecuts(176, 30)
 
 
