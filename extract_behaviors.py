@@ -43,6 +43,17 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
     d2pdT2_moving_average = np.convolve(d2pdT2, kernel, mode = "same")
     rho_span = np.max(rho_smoothed) - np.min(rho_smoothed)
 
+    if len(peaks):
+        candidate_upturns.append(
+            {
+                "T" : T[0],
+                "confidence" : 0.9,
+                "phase_left" : None,
+                "phase_right" : "AFM",
+                "left_fit" : None,
+                "right_fit" : None
+            }
+        )
 
     for idx in peaks:
 
@@ -77,13 +88,12 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
         candidate = {
             "T" : T[idx],
             "confidence" : comb_score,
-
             "phase_left" : "AFM",
             "phase_right" : None,
             "left_fit" : None,
             "right_fit" : None
         }
-
+        
         candidate_upturns.append(candidate)
     return candidate_upturns
 
@@ -96,15 +106,14 @@ def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
     dpdT = np.gradient(rho_smoothed, T) # Splice data to include right range only
     dpdT_pos = np.hstack((smooth_mask((dpdT > 0)[0:T_left]), smooth_mask((dpdT[T_left:] > 0)))) # Mask of spliced data (right side)
 
-    i = T_left
+    i = T_left 
     curr_is_pos = dpdT_pos[i]
     phase_right = "Metal" if curr_is_pos else "Insulator"
 
-    if T_left == 0 :
+    if T_left == 0:
         candidate = {
             "T" : T[0],
             "confidence" : 0.9,
-
             "phase_left" : None,
             "phase_right" : phase_right,
             "left_fit" : None,
@@ -114,27 +123,33 @@ def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
     else:
         candidates[-1].update({"phase_right" : phase_right})
     
-
-
+    prev_is_pos = curr_is_pos
+    i = i + 1 
 
     while i < len(T):
+        curr_is_pos = dpdT_pos[i]
+        if prev_is_pos != curr_is_pos:
+            candidate = {
+                "T" : T[i],
+                "confidence" : 0.9,
+                "phase_left" : "Insulator" if curr_is_pos else "Metal",
+                "phase_right" : "Metal" if curr_is_pos else "Insulator",
+                "left_fit" : None,
+                "right_fit" : None
+            }
+            candidates.append(candidate)
+        i += 1
 
-
-        
-
-        # add the right class for the first point
-        # when you find a sign flip
-        #     inset a new T to candidates 
-        #     add the left sign to candidates
-        # add the final point
-        # add the left sign to the final last point 
-
-
-
-
-
-
-    return []
+    candidate = {
+        "T" : T[i-1],
+        "confidence" : 0.9,
+        "phase_left" : "Metal" if curr_is_pos else "Insulator",
+        "phase_right" : None,
+        "left_fit" : None,
+        "right_fit" : None
+    }
+    candidates.append(candidate)
+    return candidates
 
 
 # Plot candidate transition temperatures, along with candidate phases (if suggested)
@@ -170,14 +185,17 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
     axes[3].set_title("n")
     axes[3].plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
 
-    # axes[2].set_title("Second Deriveratives")
-    # axes[2].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    # axes[2].fill_between(T, d2pdT2, alpha = 0.5)
+    axes[2].set_title("Second Deriveratives")
+    axes[2].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    axes[2].fill_between(T, d2pdT2, alpha = 0.5)
     
-    axes[2].set_title("First Deriveratives")
-    axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[2].fill_between(T, dpdT, alpha = 0.5)
+    # axes[2].set_title("First Deriveratives")
+    # axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    # axes[2].fill_between(T, dpdT, alpha = 0.5)
 
+    for candidate in candidates:
+        print(candidate)
+    print("\n")
 
     # Plotting transition points and fitted lines 
     for cand in candidates:
@@ -186,9 +204,10 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
         conf = cand["confidence"] 
         phase_left = cand["phase_left"]
         phase_right = cand["phase_right"]
+        t_color = "blue" if (phase_left == "Metal" or phase_left == "Insulator") else "red"
 
         rho_at_T_t = rho_smoothed[np.argmin(np.abs(T - T_t))]
-        axes[1].scatter(T_t, rho_at_T_t, color = "red", alpha = 0.8)
+        axes[1].scatter(T_t, rho_at_T_t, color = t_color, alpha = 0.8)
         axes[1].axvline(T_t, linewidth = 1, linestyle='--', color = "grey", zorder=3)
 
         max_rho = np.max(rho_smoothed)
@@ -221,7 +240,7 @@ def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> Non
         # Plotting the intervals
         print(f"{nu[currColInt]=}\n")
         candidates = extract_upturns(T, linecut_rho)
-        candidates += extract_metallic_transitions(T, linecut_rho, candidates)
+        candidates = extract_metallic_transitions(T, linecut_rho, candidates)
 
         plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates)
         currCol += spacing
@@ -231,6 +250,6 @@ def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> Non
 # for field in FIELDS:
 #     plot_all_linecuts(field, 30)
 
-plot_all_linecuts(103, 10)
+plot_all_linecuts(103, 50)
 
 
