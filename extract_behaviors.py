@@ -8,7 +8,7 @@ from scipy.stats import norm
 import os 
 from pathlib import Path
 
-from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_field, mad, smooth_mask, contiguous_regions, moving_average
+from helper_functions import fmt4, clean_boolean_mask, adaptive_smooth, load_field, mad, smooth_mask, contiguous_regions, moving_average, local_poly, weighted_mad, weighted_median, T_weights
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 from hampel import hampel
 
@@ -43,7 +43,7 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
     d2pdT2_moving_average = np.convolve(d2pdT2, kernel, mode = "same")
     rho_span = np.max(rho_smoothed) - np.min(rho_smoothed)
 
-    if len(peaks):
+    if len(peaks) != 0:
         candidate_upturns.append(
             {
                 "T" : T[0],
@@ -186,14 +186,40 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
     # axes[3].set_title("n")
     # axes[3].plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
 
-    d2pdT2 = moving_average(d2pdT2, T)
-    axes[3].set_title("Second Deriveratives")
-    axes[3].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[3].fill_between(T, d2pdT2, alpha = 0.5)
+    # d2pdT2 = hampel(d2pdT2).filtered_data
+    # d2pdT2 = moving_average(d2pdT2, T)
+    # axes[2].set_title("Second Deriveratives")
+    # axes[2].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    # axes[2].fill_between(T, d2pdT2, alpha = 0.5)
+
+
+    dT = np.median(np.diff(T))
+    Tr = T[-1] - T[0]
+    h_min = 3 * dT 
+    h_max = 0.2 * Tr 
+    rough = np.array([local_poly(T, rho, t, h_max, 1) for t in T])
+    d1 = np.gradient(rough, T)
+    d2 = np.gradient(d1, T)
+
+    sharp = np.abs(d2)
+    w = T_weights(T)
+
+    # MAD-score = how unusually sharp this point is compared to this linecut.
+    score = (sharp - weighted_median(sharp, w)) / weighted_mad(sharp, w)
+    score = np.clip(score, 0, 8)
+
+    axes[2].set_title("Score")
+    axes[2].plot(T, score, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    axes[2].fill_between(T, score, alpha = 0.5)
+
+
+    axes[3].set_title("d2 of Local Poly Smooth")
+    axes[3].plot(T, d2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    axes[3].fill_between(T, d2, alpha = 0.5)
     
-    axes[2].set_title("First Deriveratives")
-    axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[2].fill_between(T, dpdT, alpha = 0.5)
+    # axes[2].set_title("First Deriveratives")
+    # axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+    # axes[2].fill_between(T, dpdT, alpha = 0.5)
 
     for candidate in candidates:
         print(candidate)
@@ -242,7 +268,7 @@ def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> Non
         # Plotting the intervals
         print(f"{nu[currColInt]=}")
         print(f"{E=}\n")
-        candidates = sorted(extract_upturns(T, linecut_rho), key = lambda d: d["T"])
+        candidates = (extract_upturns(T, linecut_rho))
         candidates = extract_metallic_transitions(T, linecut_rho, candidates)
 
         plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates)

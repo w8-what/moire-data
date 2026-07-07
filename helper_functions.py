@@ -8,9 +8,19 @@ from scipy.interpolate import PchipInterpolator
 
 def load_field(E, IN):
     df = pd.read_csv(IN / f'Rxx_matrix_E-{E}mV_nm.csv')
-    T = df.iloc[:, 0].astype(float).to_numpy()
+
+    T  = df.iloc[:, 0].astype(float).to_numpy()
     nu = np.array([float(c) for c in df.columns[1:]])
-    R = df.iloc[:, 1:].astype(float).to_numpy()
+    R  = df.iloc[:, 1:].astype(float).to_numpy()
+
+    # Keep only rows where T is finite and the whole rho linecut is finite
+    mask = np.isfinite(T) & np.all(np.isfinite(R), axis=1)
+    T, R = T[mask], R[mask]
+
+    # Sort rows by increasing temperature; R rows must follow T
+    idx = np.argsort(T)
+    T, R = T[idx], R[idx]
+
     return T, nu, R
 
 def fmt4(x):
@@ -134,7 +144,46 @@ def local_poly(T, y, x0, h, deg=2):
     return beta[0]
 
 
-def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
+def moving_average(rho, T, window = None):
+
+    window = (np.max(T) - np.min(T)) * 0.2 if window is None else window
+    half = window / 2
+
+    left  = np.searchsorted(T, T - half, side="left")
+    right = np.searchsorted(T, T + half, side="right")
+
+    crho = np.r_[0, np.cumsum(rho)]
+    n = right - left
+
+    rho_sm = (crho[right] - crho[left]) / n
+
+    return rho_sm
+
+
+def T_weights(T):
+    # Each point represents the temperature interval halfway to neighbors
+    w = np.empty_like(T, dtype=float)
+    w[1:-1] = 0.5 * (T[2:] - T[:-2])
+    w[0]    = 0.5 * (T[1] - T[0])
+    w[-1]   = 0.5 * (T[-1] - T[-2])
+    return w / np.sum(w)
+
+
+def weighted_median(x, w):
+    idx = np.argsort(x)
+    xs, ws = x[idx], w[idx]
+    return xs[np.searchsorted(np.cumsum(ws), 0.5)]
+
+
+def weighted_mad(x, w):
+    med = weighted_median(x, w)
+    mad = weighted_median(np.abs(x - med), w)
+
+    # 1.4826 makes MAD comparable to std for normally distributed noise
+    return 1.4826 * mad
+
+
+def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=1):
     dT = np.median(np.diff(T))
     Tr = T[-1] - T[0]
 
@@ -150,9 +199,10 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
     d1 = np.gradient(rough, T)
     d2 = np.gradient(d1, T)
     sharp = np.abs(d2)
+    w = T_weights(T)
 
     # MAD-score = how unusually sharp this point is compared to this linecut.
-    score = (sharp - np.median(sharp)) / mad(sharp)
+    score = (sharp - weighted_median(sharp, w)) / weighted_mad(sharp, w)
     score = np.clip(score, 0, 8)
 
     # Large score -> shrink smoothing window to preserve transition.
@@ -160,22 +210,11 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
     h = h_max / (1 + score / sensitivity)
     h = np.clip(h, h_min, h_max)
 
+    # deg_adaptive = []
+    # for _ in h:
+    #     deg_adaptive.append(deg + 1) if deg > 4 else deg_adaptive.append(deg)
+
     # Final pass: adaptive smoothing with local temperature window.
     smooth = np.array([local_poly(T, rho, T[i], h[i], deg) for i in range(len(T))])
 
     return smooth
-
-def moving_average(rho, T, window = None):
-
-    window = (np.max(T) - np.min(T)) * 0.2 if window is None else window
-    half = window / 2
-
-    left  = np.searchsorted(T, T - half, side="left")
-    right = np.searchsorted(T, T + half, side="right")
-
-    crho = np.r_[0, np.cumsum(rho)]
-    n = right - left
-
-    rho_sm = (crho[right] - crho[left]) / n
-
-    return rho_sm
