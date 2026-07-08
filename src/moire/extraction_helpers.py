@@ -2,9 +2,8 @@
 import math
 import numpy as np
 import pandas as pd 
+from hampel import hampel 
 
-from scipy.signal import savgol_filter
-from scipy.interpolate import PchipInterpolator
 
 def load_field(E, IN):
     df = pd.read_csv(IN / f'Rxx_matrix_E-{E}mV_nm.csv')
@@ -118,15 +117,15 @@ def mad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
-def local_poly(T, rho, rho0, h, deg=2):
+def local_poly(T, rho, T0, h, deg=2):
     # Use a temperature window, not a point-count window.
-    idx = np.abs(T - rho0) <= h
+    idx = np.abs(T - T0) <= h
 
     # Local polynomial needs enough points to fit stably.
     if idx.sum() < deg + 2:
-        idx = np.argsort(np.abs(T - rho0))[:deg + 2]
+        idx = np.argsort(np.abs(T - T0))[:deg + 2]
 
-    x = T[idx] - rho0
+    x = T[idx] - T0
     y = rho[idx]
 
     # Tricube weights: closer points matter more.
@@ -183,8 +182,12 @@ def weighted_mad(x, w):
     return 1.4826 * mad
 
 
+# 1. Performs Hampel filter
+# 2. Performs Adaptive smoothing 
+def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5) -> list:
 
-def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
+    rho = hampel(rho).filtered_data
+
     dT = np.median(np.diff(T))
     Tr = T[-1] - T[0]
 
