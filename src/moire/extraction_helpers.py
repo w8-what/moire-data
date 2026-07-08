@@ -12,9 +12,9 @@ def load_field(E, IN):
     nu = np.array([float(c) for c in df.columns[1:]])
     R  = df.iloc[:, 1:].astype(float).to_numpy()
 
-    # Keep only rows where T is finite and the whole rho linecut is finite
-    mask = np.isfinite(T) & np.all(np.isfinite(R), axis=1)
-    T, R = T[mask], R[mask]
+    # # Keep only rows where T is finite and the whole rho linecut is finite
+    # mask = np.isfinite(T) & np.all(np.isfinite(R), axis=1)
+    # T, R = T[mask], R[mask]
 
     # Sort rows by increasing temperature; R rows must follow T
     idx = np.argsort(T)

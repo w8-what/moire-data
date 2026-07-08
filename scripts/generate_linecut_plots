@@ -2,8 +2,11 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 import os
-
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
 from moire.extraction_helpers import adaptive_smooth, fmt4, load_field, moving_average
 from moire.extract_behaviors import extract_metallic_transitions, extract_upturns
 from hampel import hampel
