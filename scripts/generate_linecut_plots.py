@@ -13,7 +13,7 @@ from hampel import hampel
 
 
 # Plot candidate transition temperatures, along with candidate phases (if suggested)
-def plot_single_linecut(params, T, rho, candidates) -> None:
+def plot_single_linecut(params, T, rho, candidates, OUT: Path) -> None:
  
     param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in params.items())
  
@@ -86,7 +86,7 @@ def plot_single_linecut(params, T, rho, candidates) -> None:
  
 
 # Go through each linecut; extract and plot all candidate transition temperature 
-def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> None:
+def plot_all_linecuts(E: float, numLines: int, IN: Path, OUT: Path) -> None:
 
     # TODO: learn np.linspace thats endpoint inclusive for clearer code
     T, nu, R = load_field(E, IN)
@@ -105,20 +105,20 @@ def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> Non
         candidates = (extract_upturns(T, linecut_rho))
         candidates = extract_metallic_transitions(T, linecut_rho, candidates)
 
-        plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates)
+        plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates, OUT)
         currCol += spacing
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    OUT = Path('output/test_smoothing_2')
-    IN = Path('source_data')
-    FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
+#     OUT = Path('output/test_smoothing_2')
+#     IN = Path('source_data')
+#     FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 
-    if not os.path.exists(OUT):
-        os.mkdir(OUT)
+#     if not os.path.exists(OUT):
+#         os.mkdir(OUT)
 
-    # for field in FIELDS:
-    #     plot_all_linecuts(field, 20)
+#     # for field in FIELDS:
+#     #     plot_all_linecuts(field, 20)
 
-    plot_all_linecuts(96.2, 20)
+#     plot_all_linecuts(96.2, 20)
