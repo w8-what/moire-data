@@ -17,8 +17,8 @@ def load_field(E, IN):
     # T, R = T[mask], R[mask]
 
     # Sort rows by increasing temperature; R rows must follow T
-    idx = np.argsort(T)
-    T, R = T[idx], R[idx]
+    # idx = np.argsort(T)
+    # T, R = T[idx], R[idx]
 
     return T, nu, R
 
@@ -117,7 +117,7 @@ def mad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
-def local_poly(T, rho, T0, h, deg=2):
+def local_poly(rho, T, T0, h, deg=2):
     # Use a temperature window, not a point-count window.
     idx = np.abs(T - T0) <= h
 
@@ -186,7 +186,7 @@ def weighted_mad(x, w):
 # 2. Performs Adaptive smoothing 
 def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5) -> list:
 
-    rho = hampel(rho).filtered_data
+    # rho = hampel(rho).filtered_data
 
     dT = np.median(np.diff(T))
     Tr = T[-1] - T[0]
@@ -197,7 +197,7 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5) -> lis
     h_max = 0.15 * Tr if h_max is None else h_max
 
     # First pass: broad smooth so curvature is not dominated by raw noise.
-    rough = np.array([local_poly(T, rho, t, h_max, deg) for t in T])
+    rough = np.array([local_poly(rho, T, t, h_max, deg) for t in T])
 
     # Curvature estimates where the curve bends sharply.
     d1 = np.gradient(rough, T)
@@ -214,7 +214,7 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5) -> lis
     h = np.clip(h, h_min, h_max)
 
     # Final pass: adaptive smoothing with local temperature window.
-    smooth = np.array([local_poly(T, rho, T[i], h[i], deg) for i in range(len(T))])
+    smooth = np.array([local_poly(rho, T, T[i], h[i], deg) for i in range(len(T))])
 
     return smooth
 
