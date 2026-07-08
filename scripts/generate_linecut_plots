@@ -4,18 +4,9 @@ import matplotlib.pyplot as plt
 import os
 
 from pathlib import Path
-from moire.extraction_helpers import adaptive_smooth, fmt4, load_field
+from moire.extraction_helpers import adaptive_smooth, fmt4, load_field, moving_average
 from moire.extract_behaviors import extract_metallic_transitions, extract_upturns
 from hampel import hampel
-
-
-
-OUT = Path('output/test_smoothing_2')
-IN = Path('source_data')
-FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
-
-if not os.path.exists(OUT):
-    os.mkdir(OUT)
 
 
 # Plot candidate transition temperatures, along with candidate phases (if suggested)
@@ -114,3 +105,15 @@ def plot_all_linecuts(E: float, numLines: int, left = None, right = None) -> Non
         plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates)
         currCol += spacing
 
+
+if __name__ == "__main__":
+
+    OUT = Path('output/test_smoothing_2')
+    IN = Path('source_data')
+    FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
+
+    if not os.path.exists(OUT):
+        os.mkdir(OUT)
+
+    for field in FIELDS:
+        plot_all_linecuts(field, 20)
