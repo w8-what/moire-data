@@ -17,8 +17,8 @@ def load_field(E, IN):
     # T, R = T[mask], R[mask]
 
     # Sort rows by increasing temperature; R rows must follow T
-    # idx = np.argsort(T)
-    # T, R = T[idx], R[idx]
+    idx = np.argsort(T)
+    T, R = T[idx], R[idx]
 
     return T, nu, R
 

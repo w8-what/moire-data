@@ -118,7 +118,7 @@ if __name__ == "__main__":
     if not os.path.exists(OUT):
         os.mkdir(OUT)
 
-    for field in FIELDS:
-        plot_all_linecuts(field, 20)
+    # for field in FIELDS:
+    #     plot_all_linecuts(field, 20)
 
     plot_all_linecuts(96.2, 20)
