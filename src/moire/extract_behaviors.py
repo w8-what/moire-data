@@ -1,6 +1,6 @@
 import numpy as np
 
-from moire.extraction_helpers import adaptive_smooth, mad, smooth_mask
+from moire.extraction_helpers import adaptive_smooth, weighted_mad, weighted_median, smooth_mask, T_weights
 
 from hampel import hampel 
 from scipy.signal import find_peaks
@@ -16,22 +16,23 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
     candidate_upturns = []
     threshold = sensitivity * 100
 
-    # rho = hampel(rho).filtered_data
+    w = T_weights(T)
     rho_smoothed = adaptive_smooth(rho, T)
     dpdT = np.gradient(rho_smoothed, T)
-    d2pdT2 = np.gradient(dpdT, T)
+    sharp = np.abs(np.gradient(dpdT, T))
 
     peaks, prop = find_peaks(-rho_smoothed)
 
-    dpdT_neg = dpdT[np.where(dpdT < 0)] # array of all negative dpdT values
-    med_dpdT_neg = np.median(dpdT_neg)
-    mad_dpdT_neg = mad(dpdT_neg)
+    # dpdT_neg = dpdT[np.where(dpdT < 0)] # array of all negative dpdT values
+    # if len(dpdT_neg) != 0:
+    #     med_dpdT_neg = weighted_median(dpdT_neg, w)
+    #     mad_dpdT_neg = weighted_mad(dpdT_neg, w)
 
-    med_d2pdT2 = np.median(d2pdT2)
-    mad_d2pdT2 = mad(d2pdT2)
+    med_sharp = weighted_median(sharp, w)
+    mad_sharp = weighted_mad(sharp, w)
 
     kernel = np.ones(3)/3
-    d2pdT2_moving_average = np.convolve(d2pdT2, kernel, mode = "same")
+    sharp_mov_avg = np.convolve(sharp, kernel, mode = "same")
     rho_span = np.max(rho_smoothed) - np.min(rho_smoothed)
 
     if len(peaks) != 0:
@@ -49,16 +50,16 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
     for idx in peaks:
 
         # Percentile of second deriverative at candidate assuming normal distribution 
-        curvature_score = norm.cdf((d2pdT2[idx] - med_d2pdT2) / mad_d2pdT2)
+        curvature_score = norm.cdf((sharp[idx] - med_sharp) / mad_sharp)
 
         # Finds features of cliff using by stopping when concavity changes
         idx_l = idx
-        while idx_l > 0 and d2pdT2_moving_average[idx_l] > 0:
+        while idx_l > 0 and sharp_mov_avg[idx_l] > 0:
             idx_l -= 1
 
         # Calculates cliff_slope_score by comparing average slope in range to median using MAD
-        avg_dpdT_cliff = 0 if (idx_l == 0 or idx_l == idx) else np.mean(dpdT[idx_l:idx])
-        cliff_slope_score = norm.cdf(-(avg_dpdT_cliff - med_dpdT_neg) / mad_dpdT_neg) # more negative z-score is desirable here (steeper slope)
+        # avg_dpdT_cliff = 0 if (idx_l == 0 or idx_l == idx) else np.mean(dpdT[idx_l:idx])
+        # cliff_slope_score = norm.cdf(-(avg_dpdT_cliff - med_dpdT_neg) / mad_dpdT_neg) # more negative z-score is desirable here (steeper slope)
 
         # Calculates cliff_size_score by comparing vertical size of cliff in range to half of total rho span
         cliff_size = abs(rho_smoothed[idx_l] - rho_smoothed[idx])
@@ -73,7 +74,7 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
         # print(f"{(d2pdT2_moving_average[idx_l] - med_d2pdT2) / mad_d2pdT2 =}")
 
 
-        comb_score = 0.2 * curvature_score + 0.2 * cliff_slope_score + 0.6 * cliff_size_score
+        comb_score = 0.2 * curvature_score + 0.8 * cliff_size_score
         comb_score = float(f"{comb_score:.3g}")
 
         candidate = {

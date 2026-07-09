@@ -21,6 +21,30 @@ def moving_average(rho, T, window = None):
     return rho_sm
 
 
+def T_weights(T):
+    # Each point represents the temperature interval halfway to neighbors
+    w = np.empty_like(T, dtype=float)
+    w[1:-1] = 0.5 * (T[2:] - T[:-2])
+    w[0]    = 0.5 * (T[1] - T[0])
+    w[-1]   = 0.5 * (T[-1] - T[-2])
+    return w / np.sum(w)
+
+
+def weighted_median(T, w):
+    idx = np.argsort(T)
+    Ts, ws = T[idx], w[idx]
+    return Ts[np.searchsorted(np.cumsum(ws), 0.5)]
+
+
+def weighted_mad(T, w):
+    med = weighted_median(T, w)
+    mad = weighted_median(np.abs(T - med), w)
+
+    # 1.4826 makes MAD comparable to std for normally distributed noise
+    return 1.4826 * mad
+
+
+
 
 # ----- HELPER FUNCTIONS FOR METALLIC EXTRACTION -----
 
@@ -57,7 +81,14 @@ def mad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
-def local_poly(rho, T, T0, h, deg=2):
+
+
+# ----- HELPER FUNCTIONS FOR SMOOTHING DATA ----- 
+
+
+
+
+def local_poly(rho, T, T0, h, deg=1):
     # Use a temperature window, not a point-count window.
     idx = np.abs(T - T0) <= h
 
@@ -83,67 +114,9 @@ def local_poly(rho, T, T0, h, deg=2):
     return beta[0]
 
 
-def T_weights(T):
-    # Each point represents the temperature interval halfway to neighbors
-    w = np.empty_like(T, dtype=float)
-    w[1:-1] = 0.5 * (T[2:] - T[:-2])
-    w[0]    = 0.5 * (T[1] - T[0])
-    w[-1]   = 0.5 * (T[-1] - T[-2])
-    return w / np.sum(w)
 
-
-def weighted_median(T, w):
-    idx = np.argsort(T)
-    Ts, ws = T[idx], w[idx]
-    return Ts[np.searchsorted(np.cumsum(ws), 0.5)]
-
-
-def weighted_mad(T, w):
-    med = weighted_median(T, w)
-    mad = weighted_median(np.abs(T - med), w)
-
-    # 1.4826 makes MAD comparable to std for normally distributed noise
-    return 1.4826 * mad
-
-
-# # 1. Performs Hampel filter
-# # 2. Performs Adaptive smoothing 
-# def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5) -> list:
-
-#     rho = hampel(rho).filtered_data
-
-#     dT = np.median(np.diff(T))
-#     Tr = np.max(T) - np.min(T)
-
-#     # h_min prevents the smoother from chasing noise.
-#     # h_max is the broad window used in smooth/background regions.
-#     h_min = 3 * dT if h_min is None else h_min
-#     h_max = 0.15 * Tr if h_max is None else h_max
-
-#     h_max = -1
-#     # First pass: broad smooth so curvature is not dominated by raw noise.
-#     rough = np.array([local_poly(rho, T, t, h_max, deg) for t in T])
-
-#     # Curvature estimates where the curve bends sharply.
-#     d1 = np.gradient(rough, T)
-#     d2 = np.gradient(d1, T)
-#     sharp = np.abs(d2)
-
-#     # MAD-score = how unusually sharp this point is compared to this linecut.
-#     score = (sharp - np.median(sharp)) / mad(sharp)
-#     score = np.clip(score, 0, 8)
-
-#     # Large score -> shrink smoothing window to preserve transition.
-#     # Small score -> use large window to smooth boring regions.
-#     h = h_max / (1 + score / sensitivity)
-#     h = np.clip(h, h_min, h_max)
-
-#     # Final pass: adaptive smoothing with local temperature window.
-#     smooth = np.array([local_poly(rho, T, T[i], h[i], deg) for i in range(len(T))])
-
-#     return smooth
-
-
+# 1. Performs Hampel filter
+# 2. Performs Adaptive smoothing 
 def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
 
     dT = np.median(np.diff(T))

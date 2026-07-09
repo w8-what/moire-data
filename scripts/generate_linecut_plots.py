@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from moire.linecut_plots import plot_all_linecuts, plot_single_linecut
+from moire.draw_linecuts import plot_all_linecuts, plot_single_linecut
 
 OUT = Path('output/extract_behaviors')
 IN = Path('source_data')
