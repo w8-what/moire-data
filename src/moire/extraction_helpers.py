@@ -1,81 +1,25 @@
 
-import math
 import numpy as np
-import pandas as pd 
 from hampel import hampel 
 
+# ----- GENERAL TIME SERIES DATA HELPER FUNCTIONS ----- 
 
-def load_field(E, IN):
-    df = pd.read_csv(IN / f'Rxx_matrix_E-{E}mV_nm.csv')
+# Moving average based on temperaure window 
+def moving_average(rho, T, window = None):
 
-    T  = df.iloc[:, 0].astype(float).to_numpy()
-    nu = np.array([float(c) for c in df.columns[1:]])
-    R  = df.iloc[:, 1:].astype(float).to_numpy()
+    window = (np.max(T) - np.min(T)) * 0.2 if window is None else window
+    half = window / 2
 
-    # Sort rows by increasing temperature; R rows must follow T
-    idx = np.argsort(T)
-    T, R = T[idx], R[idx]
+    left  = np.searchsorted(T, T - half, side="left")
+    right = np.searchsorted(T, T + half, side="right")
 
-    return T, nu, R
+    crho = np.r_[0, np.cumsum(rho)]
+    n = right - left
 
-def fmt4(x):
-    if x == 0:
-        return "0.000"
+    rho_sm = (crho[right] - crho[left]) / n
 
-    digits_before = 1 if abs(x) < 1 else int(math.log10(abs(x))) + 1
-    decimals = max(0, 4 - digits_before)
-    return f"{x:.{decimals}f}"
+    return rho_sm
 
-def contiguous_regions(mask) -> list:
-    """
-    Given a Boolean array, return inclusive index intervals where mask is True.
-
-    Example:
-        mask = [False, True, True, False, True]
-        returns [(1, 2), (4, 4)]
-    """
-    mask = np.asarray(mask, dtype=bool)
-    true_idx = np.flatnonzero(mask)
-
-    if len(true_idx) == 0:
-        return []
-
-    breaks = np.where(np.diff(true_idx) > 1)[0]
-
-    starts = np.r_[true_idx[0], true_idx[breaks + 1]]
-    ends = np.r_[true_idx[breaks], true_idx[-1]]
-
-    return list(zip(starts, ends))
-
-def clean_boolean_mask(mask, max_gap=1, min_len=3):
-    """
-    Fill small False holes and remove short True islands.
-
-    max_gap:
-        Fill False gaps of length <= max_gap between True regions.
-
-    min_len:
-        Remove True regions shorter than min_len.
-    """
-
-    mask = np.asarray(mask, dtype=bool).copy()
-
-    # Fill small holes: True False True -> True True True
-    for left, right in contiguous_regions(~mask):
-        touches_edge = left == 0 or right == len(mask) - 1
-        gap_len = right - left + 1
-
-        if not touches_edge and gap_len <= max_gap:
-            mask[left:right + 1] = True
-
-    # Remove tiny islands: False True False -> False False False
-    for left, right in contiguous_regions(mask):
-        region_len = right - left + 1
-
-        if region_len < min_len:
-            mask[left:right + 1] = False
-
-    return mask
 
 
 # ----- HELPER FUNCTIONS FOR METALLIC EXTRACTION -----
@@ -139,22 +83,6 @@ def local_poly(rho, T, T0, h, deg=2):
     return beta[0]
 
 
-def moving_average(rho, T, window = None):
-
-    window = (np.max(T) - np.min(T)) * 0.2 if window is None else window
-    half = window / 2
-
-    left  = np.searchsorted(T, T - half, side="left")
-    right = np.searchsorted(T, T + half, side="right")
-
-    crho = np.r_[0, np.cumsum(rho)]
-    n = right - left
-
-    rho_sm = (crho[right] - crho[left]) / n
-
-    return rho_sm
-
-
 def T_weights(T):
     # Each point represents the temperature interval halfway to neighbors
     w = np.empty_like(T, dtype=float)
@@ -164,25 +92,25 @@ def T_weights(T):
     return w / np.sum(w)
 
 
-def weighted_median(x, w):
-    idx = np.argsort(x)
-    xs, ws = x[idx], w[idx]
-    return xs[np.searchsorted(np.cumsum(ws), 0.5)]
+def weighted_median(T, w):
+    idx = np.argsort(T)
+    Ts, ws = T[idx], w[idx]
+    return Ts[np.searchsorted(np.cumsum(ws), 0.5)]
 
 
-def weighted_mad(x, w):
-    med = weighted_median(x, w)
-    mad = weighted_median(np.abs(x - med), w)
+def weighted_mad(T, w):
+    med = weighted_median(T, w)
+    mad = weighted_median(np.abs(T - med), w)
 
     # 1.4826 makes MAD comparable to std for normally distributed noise
     return 1.4826 * mad
 
 
-# 1. Performs Hampel filter
-# 2. Performs Adaptive smoothing 
+# # 1. Performs Hampel filter
+# # 2. Performs Adaptive smoothing 
 # def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5) -> list:
 
-#     # rho = hampel(rho).filtered_data
+#     rho = hampel(rho).filtered_data
 
 #     dT = np.median(np.diff(T))
 #     Tr = np.max(T) - np.min(T)
@@ -217,24 +145,27 @@ def weighted_mad(x, w):
 
 
 def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
+
     dT = np.median(np.diff(T))
-    Tr = np.ptp(T)
+    Tr = np.max(T) - np.min(T)
+    rho = hampel(rho).filtered_data
 
     # h_min prevents the smoother from chasing noise.
     # h_max is the broad window used in smooth/background regions.
     h_min = 3 * dT if h_min is None else h_min
     h_max = 0.2 * Tr if h_max is None else h_max
 
+    # h_max = -1 
     # First pass: broad smooth so curvature is not dominated by raw noise.
-    rough = np.array([local_poly(T, rho, t, -1, deg) for t in T])
+    rough = np.array([local_poly(rho, T, t, -1, deg) for t in T])
 
     # Curvature estimates where the curve bends sharply.
     d1 = np.gradient(rough, T)
     d2 = np.gradient(d1, T)
     sharp = np.abs(d2)
-    w = T_weights(T)
 
-    # MAD-score = how unusually sharp this point is compared to this linecut.
+    # Weighted MAD-score = how unusually sharp this point is compared to this linecut.
+    w = T_weights(T)
     score = (sharp - weighted_median(sharp, w)) / weighted_mad(sharp, w)
     score = np.clip(score, 0, 8)
 
@@ -244,6 +175,6 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
     h = np.clip(h, h_min, h_max)
 
     # Final pass: adaptive smoothing with local temperature window.
-    smooth = np.array([local_poly(T, rho, T[i], h[i], deg) for i in range(len(T))])
+    smooth = np.array([local_poly(rho, T, T[i], h[i], deg) for i in range(len(T))])
 
     return smooth

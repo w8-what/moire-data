@@ -1,9 +1,16 @@
-from moire.extraction_helpers import *
+import numpy as np
 
+from moire.extraction_helpers import adaptive_smooth, mad, smooth_mask
+
+from hampel import hampel 
 from scipy.signal import find_peaks
 from scipy.stats import norm
 
+
+# TODO: change mad to weighted mad for extract_upturns()
+
 # Extract candidate transition temperatures from sharp turns 
+# Assumes T, rho are ordered and T is increasing
 def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
 
     candidate_upturns = []
@@ -83,6 +90,7 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
 
 
 # Extract candidate transition temperatures from change in curve fits (metallic transitions)
+# Assumes T, rho are ordered and T is increasing
 def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
         
     T_left = 0 if len(candidates) == 0 else np.argmin(np.abs(T - candidates[-1].get("T"))) # Getting index of left most T
