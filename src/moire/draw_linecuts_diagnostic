@@ -11,7 +11,7 @@ from hampel import hampel
 
 
 # Plot candidate transition temperatures, along with candidate phases (if suggested)
-def plot_single_linecut(params: dict, T: list, rho: list, candidates: list[dict], OUT: Path) -> None:
+def plot_single_linecut_diagnostic(params: dict, T: list, rho: list, candidates: list[dict], OUT: Path) -> None:
 
     if not os.path.exists(OUT):
         os.mkdir(OUT)
@@ -42,6 +42,12 @@ def plot_single_linecut(params: dict, T: list, rho: list, candidates: list[dict]
         ax.set_xlim(0)
         ax.set_ylim(0)
 
+
+    # axes[3].set_title("n")
+    # axes[3].plot(T, dlnpdlnT, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
+
+    d2pdT2 = hampel(d2pdT2).filtered_data
+    d2pdT2 = moving_average(d2pdT2, T)
     axes[3].set_title("Second Deriveratives")
     axes[3].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
     axes[3].fill_between(T, d2pdT2, alpha = 0.5)
@@ -82,7 +88,7 @@ def plot_single_linecut(params: dict, T: list, rho: list, candidates: list[dict]
  
 
 # Go through each linecut; extract and plot all candidate transition temperature 
-def plot_all_linecuts(E: float, numLines: int, IN: Path, OUT: Path) -> None:
+def plot_all_linecuts_diagnostic(E: float, numLines: int, IN: Path, OUT: Path) -> None:
 
     # TODO: learn np.linspace thats endpoint inclusive for clearer code
     T, nu, R = load_field(E, IN)
@@ -101,5 +107,5 @@ def plot_all_linecuts(E: float, numLines: int, IN: Path, OUT: Path) -> None:
         candidates = (extract_upturns(T, linecut_rho))
         candidates = extract_metallic_transitions(T, linecut_rho, candidates)
 
-        plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates, OUT)
+        plot_single_linecut_diagnostic({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates, OUT)
         currCol += spacing
