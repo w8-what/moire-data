@@ -11,4 +11,5 @@ FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
 
 for field in FIELDS:
     plot_all_linecuts(field, 20, IN, OUT)
+    
 
