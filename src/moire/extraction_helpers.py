@@ -33,7 +33,7 @@ def T_weights(T):
 def weighted_median(T, w):
     idx = np.argsort(T)
     Ts, ws = T[idx], w[idx]
-    return Ts[np.searchsorted(np.cumsum(ws), 0.5)]
+    return Ts[np.searchsorted(np.cumsum(ws), 0.5* np.sum(w))]
 
 
 def weighted_mad(T, w):

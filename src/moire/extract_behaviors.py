@@ -1,78 +1,56 @@
 import numpy as np
 
-from moire.extraction_helpers import adaptive_smooth, weighted_mad, weighted_median, smooth_mask, T_weights
+from moire.extraction_helpers import adaptive_smooth, weighted_mad, weighted_median, smooth_mask, T_weights, moving_average
 
 from hampel import hampel 
 from scipy.signal import find_peaks
 from scipy.stats import norm
 
 
-# TODO: change mad to weighted mad for extract_upturns()
-
 # Extract candidate transition temperatures from sharp turns 
 # Assumes T, rho are ordered and T is increasing
-def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
+def extract_upturns(T, rho, threshold = 0.05) -> list[dict]:
 
     candidate_upturns = []
-    threshold = sensitivity * 100
 
+    # Smoothing + Deriverative Processing
     w = T_weights(T)
     rho_smoothed = adaptive_smooth(rho, T)
     dpdT = np.gradient(rho_smoothed, T)
-    sharp = np.abs(np.gradient(dpdT, T))
+    d2pdT2 = np.gradient(dpdT, T)
+    d2pdT2_mov_avg = moving_average(d2pdT2, T)
 
-    peaks, prop = find_peaks(-rho_smoothed)
 
-    # dpdT_neg = dpdT[np.where(dpdT < 0)] # array of all negative dpdT values
-    # if len(dpdT_neg) != 0:
-    #     med_dpdT_neg = weighted_median(dpdT_neg, w)
-    #     mad_dpdT_neg = weighted_mad(dpdT_neg, w)
-
+    # Sharpness Metrics
+    sharp = np.abs(d2pdT2)
     med_sharp = weighted_median(sharp, w)
     mad_sharp = weighted_mad(sharp, w)
+    sharp_mov_avg = moving_average(sharp, T)
 
-    kernel = np.ones(3)/3
-    sharp_mov_avg = np.convolve(sharp, kernel, mode = "same")
-    rho_span = np.max(rho_smoothed) - np.min(rho_smoothed)
 
-    if len(peaks) != 0:
-        candidate_upturns.append(
-            {
-                "T" : T[0],
-                "confidence" : 0.9,
-                "phase_left" : None,
-                "phase_right" : "AFM",
-                "left_fit" : None,
-                "right_fit" : None
-            }
-        )
+    # Find peaks
+    peaks, prop = find_peaks(-rho_smoothed)
+    rho_span = np.ptp(rho_smoothed)
 
+
+    # Analyze peaks
     for idx in peaks:
 
-        # Percentile of second deriverative at candidate assuming normal distribution 
-        curvature_score = norm.cdf((sharp[idx] - med_sharp) / mad_sharp)
+        # Percentile of absolute value of 2nd deriverative at candidate assuming normal distribution 
+        curvature_score = norm.cdf((sharp_mov_avg[idx] - med_sharp) / mad_sharp)
 
         # Finds features of cliff using by stopping when concavity changes
         idx_l = idx
-        while idx_l > 0 and sharp_mov_avg[idx_l] > 0:
+        while idx_l > 0 and d2pdT2_mov_avg[idx_l] > 0:
             idx_l -= 1
-
-        # Calculates cliff_slope_score by comparing average slope in range to median using MAD
-        # avg_dpdT_cliff = 0 if (idx_l == 0 or idx_l == idx) else np.mean(dpdT[idx_l:idx])
-        # cliff_slope_score = norm.cdf(-(avg_dpdT_cliff - med_dpdT_neg) / mad_dpdT_neg) # more negative z-score is desirable here (steeper slope)
 
         # Calculates cliff_size_score by comparing vertical size of cliff in range to half of total rho span
         cliff_size = abs(rho_smoothed[idx_l] - rho_smoothed[idx])
-        cliff_size_score = 0 if (idx_l == 0 or idx_l == idx) else 2 * cliff_size / rho_span
+        cliff_size_score = 0 if (idx_l == 0 or idx_l == idx) else np.clip(2 * cliff_size / rho_span, 0, 1)
 
-        # print(f"{idx_l=}")
-        # print(f"{T[idx_l]=}")
-        # print(f"{curvature_score=}")
-        # print(f"{cliff_slope_score=}")
-        # print(f"{cliff_size_score=}\n")
-
-        # print(f"{(d2pdT2_moving_average[idx_l] - med_d2pdT2) / mad_d2pdT2 =}")
-
+        # Skips if cliff size is too small
+        if cliff_size_score < threshold: 
+            continue
 
         comb_score = 0.2 * curvature_score + 0.8 * cliff_size_score
         comb_score = float(f"{comb_score:.3g}")
@@ -87,6 +65,21 @@ def extract_upturns(T, rho, sensitivity = 1) -> list[dict]:
         }
         
         candidate_upturns.append(candidate)
+
+    # Add transition points if there are any peaks
+    if len(candidate_upturns) != 0:
+        candidate_upturns.insert(0,
+            {
+                "T" : T[0],
+                "confidence" : 0.9,
+                "phase_left" : None,
+                "phase_right" : "AFM",
+                "left_fit" : None,
+                "right_fit" : None
+            }
+        )
+
+
     return candidate_upturns
 
 

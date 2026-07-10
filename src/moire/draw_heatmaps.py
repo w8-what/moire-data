@@ -68,9 +68,9 @@ def draw_heatmap_candidates(col, row, data, OUT = None, name = "heatmap_candidat
     fig, ax, im = draw_heatmap(col, row, data, save=False, name=name)
 
     styles = {
-        "AFM":       dict(color="red",    marker="^", label="AFM left"),
-        "Metal":     dict(color="green",  marker="o", label="Metal left"),
-        "Insulator": dict(color="yellow", marker="o", label="Insulator left"),
+        "AFM":       dict(color="red",    marker="^", label="AFM below"),
+        "Metal":     dict(color="green",  marker="o", label="Metal below"),
+        "Insulator": dict(color="yellow", marker="o", label="Insulator below"),
     }
 
     used_labels = set()
