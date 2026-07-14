@@ -6,7 +6,7 @@ import os
 
 from moire.extraction_helpers import adaptive_smooth, moving_average
 from moire.io import fmt4, load_field
-from moire.extract_behaviors import extract_metallic_transitions, extract_upturns
+from moire.extract_behaviors import extract_metallic_transitions, extract_upturns, extract_upturns_new
 from hampel import hampel
 
 
@@ -104,7 +104,7 @@ def plot_all_linecuts_diagnostic(E: float, numLines: int, IN: Path, OUT: Path) -
         # Plotting the intervals
         print(f"{nu[currColInt]=}")
         print(f"{E=}\n")
-        candidates = (extract_upturns(T, linecut_rho))
+        candidates = (extract_upturns_new(T, linecut_rho))
         candidates = extract_metallic_transitions(T, linecut_rho, candidates)
 
         plot_single_linecut_diagnostic({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates, OUT)

@@ -3,6 +3,9 @@ import numpy as np
 import math 
 
 def load_field(E, IN):
+
+    # TODO: remove nans for preprocessing 
+
     df = pd.read_csv(IN / f'Rxx_matrix_E-{E}mV_nm.csv')
 
     T  = df.iloc[:, 0].astype(float).to_numpy()

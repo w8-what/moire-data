@@ -18,7 +18,7 @@ def draw_mosaic_diagrams(col, row, data, OUT=None, name="mosaic_phase_diagram", 
         linecut = data[:, j]
 
         candidates = extract_upturns(row, linecut)
-        candidates = extract_metallic_transitions(row, linecut, candidates)
+        # candidates = extract_metallic_transitions(row, linecut, candidates)
         candidates = sorted(candidates, key=lambda c: c["T"])
 
         candidates_all.append(candidates)

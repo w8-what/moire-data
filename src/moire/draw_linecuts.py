@@ -6,7 +6,7 @@ import os
 
 from moire.extraction_helpers import adaptive_smooth, moving_average
 from moire.io import fmt4, load_field
-from moire.extract_behaviors import extract_metallic_transitions, extract_upturns
+from moire.extract_behaviors import extract_metallic_transitions, extract_upturns, extract_upturns_new
 from hampel import hampel
 
 
@@ -50,9 +50,9 @@ def plot_single_linecut(params: dict, T: list, rho: list, candidates: list[dict]
     axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
     axes[2].fill_between(T, dpdT, alpha = 0.5)
 
-    for candidate in candidates:
-        print(candidate)
-    print("\n")
+    # for candidate in candidates:
+    #     print(candidate)
+    # print("\n")
 
     # Plotting transition points and fitted lines 
     for cand in candidates:
@@ -98,7 +98,7 @@ def plot_all_linecuts(E: float, numLines: int, IN: Path, OUT: Path) -> None:
         # Plotting the intervals
         print(f"{nu[currColInt]=}")
         print(f"{E=}\n")
-        candidates = (extract_upturns(T, linecut_rho))
+        candidates = extract_upturns_new(T, linecut_rho)
         candidates = extract_metallic_transitions(T, linecut_rho, candidates)
 
         plot_single_linecut({"E" : E, "Filling" : nu[currColInt]}, T, linecut_rho, candidates, OUT)

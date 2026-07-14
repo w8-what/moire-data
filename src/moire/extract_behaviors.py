@@ -83,6 +83,66 @@ def extract_upturns(T, rho, threshold = 0.05) -> list[dict]:
     return candidate_upturns
 
 
+def extract_upturns_new(T, rho, min_feature_size = 0.5, sigma = 5, rho_noise = 20) -> list[dict]:
+
+    # use interop for finding noise for rho at diff T ranges
+    # or maybe just use measures - smoothed 
+    
+    # smooth data
+    # find local minimums
+    # for min in minimums:
+        # score verical prominence compared to noise
+        # -> 3 * sigma(noise) is decent prominence (get score of 0.5) (saturation func? 1 sig -> 0.2; 2 sig -> 0.4; 3sig -> 0.5)
+        # score horizontal persistence compared to min_feature size 
+        # -> min_feature_size gets 0.5 score (use 1st deg saturation func)
+        # find final score by calculating geometric mean (sqrt(xy))
+        # add to dict
+
+    # TODO: in the future; do not do adaptive smooth (the rho passed in should be smoothed as part of the pipeline)
+    candidate_upturns = []
+    rho_smoothed = adaptive_smooth(rho, T)
+
+    local_noise = rho_noise
+
+    peaks, prop = find_peaks(-rho_smoothed, prominence = (None, None), height = (None, None))
+
+    for i, idx in enumerate(peaks):
+        
+        # find vertical prominence -> score
+        prominence = prop["prominences"][i]
+
+        C_p = sigma / 4 # calibrates C_w such that # sigma of local noise gets 0.8 score 
+        prom_z = (prominence / local_noise)
+        prom_score = prom_z / (prom_z + C_p)
+
+        # find horizontal persistence -> score 
+        left_base = prop["left_bases"][i]
+        right_base = prop["right_bases"][i]
+        width = T[right_base] - T[left_base]
+
+        C_w = min_feature_size / 4 # calibrates C_w such that min_feature_size gets 0.8 score
+        width_score = width / (width + C_w)
+
+        comb_score = (prom_score * width_score) ** 0.5 
+        comb_score = float(f"{comb_score:.3g}")
+
+        candidate = {
+            "T" : T[idx],
+            "confidence" : comb_score,
+            "phase_left" : "AFM",
+            "phase_right" : None,
+            "left_fit" : None,
+            "right_fit" : None
+        }
+        
+        candidate_upturns.append(candidate)
+
+
+    return candidate_upturns
+
+
+
+
 # Extract candidate transition temperatures from change in curve fits (metallic transitions)
 # Assumes T, rho are ordered and T is increasing
 def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
