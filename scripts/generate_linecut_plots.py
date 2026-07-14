@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from moire.draw_linecuts import plot_all_linecuts, plot_single_linecut
+from moire.draw_2d import plot_all_linecuts, plot_single_linecut
 from moire.io import load_field
 
 OUT = Path('output/extract_behaviors')
@@ -21,8 +21,16 @@ for field in FIELDS:
         # hampel
         # smooth data
         # extract on smooth data
-            # local min & max upturns 
-            # 
+            # local min & max upturns, alonside scoring 
+            # -> get candidates 
+
+        # draw linecut if want to 
+        
+    
+
+    # later ...
+    # candidates processing and plotting heatmaps & phase_diagrams 
+    # passing in T, nu, R, and candidates 
 
         
 
