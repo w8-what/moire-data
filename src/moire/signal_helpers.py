@@ -117,7 +117,7 @@ def local_poly(rho, T, T0, h, deg=1):
 
 # 1. Performs Hampel filter
 # 2. Performs Adaptive smoothing 
-def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
+def adaptive_smooth(T, rho, deg=1, h_min=None, h_max=None, sensitivity=5):
 
     dT = np.median(np.diff(T))
     Tr = np.max(T) - np.min(T)
@@ -151,3 +151,23 @@ def adaptive_smooth(rho, T, deg=1, h_min=None, h_max=None, sensitivity=5):
     smooth = np.array([local_poly(rho, T, T[i], h[i], deg) for i in range(len(T))])
 
     return smooth
+
+
+def local_noise(T, rho, rho_smnoothed, T_window = 0.5, fallback_points = 9):
+
+    noise = []
+
+    # for point in rho_smoothed
+    # perform the following
+        # find the points a T_window around its center
+        # count the datapoints; it its < 9; then expand until 9 points are reached
+        # then do the following; for each point; find the residual of each point
+        # then find the MAD; and normalize that to sigma corresponding to a normal distribution
+        # and then place it into local_noise 
+
+    for idx, t in enumerate(T):
+        T_window = T[np.abs(T - t) < 0.5]
+
+
+
+    return noise

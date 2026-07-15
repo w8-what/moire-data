@@ -1,121 +1,28 @@
 import numpy as np
-
-from moire.extraction_helpers import adaptive_smooth, weighted_mad, weighted_median, smooth_mask, T_weights, moving_average
+from moire.signal_helpers import adaptive_smooth, smooth_mask
 
 from hampel import hampel 
 from scipy.signal import find_peaks
-from scipy.stats import norm
 
 
-# Extract candidate transition temperatures from sharp turns 
-# Assumes T, rho are ordered and T is increasing
-def extract_upturns(T, rho, threshold = 0.05) -> list[dict]:
+def extract_upturns_new(T, linecut, min_feature_size = 0.5, sigma = 5) -> list[dict]:
 
     candidate_upturns = []
-
-    # Smoothing + Deriverative Processing
-    w = T_weights(T)
-    rho_smoothed = adaptive_smooth(rho, T)
-    dpdT = np.gradient(rho_smoothed, T)
-    d2pdT2 = np.gradient(dpdT, T)
-    d2pdT2_mov_avg = moving_average(d2pdT2, T)
-
-
-    # Sharpness Metrics
-    sharp = np.abs(d2pdT2)
-    med_sharp = weighted_median(sharp, w)
-    mad_sharp = weighted_mad(sharp, w)
-    sharp_mov_avg = moving_average(sharp, T)
-
-
-    # Find peaks
-    peaks, prop = find_peaks(-rho_smoothed)
-    rho_span = np.ptp(rho_smoothed)
-
-
-    # Analyze peaks
-    for idx in peaks:
-
-        # Percentile of absolute value of 2nd deriverative at candidate assuming normal distribution 
-        curvature_score = norm.cdf((sharp_mov_avg[idx] - med_sharp) / mad_sharp)
-
-        # Finds features of cliff using by stopping when concavity changes
-        idx_l = idx
-        while idx_l > 0 and d2pdT2_mov_avg[idx_l] > 0:
-            idx_l -= 1
-
-        # Calculates cliff_size_score by comparing vertical size of cliff in range to half of total rho span
-        cliff_size = abs(rho_smoothed[idx_l] - rho_smoothed[idx])
-        cliff_size_score = 0 if (idx_l == 0 or idx_l == idx) else np.clip(2 * cliff_size / rho_span, 0, 1)
-
-        # Skips if cliff size is too small
-        if cliff_size_score < threshold: 
-            continue
-
-        comb_score = 0.2 * curvature_score + 0.8 * cliff_size_score
-        comb_score = float(f"{comb_score:.3g}")
-
-        candidate = {
-            "T" : T[idx],
-            "confidence" : comb_score,
-            "phase_left" : "AFM",
-            "phase_right" : None,
-            "left_fit" : None,
-            "right_fit" : None
-        }
-        
-        candidate_upturns.append(candidate)
-
-    # Add transition points if there are any peaks
-    if len(candidate_upturns) != 0:
-        candidate_upturns.insert(0,
-            {
-                "T" : T[0],
-                "confidence" : 0.9,
-                "phase_left" : None,
-                "phase_right" : "AFM",
-                "left_fit" : None,
-                "right_fit" : None
-            }
-        )
-
-
-    return candidate_upturns
-
-
-def extract_upturns_new(T, rho, min_feature_size = 0.5, sigma = 5, rho_noise = 20) -> list[dict]:
-
-    # use interop for finding noise for rho at diff T ranges
-    # or maybe just use measures - smoothed 
-    
-    # smooth data
-    # find local minimums
-    # for min in minimums:
-        # score verical prominence compared to noise
-        # -> 3 * sigma(noise) is decent prominence (get score of 0.5) (saturation func? 1 sig -> 0.2; 2 sig -> 0.4; 3sig -> 0.5)
-        # score horizontal persistence compared to min_feature size 
-        # -> min_feature_size gets 0.5 score (use 1st deg saturation func)
-        # find final score by calculating geometric mean (sqrt(xy))
-        # add to dict
-
-    # TODO: in the future; do not do adaptive smooth (the rho passed in should be smoothed as part of the pipeline)
-    candidate_upturns = []
-    rho_smoothed = adaptive_smooth(rho, T)
-
-    local_noise = rho_noise
+    rho_smoothed = linecut.get("rho_smoothed")
+    local_noise = linecut.get("local_noise")
 
     peaks, prop = find_peaks(-rho_smoothed, prominence = (None, None), height = (None, None))
 
     for i, idx in enumerate(peaks):
         
-        # find vertical prominence -> score
-        prominence = prop["prominences"][i]
+        # Finding vertical prominence
+        prominence = prop.get("prominences")[i]
 
         C_p = sigma / 4 # calibrates C_w such that # sigma of local noise gets 0.8 score 
         prom_z = (prominence / local_noise)
         prom_score = prom_z / (prom_z + C_p)
 
-        # find horizontal persistence -> score 
+        # Finding horizontal persistence  
         left_base = prop["left_bases"][i]
         right_base = prop["right_bases"][i]
         width = T[right_base] - T[left_base]
@@ -138,6 +45,19 @@ def extract_upturns_new(T, rho, min_feature_size = 0.5, sigma = 5, rho_noise = 2
         candidate_upturns.append(candidate)
 
 
+    # Add transition points if there are any peaks
+    if len(candidate_upturns) != 0:
+        candidate_upturns.insert(0,
+            {
+                "T" : T[0],
+                "confidence" : 0.9,
+                "phase_left" : None,
+                "phase_right" : "AFM",
+                "left_fit" : None,
+                "right_fit" : None
+            }
+        )
+
     return candidate_upturns
 
 
@@ -146,6 +66,8 @@ def extract_upturns_new(T, rho, min_feature_size = 0.5, sigma = 5, rho_noise = 2
 # Extract candidate transition temperatures from change in curve fits (metallic transitions)
 # Assumes T, rho are ordered and T is increasing
 def extract_metallic_transitions(T, rho, candidates) -> list[dict]:
+
+    # TODO: update with new linecut object
         
     T_left = 0 if len(candidates) == 0 else np.argmin(np.abs(T - candidates[-1].get("T"))) # Getting index of left most T
     rho_smoothed = adaptive_smooth(hampel(rho).filtered_data, T)

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import os
 
-from moire.extraction_helpers import adaptive_smooth, moving_average
+from moire.signal_helpers import adaptive_smooth, moving_average
 from moire.io import fmt4, load_field
 from moire.extract_behaviors import extract_metallic_transitions, extract_upturns, extract_upturns_new
 from hampel import hampel

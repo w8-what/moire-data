@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 
-from src.moire.extraction_helpers import fmt4, contiguous_regions, smooth_rho
+from moire.signal_helpers import fmt4, contiguous_regions, smooth_rho
 from phase_config import PHASES, PHASE_COLORS, PHASE_LABELS
 
 OUT = Path('output/individual_labeling')

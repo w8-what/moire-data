@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from moire.io import load_field
-from moire.draw_phase_diagrams import draw_mosaic_diagrams
+from moire.draw_2d import draw_mosaic_diagrams
 
 
 FIELDS = [87, 96, 99, 103, 74, 87, 96.2, 151, 176]
