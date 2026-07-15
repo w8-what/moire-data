@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from moire.draw_3d import draw_heatmap, draw_heatmap_candidates
+from moire.draw_2d import draw_heatmap, draw_heatmap_candidates
 from moire.io import load_field
 
 

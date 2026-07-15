@@ -18,6 +18,15 @@ def load_field(E, IN):
 
     return T, nu, R
 
+
+def clean_data(T, nu, R):
+
+    idx = np.argsort(T)
+    T, R = T[idx], R[idx]
+
+
+
+
 def fmt4(x):
     if x == 0:
         return "0.000"
