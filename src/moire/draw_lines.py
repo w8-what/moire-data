@@ -9,7 +9,7 @@ from moire.io import fmt4
 # Plot candidate transition temperatures, along with candidate phases (if suggested)
 def plot_linecut(T: list, linecut, save = False, OUT = None):
 
-    param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k != "rho")
+    param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
 
     # Getting data to plot
     rho = linecut.get("rho")
@@ -98,28 +98,28 @@ def plot_linecut_noise(T: list, linecut, save = False, OUT = None):
     axes[1].set_title("Smoothed Data with Noise")
     axes[1].plot(T, rho_smoothed, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
 
-    for ax in axes[:2]:
+    axes[2].set_title("Candidates with Noise")
+    axes[2].plot(T, rho_smoothed, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+
+    axes[2].fill_between(T, rho_smoothed - local_noise, rho_smoothed + local_noise, alpha = 0.5)
+    axes[0].fill_between(T, rho - local_noise, rho + local_noise, alpha = 0.5)
+
+    for ax in axes[:3]:
         ax.set_xlabel("Temperature (K)")
         ax.set_ylabel("Resistivity (Ω*cm)")
         ax.set_xlim(0)
         ax.set_ylim(0)
-
-    axes[2].set_title("Candidates with Noise")
-    axes[2].plot(T, rho_smoothed, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-
-
-    axes[2].fill_between(T, rho_smoothed - local_noise, rho_smoothed + local_noise, alpha = 0.5)
-    axes[0].fill_between(T, rho - local_noise, rho + local_noise, alpha = 0.5)
 
 
     # Plotting transition points and fitted lines 
     for cand in linecut.get("candidates"):
 
         T_t = cand["T"]
+        type = cand["type"]
         conf = cand["confidence"] 
         phase_left = cand["phase_left"]
         phase_right = cand["phase_right"]
-        t_color = "blue" if (phase_left == "Metal" or phase_left == "Insulator") else "red"
+        t_color = "blue" if (type == "downturn") else "red"
 
         rho_at_T_t = rho_smoothed[np.argmin(np.abs(T - T_t))]
         axes[2].scatter(T_t, rho_at_T_t, color = t_color, alpha = 0.8)

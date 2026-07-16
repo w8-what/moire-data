@@ -5,13 +5,11 @@ from matplotlib.ticker import LogFormatterMathtext
 from pathlib import Path
 import numpy as np 
 
-from archive.phase_diagram_helpers import centers_to_edges
-from moire.extract_behaviors import extract_metallic_transitions, extract_upturns
 
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.patches import Patch
 
-from moire.extract_behaviors import extract_metallic_transitions, extract_upturns
+from moire.extract_behaviors import extract_downturns, extract_upturns
 
 
 # generate heatmaps
@@ -66,7 +64,7 @@ def draw_heatmap(col, row, data, OUT=None, name="heatmap", save=False,
 
 
 
-def draw_heatmap_candidates(col, row, data, OUT = None, name = "heatmap_candidates", save = True):
+def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatmap_candidates", save = True):
 
     fig, ax, im = draw_heatmap(col, row, data, save=False, name=name)
 
@@ -76,22 +74,26 @@ def draw_heatmap_candidates(col, row, data, OUT = None, name = "heatmap_candidat
         "Insulator": dict(color="yellow", marker="o", label="Insulator below"),
     }
 
+    styles_new = {
+        "upturn":   dict(color="red",    marker="^", label = "upturn"),
+        "downturn": dict(color = "blue", marker ="o", label = "downturn")
+    }
+
     used_labels = set()
 
-    for j, filling in enumerate(col):
-        linecut = data[:, j]
 
-        candidates = extract_upturns(row, linecut)
-        candidates = extract_metallic_transitions(row, linecut, candidates)
-
+    for linecut in linecuts:
+        candidates = linecut.get("candidates")
         for cand in candidates:
-            phase_left = cand.get("phase_left")
-            T_transition = cand.get("T")
 
-            if phase_left not in styles:
+            type = cand.get("type")
+            T_transition = cand.get("T")
+            confidence = cand.get("confidence")
+
+            if type not in styles_new:
                 continue
 
-            style = styles[phase_left].copy()
+            style = styles_new[type].copy()
             label = style["label"]
 
             if label in used_labels:
@@ -100,12 +102,13 @@ def draw_heatmap_candidates(col, row, data, OUT = None, name = "heatmap_candidat
                 used_labels.add(label)
 
             ax.scatter(
-                filling,
+                linecut.get("nu"),
                 T_transition,
                 s=35,
                 edgecolor="black",
                 linewidth=0.4,
                 zorder=5,
+                alpha = confidence,
                 **style
             )
 

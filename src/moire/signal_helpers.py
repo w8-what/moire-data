@@ -2,7 +2,7 @@
 import numpy as np
 from hampel import hampel 
 
-# ----- GENERAL TIME SERIES DATA HELPER FUNCTIONS ----- 
+# ----- GENERAL SIGNAL HELPER FUNCTIONS ----- 
 
 # Moving average based on temperaure window 
 def moving_average(rho, T, window = None):
@@ -20,7 +20,7 @@ def moving_average(rho, T, window = None):
 
     return rho_sm
 
-
+# Produces weights for T based on T spacing
 def T_weights(T):
     # Each point represents the temperature interval halfway to neighbors
     w = np.empty_like(T, dtype=float)
@@ -28,7 +28,6 @@ def T_weights(T):
     w[0]    = 0.5 * (T[1] - T[0])
     w[-1]   = 0.5 * (T[-1] - T[-2])
     return w / np.sum(w)
-
 
 def weighted_median(T, w):
     idx = np.argsort(T)
@@ -73,20 +72,7 @@ def smooth_mask(mask, min_len=3):
             mask[s:e] = mask[s - 1]      # interior: left/right are same for bool runs
 
 
-# ----- HELPER FUNCTIONS FOR ADAPTIVE SMOOTHING -----
-
-
-def mad(x):
-    # Robust version of std; less affected by real transitions or spikes.
-    return 1.4826 * np.median(np.abs(x - np.median(x)))
-
-
-
-
-# ----- HELPER FUNCTIONS FOR SMOOTHING DATA ----- 
-
-
-
+# ----- HELPER FUNCTIONS FOR SMOOTHING & NOISE ----- 
 
 def local_poly(rho, T, T0, h, deg=1):
     # Use a temperature window, not a point-count window.
@@ -112,7 +98,6 @@ def local_poly(rho, T, T0, h, deg=1):
 
     # beta[0] is the fitted value at x0 because x = T - x0.
     return beta[0]
-
 
 
 # 1. Performs Hampel filter
@@ -157,6 +142,7 @@ def local_noise(T, rho, rho_smoothed, T_window = 0.5, fallback_points = 9):
 
     noise = []
     residuals = rho - rho_smoothed
+    w = T_weights(T)
 
     for t in T:
 
@@ -167,7 +153,6 @@ def local_noise(T, rho, rho_smoothed, T_window = 0.5, fallback_points = 9):
         if len(local_idx) < fallback_points:
             local_idx = np.argsort(np.abs(T - t))[:fallback_points]
         
-        selected_residuals = residuals[local_idx]
-        noise.append(weighted_mad(selected_residuals, T_weights(T[local_idx])))
+        noise.append(weighted_mad(residuals[local_idx], w[local_idx]))
             
     return noise
