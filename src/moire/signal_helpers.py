@@ -153,21 +153,21 @@ def adaptive_smooth(T, rho, deg=1, h_min=None, h_max=None, sensitivity=5):
     return smooth
 
 
-def local_noise(T, rho, rho_smnoothed, T_window = 0.5, fallback_points = 9):
+def local_noise(T, rho, rho_smoothed, T_window = 0.5, fallback_points = 9):
 
     noise = []
+    residuals = rho - rho_smoothed
 
-    # for point in rho_smoothed
-    # perform the following
-        # find the points a T_window around its center
-        # count the datapoints; it its < 9; then expand until 9 points are reached
-        # then do the following; for each point; find the residual of each point
-        # then find the MAD; and normalize that to sigma corresponding to a normal distribution
-        # and then place it into local_noise 
+    for t in T:
 
-    for idx, t in enumerate(T):
-        T_window = T[np.abs(T - t) < 0.5]
+        # find indicies of points neiboring T 
+        mask = np.abs(T - t) < T_window
+        local_idx = np.flatnonzero(mask)
 
-
-
+        if len(local_idx) < fallback_points:
+            local_idx = np.argsort(np.abs(T - t))[:fallback_points]
+        
+        selected_residuals = residuals[local_idx]
+        noise.append(weighted_mad(selected_residuals, T_weights(T[local_idx])))
+            
     return noise

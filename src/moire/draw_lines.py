@@ -83,6 +83,7 @@ def plot_linecut_noise(T: list, linecut, save = False, OUT = None):
     # Derived curves
     rho = linecut.get("rho")
     rho_smoothed = linecut.get("rho_smoothed")
+    local_noise = linecut.get("local_noise")
     # dlnpdlnT = np.gradient(np.log(np.clip(rho_smoothed, 0, np.inf)), np.log(np.clip(T, 0, np.inf)))
  
     # Plotting 2x2 grid
@@ -105,6 +106,11 @@ def plot_linecut_noise(T: list, linecut, save = False, OUT = None):
 
     axes[2].set_title("Candidates with Noise")
     axes[2].plot(T, rho_smoothed, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
+
+
+    axes[2].fill_between(T, rho_smoothed - local_noise, rho_smoothed + local_noise, alpha = 0.5)
+    axes[0].fill_between(T, rho - local_noise, rho + local_noise, alpha = 0.5)
+
 
     # Plotting transition points and fitted lines 
     for cand in linecut.get("candidates"):
