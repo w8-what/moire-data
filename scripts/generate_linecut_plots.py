@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from moire.draw_lines import plot_linecut, plot_linecut_noise
 from moire.io import load_field, clean_data
 from moire.signal_helpers import adaptive_smooth
-from moire.extract_behaviors import extract_upturns_new, extract_metallic_transitions
+from moire.extract_features import extract_downturns, extract_upturns
 from hampel import hampel 
 
 OUT = Path('output/noise_estimates')

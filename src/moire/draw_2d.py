@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.patches import Patch
 
-from moire.extract_behaviors import extract_downturns, extract_upturns
+from moire.extract_features import extract_downturns, extract_upturns
 
 
 # generate heatmaps

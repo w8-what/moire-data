@@ -6,7 +6,7 @@ import os
 
 from moire.signal_helpers import adaptive_smooth, moving_average
 from moire.io import fmt4, load_field
-from moire.extract_behaviors import extract_metallic_transitions, extract_upturns, extract_upturns_new
+from moire.extract_features import extract_metallic_transitions, extract_upturns, extract_upturns_new
 from hampel import hampel
 
 
