@@ -67,7 +67,7 @@ def plot_linecut(T: list, linecut, save = False, OUT = None):
 
     # Save to path
     OUT.mkdir(parents = True, exist_ok = True)
-    path = OUT / Path(param_string + ".png")
+    path = Path("output/linecuts") / OUT / Path(param_string + ".png") if OUT else Path("output/linecuts") / Path(param_string + ".png")
     fig.savefig(path, dpi=250, bbox_inches='tight')
     plt.close(fig)
 
