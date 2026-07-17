@@ -6,8 +6,12 @@ from pathlib import Path
 from moire.signal_helpers import adaptive_smooth
 from moire.io import fmt4
 
+def plot_linecut_general():
+    return 
+
+
 # Plot candidate transition temperatures, along with candidate phases (if suggested)
-def plot_linecut(T: list, linecut, save = False, OUT = None):
+def plot_linecut(T: list, linecut, OUT):
 
     param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
 
@@ -67,7 +71,7 @@ def plot_linecut(T: list, linecut, save = False, OUT = None):
 
     # Save to path
     OUT.mkdir(parents = True, exist_ok = True)
-    path = Path("output/linecuts") / OUT / Path(param_string + ".png") if OUT else Path("output/linecuts") / Path(param_string + ".png")
+    path = OUT / Path(param_string + ".png")
     fig.savefig(path, dpi=250, bbox_inches='tight')
     plt.close(fig)
 
