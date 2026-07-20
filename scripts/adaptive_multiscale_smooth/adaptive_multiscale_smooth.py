@@ -8,9 +8,11 @@ sys.path.insert(0, str(ROOT / Path("src")))
 from moire.draw_lines import plot_linecut
 from moire.io import load_field, clean_data
 from moire.signal_helpers import adaptive_smooth, local_noise
+from moire.updated_scoring import extract_upturns, extract_downturns
 from moire.draw_2d import draw_heatmap_candidates
 from hampel import hampel 
-from moire.updated_scoring import extract_downturns, extract_upturns
+from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
+
 
 OUT = Path(__file__).resolve().parent / Path("output")
 IN = ROOT / Path("source_data")
@@ -34,7 +36,7 @@ for field in SELECT_FIELDS:
         # Smoothing
         rho = linecut.get("rho")
         rho_hampel = hampel(rho).filtered_data
-        rho_smoothed = adaptive_smooth(T, rho)
+        rho_smoothed = adaptive_multiscale_smooth(T, rho)
         linecut.update({"rho_smoothed" : rho_smoothed})
 
         # Noise estimates
