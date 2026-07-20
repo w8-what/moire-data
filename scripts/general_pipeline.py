@@ -24,7 +24,7 @@ for field in SELECT_FIELDS:
 
     linecuts = []
     for i, v in enumerate(nu):
-        linecuts.append({"E" : field, "nu" : v, "rho" : R[:, i]}) 
+        linecuts.append({"E" : field, "nu" : v, "T": T, "rho" : R[:, i]}) 
 
 
     # ----- Data Processing -----
@@ -49,6 +49,16 @@ for field in SELECT_FIELDS:
 
     # ----- Plotting and creating figures -----
     for linecut in linecuts:
+
+
+        plots = [
+            {
+                "x" : T,
+                "y" : linecut.get("rho_smoothed")
+                
+            }
+        ]
+
         plot_linecut(T, linecut, OUT = OUT / Path("linecuts"))
 
     draw_heatmap_candidates(nu, T, R, linecuts, OUT = OUT / Path("heatmaps"), save = True, name = f"{field}_heatmap_opqaue")
