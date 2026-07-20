@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import numpy as np 
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / Path("src")))
@@ -48,18 +49,12 @@ for field in SELECT_FIELDS:
 
 
     # ----- Plotting and creating figures -----
-    for linecut in linecuts:
-
-
-        plots = [
-            {
-                "x" : T,
-                "y" : linecut.get("rho_smoothed")
-                
-            }
-        ]
-
-        plot_linecut(T, linecut, OUT = OUT / Path("linecuts"))
+    numLinecuts = 20
+    selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype = "int")
+    print(selectedLinecuts)
+    for i, linecut in enumerate(linecuts):
+        if i in selectedLinecuts:
+            plot_linecut(T, linecut, OUT = OUT / Path("linecuts"))
 
     draw_heatmap_candidates(nu, T, R, linecuts, OUT = OUT / Path("heatmaps"), save = True, name = f"{field}_heatmap_opqaue")
         

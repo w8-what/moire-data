@@ -83,12 +83,12 @@ def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatma
 
 
     for linecut in linecuts:
-        candidates = linecut.get("candidates")
-        for cand in candidates:
+        features = linecut.get("features")
+        for feat in features:
 
-            type = cand.get("type")
-            T_transition = cand.get("T")
-            confidence = cand.get("confidence")
+            type = feat.get("type")
+            T_transition = feat.get("T")
+            confidence = feat.get("confidence")
 
             if type not in styles_new:
                 continue
