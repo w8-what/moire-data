@@ -13,13 +13,24 @@ def load_field(E, IN):
     return T, nu, R
 
 
-def clean_data(T, nu, R):
+# Sorts the data in increasing T and increasing nu
+def clean_sort_data(T, nu, R):
 
-    # TODO: remove nans for preprocessing 
-    # TODO: sort by filling too
+    # Remove rows with invalid T or resistivity values.
+    valid_rows = np.isfinite(T) & np.all(np.isfinite(R), axis=1)
+    T, R = T[valid_rows], R[valid_rows, :]
 
-    idx = np.argsort(T)
-    T, R = T[idx], R[idx]
+    # Remove columns with invalid filling or resistivity values.
+    valid_cols = np.isfinite(nu) & np.all(np.isfinite(R), axis=0)
+    nu, R = nu[valid_cols], R[:, valid_cols]
+
+    # Sort by increasing temperature.
+    idx_T = np.argsort(T)
+    T, R = T[idx_T], R[idx_T, :]
+
+    # Sort by increasing filling.
+    idx_nu = np.argsort(nu)
+    nu, R = nu[idx_nu], R[:, idx_nu]
 
     return T, nu, R
 

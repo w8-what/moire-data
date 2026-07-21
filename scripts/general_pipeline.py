@@ -5,12 +5,14 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / Path("src")))
 
-from moire.draw_lines import plot_linecut, plot_linecut_noise, plot_linecut_general
-from moire.io import load_field, clean_data
-from moire.signal_helpers import adaptive_smooth, local_noise
-from moire.extract_features import extract_upturns, extract_downturns
-from moire.draw_2d import draw_heatmap_candidates
 from hampel import hampel 
+from moire.io import load_field, clean_sort_data
+from moire.signal_helpers import adaptive_smooth, local_noise
+from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth, estimate_noise_matrix
+from moire.extract_features import extract_upturns, extract_downturns
+
+from moire.draw_lines import plot_linecut, plot_linecut_noise
+from moire.draw_2d import draw_heatmap_candidates
 
 OUT = ROOT / Path("output")
 IN = ROOT / Path("source_data")
@@ -21,7 +23,7 @@ for field in SELECT_FIELDS:
 
     # ----- Data Preprocessing -----
     T, nu, R = load_field(field, IN) # loads initial dataset
-    T, nu, R = clean_data(T, nu, R) # sorts data and removes nans
+    T, nu, R = clean_sort_data(T, nu, R) # sorts data and removes nans
 
     linecuts = []
     for i, v in enumerate(nu):
@@ -32,9 +34,11 @@ for field in SELECT_FIELDS:
     for linecut in linecuts:
 
         # Smoothing
+        sigma = estimate_noise_matrix(T, R)
+
         rho = linecut.get("rho")
         rho_hampel = hampel(rho).filtered_data
-        rho_smoothed = adaptive_smooth(T, rho)
+        rho_smoothed = adaptive_multiscale_smooth(T, rho, sigma = sigma)
         linecut.update({"rho_smoothed" : rho_smoothed})
 
         # Noise estimates
@@ -51,12 +55,12 @@ for field in SELECT_FIELDS:
     # ----- Plotting and creating figures -----
     numLinecuts = 20
     selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype = "int")
-    print(selectedLinecuts)
     for i, linecut in enumerate(linecuts):
         if i in selectedLinecuts:
             plot_linecut(T, linecut, OUT = OUT / Path("linecuts"))
 
-    draw_heatmap_candidates(nu, T, R, linecuts, OUT = OUT / Path("heatmaps"), save = True, name = f"{field}_heatmap_opqaue")
+
+    fig, ax, im = draw_heatmap_candidates(nu, T, R, linecuts, OUT = OUT / Path("heatmaps"), save = True, name = f"{field}_heatmap_opqaue")
         
         
 

@@ -7,12 +7,35 @@ from moire.signal_helpers import adaptive_smooth
 from moire.io import fmt4
 
 
+def plot_grid(plots, title = None):
 
+    layouts = {
+        1: (1, 1),
+        2: (1, 2),
+        3: (1, 3),
+        4: (2, 2),
+        5: (2, 3),
+        6: (2, 3),
+    }
 
+    nrows, ncols = layouts[len(plots)]
 
+    fig, axes = plt.subplots(nrows, ncols, squeeze=False, figsize=(5 * ncols, 4 * nrows))
+    axes = axes.flatten()
 
-def plot_grid(plots, title):
-    return 
+    for ax, plot in zip(axes, plots):
+        plot_line(ax=ax, **plot)
+
+    # Removes the bottom-right subplot for five plots
+    for ax in axes[len(plots):]:
+        ax.remove()
+
+    if title is not None:
+        fig.suptitle(title)
+
+    fig.tight_layout()
+
+    return fig, axes[:len(plots)]
 
 
 
