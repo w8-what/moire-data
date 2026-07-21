@@ -2,7 +2,7 @@ import numpy as np
 from scipy.signal import find_peaks
 
 
-def extract_upturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dict]:
+def extract_upturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff = 2) -> list[dict]:
 
     candidate_upturns = []
     rho_smoothed = linecut.get("rho_smoothed")
@@ -48,24 +48,24 @@ def extract_upturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dict]
             left_idx = j
             right_idx = right_base_idx
 
+        local_noise = np.mean(noise[left_idx : right_idx + 1])
+        prominence = prop.get("prominences")[i]
+        prom_z = (prominence / local_noise)
+
         width = T[right_idx] - T[left_idx]
         pts = len(T[left_idx:right_idx+1])
 
         target = 0.8
-        
-        C_w = min_pts**coeff * (1 - target) / target # calibrates C_w such that min_feature_size gets 0.8 score
-        width_score = pts**coeff / (pts**coeff + C_w)
 
-        # Finding vertical prominence
-        prominence = prop.get("prominences")[i]
+        C_prom = sigma**coeff * (1 - target) / target
+        C_width = min_width**coeff * (1 - target) / target
+        C_pts = min_pts**coeff * (1 - target) / target
 
-        C_p = sigma**coeff * (1 - target) / target # calibrates C_w such that # sigma ABOVE noise of local noise gets 0.8 score 
+        prom_score = prom_z**coeff / (prom_z**coeff + C_prom)
+        pts_score = pts**coeff / (pts**coeff + C_pts)
+        width_score = width**coeff / (width**coeff + C_width)
 
-        local_noise = np.mean(noise[left_idx : right_idx + 1])
-        prom_z = (prominence / local_noise)
-        prom_score = prom_z**coeff / (prom_z**coeff + C_p)
-
-        comb_score = (prom_score * width_score) ** 0.5 
+        comb_score = prom_score ** 0.5 * pts_score ** 0.3 * width_score ** 0.2 
         comb_score = float(f"{comb_score:.3g}")
 
         feature = {
@@ -78,7 +78,7 @@ def extract_upturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dict]
 
     return candidate_upturns
 
-def extract_downturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dict]:
+def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff = 2) -> list[dict]:
 
     candidate_downturns = []
     rho_smoothed = linecut.get("rho_smoothed")
@@ -125,25 +125,25 @@ def extract_downturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dic
             right_idx = j
 
 
+        local_noise = np.mean(noise[left_idx : right_idx + 1])
+        prominence = prop.get("prominences")[i]
+        prom_z = (prominence / local_noise)
+
         width = T[right_idx] - T[left_idx]
         pts = len(T[left_idx:right_idx+1])
 
         target = 0.8
-        C_w = min_pts**coeff * (1-target) / (target) # calibrates C_w such that min_feature_size gets 0.8 score
-        width_score = pts**coeff / (pts**coeff + C_w)
 
-        # Finding vertical prominence
-        prominence = prop.get("prominences")[i]
+        C_prom = sigma**coeff * (1 - target) / target
+        C_width = min_width**coeff * (1 - target) / target
+        C_pts = min_pts**coeff * (1 - target) / target
 
-        C_p = sigma**coeff * (1-target) / (target) # calibrates C_w such that # sigma ABOVE noise of local noise gets 0.8 score 
+        prom_score = prom_z**coeff / (prom_z**coeff + C_prom)
+        pts_score = pts**coeff / (pts**coeff + C_pts)
+        width_score = width**coeff / (width**coeff + C_width)
 
-        local_noise = np.mean(noise[left_idx : right_idx + 1])
-        prom_z = (prominence / local_noise)
-        prom_score = prom_z**coeff / (prom_z**coeff + C_p)
-
-        comb_score = (prom_score * width_score) ** 0.5 
+        comb_score = prom_score ** 0.5 * pts_score ** 0.3 * width_score ** 0.2 
         comb_score = float(f"{comb_score:.3g}")
-
 
         feature = {
             "T" : T[idx],

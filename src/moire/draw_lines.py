@@ -197,13 +197,11 @@ def plot_linecut_noise(T: list, linecut, save = False, OUT = None):
 
 
     # Plotting transition points and fitted lines 
-    for cand in linecut.get("candidates"):
+    for feat in linecut.get("features"):
 
-        T_t = cand["T"]
-        type = cand["type"]
-        conf = cand["confidence"] 
-        phase_left = cand["phase_left"]
-        phase_right = cand["phase_right"]
+        T_t = feat.get("T")
+        conf = feat.get("confidence")
+        type = feat.get("type")
         t_color = "blue" if (type == "downturn") else "red"
 
         rho_at_T_t = rho_smoothed[np.argmin(np.abs(T - T_t))]
