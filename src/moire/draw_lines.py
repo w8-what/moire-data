@@ -6,8 +6,67 @@ from pathlib import Path
 from moire.signal_helpers import adaptive_smooth
 from moire.io import fmt4
 
-def plot_linecut_general():
+
+
+
+
+
+def plot_grid(plots, title):
     return 
+
+
+
+def plot_line(x, y, xlabel=None, ylabel=None, title=None, xlim=None, ylim=None, shaded=False, error=None, **plot_kwargs):
+    _, ax = plt.subplots()
+
+    ax.plot(x, y, **plot_kwargs)
+
+    ax.set(
+        xlabel=xlabel,
+        ylabel=ylabel,
+        title=title,
+        xlim=xlim,
+        ylim=ylim,
+    )
+
+    if shaded:
+        ax.fill_between(x, 0, y, alpha=0.2)
+
+    if error is not None:
+        ax.fill_between(x, y - error, y + error, alpha=0.2)
+
+    return ax
+
+
+def overlay_features(ax, linecut):
+
+    T = linecut.get("T")
+    rho_smoothed = linecut.get("rho_smoothed")
+    features = linecut.get("features")
+
+    for feature in features:
+        
+        T_feature = feature.get("T")
+        rho_at_T = rho_smoothed[np.argmin(np.abs(T - T_feature))]
+
+        conf = feature.get("confidence")
+        color = "blue" if feature.get("type") == "downturn" else "red"
+
+        ax.scatter(T_feature, rho_at_T, alpha = conf, color = color)
+        ax.axvline(T_feature, linewidth = 1, linestyle='--', color = "grey", zorder=3)
+
+        max_rho = np.max(rho_smoothed)
+        top_half = rho_at_T > (max_rho/2)
+        y_text = 0.8 * max_rho if top_half else 0.2 * max_rho
+        ax.annotate(f"{conf=}", xy=(T_feature, rho_at_T), xytext=(T_feature, y_text),
+            bbox=dict(boxstyle="round", fc="0.8", alpha = 0.8),
+            arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=10, connectionstyle="angle,angleA=0,angleB=90,rad=10", alpha = 0.8))
+
+    return ax
+
+def overlay_phases(ax, linecut):
+    return 
+
 
 
 # Plot candidate transition temperatures, along with candidate phases (if suggested)
@@ -50,13 +109,12 @@ def plot_linecut(T: list, linecut, OUT):
 
 
     # Plotting transition points and fitted lines 
-    for cand in linecut.get("candidates"):
+    for feat in linecut.get("features"):
 
-        T_t = cand["T"]
-        conf = cand["confidence"] 
-        phase_left = cand["phase_left"]
-        phase_right = cand["phase_right"]
-        t_color = "blue" if (phase_left == "Metal" or phase_left == "Insulator") else "red"
+        T_t = feat.get("T")
+        conf = feat.get("confidence")
+        type = feat.get("type")
+        t_color = "blue" if (type == "downturn") else "red"
 
         rho_at_T_t = rho_smoothed[np.argmin(np.abs(T - T_t))]
         axes[1].scatter(T_t, rho_at_T_t, color = t_color, alpha = 0.8)
