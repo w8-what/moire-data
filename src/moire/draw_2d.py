@@ -64,7 +64,7 @@ def draw_heatmap(col, row, data, OUT=None, name="heatmap", save=False,
 
 
 
-def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatmap_candidates", save = True):
+def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatmap_candidates", save = True, filter = 0):
 
     fig, ax, im = draw_heatmap(col, row, data, save=False, name=name)
 
@@ -75,8 +75,8 @@ def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatma
     }
 
     styles_new = {
-        "upturn":   dict(color="red",    marker="^", label = "upturn"),
-        "downturn": dict(color = "blue", marker ="o", label = "downturn")
+        "upturn":   dict(color="yellow",    marker="^", label = "upturn"),
+        "downturn": dict(color = "green", marker ="o", label = "downturn")
     }
 
     used_labels = set()
@@ -89,6 +89,9 @@ def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatma
             type = feat.get("type")
             T_transition = feat.get("T")
             confidence = feat.get("confidence")
+
+            if confidence < filter:
+                continue
 
             if type not in styles_new:
                 continue

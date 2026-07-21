@@ -51,13 +51,15 @@ def extract_upturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dict]
         width = T[right_idx] - T[left_idx]
         pts = len(T[left_idx:right_idx+1])
 
-        C_w = min_pts**coeff / (0.8)/(1-0.8) # calibrates C_w such that min_feature_size gets 0.8 score
+        target = 0.8
+        
+        C_w = min_pts**coeff * (1 - target) / target # calibrates C_w such that min_feature_size gets 0.8 score
         width_score = pts**coeff / (pts**coeff + C_w)
 
         # Finding vertical prominence
         prominence = prop.get("prominences")[i]
 
-        C_p = sigma**coeff * (0.8)/(1-0.8) # calibrates C_w such that # sigma ABOVE noise of local noise gets 0.8 score 
+        C_p = sigma**coeff * (1 - target) / target # calibrates C_w such that # sigma ABOVE noise of local noise gets 0.8 score 
 
         local_noise = np.mean(noise[left_idx : right_idx + 1])
         prom_z = (prominence / local_noise)
@@ -102,7 +104,7 @@ def extract_downturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dic
                 if low <= rho_horizontal and rho_horizontal <= high:
                     break
 
-                j += 1
+                j -= 1
 
             left_idx = j
             right_idx = right_base_idx
@@ -110,14 +112,14 @@ def extract_downturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dic
         else:
             # use left as point and find right point that corresponds to right
             j = idx + 1 # watch out edge 
-            while j >= left_base_idx:
+            while j <= right_base_idx:
                 low = min(rho_smoothed[j - 1], rho_smoothed[j])
                 high = max(rho_smoothed[j - 1], rho_smoothed[j])
 
                 if low <= rho_horizontal and rho_horizontal <= high:
                     break
 
-                j -= 1
+                j += 1
 
             left_idx = left_base_idx
             right_idx = j
@@ -126,13 +128,14 @@ def extract_downturns(T, linecut, min_pts = 5, sigma = 5, coeff = 2) -> list[dic
         width = T[right_idx] - T[left_idx]
         pts = len(T[left_idx:right_idx+1])
 
-        C_w = min_pts**coeff / (0.8)/(1-0.8) # calibrates C_w such that min_feature_size gets 0.8 score
+        target = 0.8
+        C_w = min_pts**coeff * (1-target) / (target) # calibrates C_w such that min_feature_size gets 0.8 score
         width_score = pts**coeff / (pts**coeff + C_w)
 
         # Finding vertical prominence
         prominence = prop.get("prominences")[i]
 
-        C_p = sigma**coeff * (0.8)/(1-0.8) # calibrates C_w such that # sigma ABOVE noise of local noise gets 0.8 score 
+        C_p = sigma**coeff * (1-target) / (target) # calibrates C_w such that # sigma ABOVE noise of local noise gets 0.8 score 
 
         local_noise = np.mean(noise[left_idx : right_idx + 1])
         prom_z = (prominence / local_noise)

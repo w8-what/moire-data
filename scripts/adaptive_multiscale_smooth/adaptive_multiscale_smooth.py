@@ -19,7 +19,7 @@ IN = ROOT / Path("source_data")
 FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
 SELECT_FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
 
-for field in SELECT_FIELDS:
+for field in FIELDS:
 
     # ----- Data Preprocessing -----
     T, nu, R = load_field(field, IN) # loads initial dataset
@@ -51,16 +51,16 @@ for field in SELECT_FIELDS:
 
 
     # ----- Plotting and creating figures -----
-    numLinecuts = 20
+    numLinecuts = 50
     selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype = "int")
-    print(selectedLinecuts)
     for i, linecut in enumerate(linecuts):
         if i in selectedLinecuts:
             plot_linecut(T, linecut, OUT = OUT / Path("linecuts"))
 
     draw_heatmap_candidates(nu, T, R, linecuts, OUT = OUT / Path("heatmaps"), save = True, name = f"{field}_heatmap_opqaue")
-        
-        
+    
+
 
         
+
 
