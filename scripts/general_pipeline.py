@@ -53,14 +53,14 @@ for field in SELECT_FIELDS:
 
 
     # ----- Plotting and creating figures -----
-    numLinecuts = 20
+    numLinecuts = 30
     selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype = "int")
     for i, linecut in enumerate(linecuts):
         if i in selectedLinecuts:
             plot_linecut(T, linecut, OUT = OUT / Path("linecuts"))
 
 
-    fig, ax, im = draw_heatmap_candidates(nu, T, R, linecuts, OUT = OUT / Path("heatmaps"), save = True, name = f"{field}_heatmap_opqaue")
+    fig, ax, im = draw_heatmap_candidates(nu, T, R, linecuts, filter = 0.01, OUT = OUT / Path("heatmaps"), save = True, name = f"{field}_heatmap_opqaue")
         
         
 
