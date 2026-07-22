@@ -6,8 +6,7 @@ from pathlib import Path
 import numpy as np 
 
 
-def draw_heatmap(col, row, data, OUT=None, name="heatmap", save=False,
-    xlabel="Filling v", ylabel="Temperature T (K)", cbar_label="Resistivity"):
+def draw_heatmap(fig, ax, col, row, data, title="heatmap", xlabel="Filling v", ylabel="Temperature T (K)", cbar_label="Resistivity"):
 
     # Log rounded vmin & vmax
     vmin_raw, vmax_raw = np.nanpercentile(data[data > 0], [1, 99])
@@ -18,7 +17,6 @@ def draw_heatmap(col, row, data, OUT=None, name="heatmap", save=False,
     vmin = 10**emin
     vmax = 10**emax
 
-    fig, ax = plt.subplots(figsize=(8, 6))
     im = ax.pcolormesh(col, row, data, cmap="bwr", shading="nearest", norm = LogNorm(vmin = vmin, vmax = vmax))
 
     tick_exps = np.arange(emin, emax + 1)
@@ -35,31 +33,14 @@ def draw_heatmap(col, row, data, OUT=None, name="heatmap", save=False,
     # Axis titles and labels 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(name)
+    ax.set_title(title)
 
     fig.tight_layout()
 
-    if save:
-        OUT = Path(OUT)
-        OUT.mkdir(parents=True, exist_ok=True)
-        fig.savefig(OUT / f"{name}_heatmap.png", dpi=250, bbox_inches="tight")
 
-    return fig, ax, im
-
-
-
-
-def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatmap_candidates", save = True, filter = 0):
-
-    fig, ax, im = draw_heatmap(col, row, data, save=False, name=name)
+def overlay_features_heatmap(ax, linecuts, score_name = "confidence", filter = 0):
 
     styles = {
-        "AFM":       dict(color="red",    marker="^", label="AFM below"),
-        "Metal":     dict(color="green",  marker="o", label="Metal below"),
-        "Insulator": dict(color="yellow", marker="o", label="Insulator below"),
-    }
-
-    styles_new = {
         "upturn":   dict(color="yellow",    marker="^", label = "upturn"),
         "downturn": dict(color = "green", marker ="o", label = "downturn")
     }
@@ -68,20 +49,19 @@ def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatma
 
 
     for linecut in linecuts:
-        features = linecut.get("features")
+        features = linecut.get("features") 
+        nu = linecut.get("nu")
+
         for feat in features:
 
             type = feat.get("type")
             T_transition = feat.get("T")
-            confidence = feat.get("confidence")
+            score = feat.get(score_name)
 
-            if confidence < filter:
+            if type not in styles or score < filter:
                 continue
 
-            if type not in styles_new:
-                continue
-
-            style = styles_new[type].copy()
+            style = styles[type].copy()
             label = style["label"]
 
             if label in used_labels:
@@ -90,28 +70,17 @@ def draw_heatmap_candidates(col, row, data, linecuts, OUT = None, name = "heatma
                 used_labels.add(label)
 
             ax.scatter(
-                linecut.get("nu"),
+                nu,
                 T_transition,
                 s=35,
                 edgecolor="black",
                 linewidth=0.4,
                 zorder=5,
-                alpha = confidence,
+                alpha = score,
                 **style
             )
 
     ax.legend(frameon=True, fontsize=8)
-
-    if save:
-        if OUT is None:
-            raise ValueError("OUT must be provided when save=True")
-
-        OUT = Path(OUT)
-        OUT.mkdir(parents=True, exist_ok=True)
-        fig.savefig(OUT / f"{name}_heatmap_candidates.png", dpi=250, bbox_inches="tight")
-
-    return fig, ax, im
-
 
 
 

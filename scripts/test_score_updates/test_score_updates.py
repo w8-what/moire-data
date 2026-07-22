@@ -3,20 +3,20 @@ from pathlib import Path
 import numpy as np 
 import copy
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / Path("src")))
 
 from hampel import hampel 
 from moire.io import load_field, clean_sort_data
-from moire.signal_helpers import adaptive_smooth, local_noise
+from moire.signal_helpers import local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
 from moire.extract_features import extract_upturns, extract_downturns
 
-from moire.draw_lines import plot_linecut, plot_linecut_noise, plot_grid
-from moire.draw_2d import draw_heatmap_candidates
+from moire.draw_lines import plot_linecut, plot_linecut_noise, generate_layout
+from moire.draw_2d import draw_heatmap, overlay_features_heatmap
 from moire.update_scoring import update_scores
 
-OUT = ROOT / Path("output")
+OUT = Path(__file__).resolve().parent / Path("output")
 IN = ROOT / Path("source_data")
 FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
 SELECT_FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
@@ -55,21 +55,39 @@ for field in SELECT_FIELDS:
     # ----- New Scoring Updates -----
 
     update_scores(linecuts)
+    update_scores(linecuts)
+    update_scores(linecuts)
+    update_scores(linecuts)
+    update_scores(linecuts)
+
+
 
 
     # ----- Plotting and creating figures -----
-    numLinecuts = 60
-    selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype = "int")
-    for i, linecut in enumerate(linecuts):
-        if i in selectedLinecuts:
-            plot_linecut_noise(T, linecut, OUT = OUT / Path("linecuts"))
+    # numLinecuts = 60
+    # selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype = "int")
+    # for i, linecut in enumerate(linecuts):
+    #     if i in selectedLinecuts:
+    #         plot_linecut_noise(T, linecut, OUT = OUT / Path("linecuts"))
+
+    name = f"{field}_Score_Comparison"
+    fig, axes = generate_layout(2, title = name)
 
 
-    fig, ax, im = draw_heatmap_candidates(nu, T, R, linecuts)
-    fig_cons, ax_cons, im_cons = draw_heatmap_candidates(nu, T, R, linecuts_consistency)
-    plot_grid([ax, ax_cons], OUT = OUT / Path("heatmap_comparison"), name = f"Score_Comparison_{field}")
+    draw_heatmap(fig, axes[0], nu, T, R, title = "original scoring")
+    overlay_features_heatmap(axes[0], linecuts, score_name = "confidence")
 
-        
+    draw_heatmap(fig, axes[1], nu, T, R, title = "1st re-scroing")
+    overlay_features_heatmap(axes[1], linecuts, score_name = "score_1")
+
+    path = OUT / Path("heatmaps_comparison")
+    path.mkdir(exist_ok = True, parents = True)
+    fig.savefig(path / Path(name + ".png"))
+
+
+    
+
+
 
         
 

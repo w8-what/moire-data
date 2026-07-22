@@ -7,7 +7,7 @@ from moire.signal_helpers import adaptive_smooth
 from moire.io import fmt4
 
 
-def plot_grid(plots, save = True, OUT = Path("output"), name = "plotted_grid"):
+def generate_layout(numAxes, title = "title"):
 
     layouts = {
         1: (1, 1),
@@ -18,27 +18,19 @@ def plot_grid(plots, save = True, OUT = Path("output"), name = "plotted_grid"):
         6: (2, 3),
     }
 
-    nrows, ncols = layouts[len(plots)]
+    nrows, ncols = layouts[numAxes]
 
-    fig, axes = plt.subplots(nrows, ncols, squeeze=False, figsize=(5 * ncols, 4 * nrows))
+    fig, axes = plt.subplots(nrows, ncols, squeeze=False, figsize=(7.5 * ncols, 6 * nrows), dpi = 250)
     axes = axes.flatten()
 
-    for ax, plot in zip(axes, plots):
-        plot_line(ax=ax, **plot)
-
     # Removes the bottom-right subplot for five plots
-    for ax in axes[len(plots):]:
+    for ax in axes[numAxes:]:
         ax.remove()
 
-    fig.suptitle(name)
+    fig.suptitle(title)
     fig.tight_layout()
 
-    if save:
-        OUT.mkdir(exist_ok = True, parents = True)
-        save_path = OUT / Path(name + ".png")
-        fig.savefig(save_path, dpi = 250)
-
-    return fig, axes[:len(plots)]
+    return fig, axes
 
 
 
@@ -89,9 +81,6 @@ def overlay_features(ax, linecut):
             arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=10, connectionstyle="angle,angleA=0,angleB=90,rad=10", alpha = 0.8))
 
     return ax
-
-def overlay_phases(ax, linecut):
-    return 
 
 
 

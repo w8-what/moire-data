@@ -70,6 +70,7 @@ def extract_upturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff =
 
         feature = {
             "T" : T[idx],
+            "nu" : linecut.get("nu"),
             "type" : "upturn",
             "confidence" : comb_score,
         }
@@ -147,6 +148,7 @@ def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff
 
         feature = {
             "T" : T[idx],
+            "nu" : linecut.get("nu"),
             "type" : "downturn",
             "confidence" : comb_score,
         }

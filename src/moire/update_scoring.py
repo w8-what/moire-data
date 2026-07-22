@@ -1,9 +1,33 @@
 import math
 import numpy as np 
 
+def update_scores_iter(linecuts, numIter, n_hood = 3):
+
+    for i in range(numIter):
+        new_score_name = f"score_{i}"
+        if i == 0
+            interp_score(linecuts, support_score="support")
+
+    update_scores(linecuts, n_hood = n_hood)
+
+
+def interp_score(linecuts, support_score = "support", old_score = "confidence", new_score = "score_1", c = 0.5):
+    
+
+    for i, linecut in enumerate(linecuts):
+        
+        features = linecut.get("features")
+
+        for feat in features:
+
+            # now interp score based on support scores 
+            interp = feat.get(old_score) * c + feat.get(support_score) * (1-c)
+            feat.update({new_score : interp})
+
+
 def update_scores(linecuts, n_hood = 3):
 
-    T = linecuts.get(T)
+    T = linecuts[0].get("T")
 
     # ---- NEW -----
 
@@ -14,7 +38,6 @@ def update_scores(linecuts, n_hood = 3):
             # find max across left and right 
             # geometric mean between left and right
             # interp value 
-    support = {}
 
     for i, linecut in enumerate(linecuts):
 
@@ -52,17 +75,21 @@ def update_scores(linecuts, n_hood = 3):
                     if score > left_max_score:
                         left_max_score = score 
 
-            for right_feat in right_hood:
+            for right_line in right_hood:
+
+                right_features = right_line.get("features")
+
+                for right_feat in right_features:
                     
-                idx_right = np.argmin(np.abs(T - right_feat.get("T")))
-                conf = right_feat.get("confidence")
-                T_spacings = idx_right - idx_feat 
+                    idx_right = np.argmin(np.abs(T - right_feat.get("T")))
+                    conf = right_feat.get("confidence")
+                    T_spacings = idx_right - idx_feat 
 
-                tau = 3 
-                score = conf * math.exp(-0.5*(T_spacings)**2 / tau)
+                    tau = 3 
+                    score = conf * math.exp(-0.5*(T_spacings)**2 / tau)
 
-                if score > right_max_score:
-                    right_max_score = score 
+                    if score > right_max_score:
+                        right_max_score = score 
 
             # Edge cases for boundaries 
             if 2 * len(left_hood) < n_hood and left_max_score == 0:
@@ -72,14 +99,19 @@ def update_scores(linecuts, n_hood = 3):
                 right_max_score = left_max_score
                 
             comb_support = left_max_score ** 0.5 * right_max_score ** 0.5
-            support.update({feat : comb_support})
+            feat.update({"support" : comb_support})
     
-    for feat in features:
 
-        # now interp score based on support scores 
-        c = 0.5 # how much of old score to retain 
-        new_score = feat.get("conf") * c + support.get(feat) * (1-c)
-        feat.update({"score_1" : new_score})
+    for i, linecut in enumerate(linecuts):
+        
+        features = linecut.get("features")
+
+        for feat in features:
+
+            # now interp score based on support scores 
+            c = 0.5 # how much of old score to retain 
+            new_score = feat.get("confidence") * c + feat.get("support") * (1-c)
+            feat.update({"score_1" : new_score})
 
     
 
