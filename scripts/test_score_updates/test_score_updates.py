@@ -14,6 +14,7 @@ from moire.extract_features import extract_upturns, extract_downturns
 
 from moire.draw_lines import plot_linecut, plot_linecut_noise, plot_grid
 from moire.draw_2d import draw_heatmap_candidates
+from moire.update_scoring import update_scores
 
 OUT = ROOT / Path("output")
 IN = ROOT / Path("source_data")
@@ -53,8 +54,7 @@ for field in SELECT_FIELDS:
 
     # ----- New Scoring Updates -----
 
-    linecuts_consistency = copy.deepcopy(linecuts)
-    linecuts = update_score(linecuts)
+    update_scores(linecuts)
 
 
     # ----- Plotting and creating figures -----

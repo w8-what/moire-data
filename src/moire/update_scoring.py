@@ -1,77 +1,87 @@
 import math
+import numpy as np 
 
-def update_scoring(linecuts, n_hood = 3):
+def update_scores(linecuts, n_hood = 3):
 
     T = linecuts.get(T)
 
     # ---- NEW -----
-    # iterate through each linecut
-    # find support score for left and right linecuts (check maybe 5 fillings across)
-    # find max across left and right 
-    # geometric mean between left and right
-    # interp value 
 
-    support = []
+    # iterate through each linecut
+        # find the ones that contain features
+        # for each feature:
+            # find support score for left and right linecuts (check maybe 5 fillings across) based on score and T 
+            # find max across left and right 
+            # geometric mean between left and right
+            # interp value 
+    support = {}
 
     for i, linecut in enumerate(linecuts):
 
         # define left and right neighborhood
         # how to define boundary cases?
+        features = linecut.get("features")
+    
+        if len(features) == 0:
+            continue
+
         left_hood = linecuts[max(0, i-n_hood) : i]
         right_hood = linecuts[i+1 : min(len(linecuts), i+n_hood+1)]
 
-        left_max_score = 0
-        right_max_score = 0 
+        for feat in features: 
 
-        for left_line in left_hood:
-            # see if there is feature
-            # if feature -> calculate score and get score
-            features = left_line.get("features")
-            
-            for feat in features:
-                conf = feat.get("confidence")
-                T_spacings = 
-                tau = 
+            T_feat = feat.get("T") 
+            idx_feat = np.argmin(np.abs(T - T_feat))
+
+            left_max_score = 0
+            right_max_score = 0 
+
+            for left_line in left_hood:
+
+                left_features = left_line.get("features")
+                
+                for left_feat in left_features:
+
+                    idx_left = np.argmin(np.abs(T - left_feat.get("T")))
+                    conf = left_feat.get("confidence")
+                    T_spacings = idx_feat - idx_left 
+
+                    tau = 3 
+                    score = conf * math.exp(-0.5*(T_spacings)**2 / tau)
+
+                    if score > left_max_score:
+                        left_max_score = score 
+
+            for right_feat in right_hood:
+                    
+                idx_right = np.argmin(np.abs(T - right_feat.get("T")))
+                conf = right_feat.get("confidence")
+                T_spacings = idx_right - idx_feat 
+
+                tau = 3 
                 score = conf * math.exp(-0.5*(T_spacings)**2 / tau)
 
-                if score > left_max_score:
-                    left_max_score = score 
+                if score > right_max_score:
+                    right_max_score = score 
 
-        for right_line in right_hood:
-            
-            features = right_line.get("features")
-            
-            for feat in features:
-                conf = feat.get("confidence")
-                T_spacings = 
-                tau = 
-                score = conf * math.exp(-0.5*(T_spacings)**2 / tau)
-
-                if score > left_max_score:
-                    left_max_score = score 
-
-            
-        # update left to match right; or right to match left score IF uh two scenarios
-            # the left_hood is less than half of the hood requirement or right_hood is less than half of the hood req
-            # and also there were no candidates found 
-
-        if 2 * len(left_hood) < n_hood:
-            if left_max_score == 0:
+            # Edge cases for boundaries 
+            if 2 * len(left_hood) < n_hood and left_max_score == 0:
                 left_max_score = right_max_score
-        
-        if 2 * len(right_hood) < n_hood:
-            if right_max_score == 0:
-                right_max_score = left_max_score
             
-        total_support = left_max_score ** 0.5 * right_max_score ** 0.5
-        support.append(total_support)
+            if 2 * len(right_hood) < n_hood and right_max_score == 0:
+                right_max_score = left_max_score
+                
+            comb_support = left_max_score ** 0.5 * right_max_score ** 0.5
+            support.update({feat : comb_support})
     
-    for i, linecut in enumerate(linecuts):
+    for feat in features:
 
         # now interp score based on support scores 
         c = 0.5 # how much of old score to retain 
-        new_score = linecut.get("score") * c + support[i] * (1-c)
-        linecut.update({"new_score_1" : new_score})
+        new_score = feat.get("conf") * c + support.get(feat) * (1-c)
+        feat.update({"score_1" : new_score})
+
+    
 
 
 
