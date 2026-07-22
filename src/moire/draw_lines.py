@@ -7,7 +7,7 @@ from moire.signal_helpers import adaptive_smooth
 from moire.io import fmt4
 
 
-def plot_grid(plots, title = None):
+def plot_grid(plots, save = True, OUT = Path("output"), name = "plotted_grid"):
 
     layouts = {
         1: (1, 1),
@@ -30,10 +30,13 @@ def plot_grid(plots, title = None):
     for ax in axes[len(plots):]:
         ax.remove()
 
-    if title is not None:
-        fig.suptitle(title)
-
+    fig.suptitle(name)
     fig.tight_layout()
+
+    if save:
+        OUT.mkdir(exist_ok = True, parents = True)
+        save_path = OUT / Path(name + ".png")
+        fig.savefig(save_path, dpi = 250)
 
     return fig, axes[:len(plots)]
 
