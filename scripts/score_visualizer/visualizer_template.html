@@ -5,28 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Score update visualizer</title>
   <style>
+    /* ---------- Theme and page layout ---------- */
     :root {
       color-scheme: light dark;
       --bg: #f5f5f2;
       --surface: #ffffff;
-      --surface-2: #eeeeea;
       --text: #1b1d1f;
       --muted: #666b70;
       --border: #d9d9d3;
       --accent: #305fda;
-      --accent-soft: #e7edff;
       --shadow: 0 10px 30px rgba(24, 27, 31, .07);
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #151719;
         --surface: #202326;
-        --surface-2: #292d31;
         --text: #f1f2f3;
         --muted: #aeb4bb;
         --border: #3b4045;
         --accent: #86a6ff;
-        --accent-soft: #273352;
         --shadow: 0 10px 30px rgba(0, 0, 0, .22);
       }
     }
@@ -38,20 +35,31 @@
       font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.45;
     }
-    main { max-width: 1500px; margin: 0 auto; padding: 28px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 28px; }
     header {
       display: flex;
       align-items: end;
       justify-content: space-between;
       gap: 24px;
-      margin-bottom: 22px;
+      margin-bottom: 18px;
     }
-    h1 { margin: 0 0 4px; font-size: clamp(1.45rem, 3vw, 2.2rem); font-weight: 650; letter-spacing: -.025em; }
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(1.45rem, 3vw, 2.2rem);
+      font-weight: 650;
+      letter-spacing: -.025em;
+    }
     h2 { margin: 0; font-size: 1.05rem; font-weight: 650; }
     p { margin: 0; }
-    .subtitle, .formula, .detail, .meta { color: var(--muted); }
-    .field-control { min-width: 160px; }
-    label { display: block; font-size: .78rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+    label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 650;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .muted, .formula, .detail { color: var(--muted); }
+    .field-control { min-width: 170px; }
     select {
       width: 100%;
       margin-top: 6px;
@@ -62,9 +70,11 @@
       border-radius: 8px;
       font: inherit;
     }
-    .parameter-bar {
+
+    /* ---------- Parameter controls ---------- */
+    .controls {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 18px;
       margin-bottom: 18px;
       padding: 16px 18px;
@@ -73,13 +83,26 @@
       border-radius: 14px;
       box-shadow: var(--shadow);
     }
-    .parameter { min-width: 0; }
-    .parameter label { display: flex; justify-content: space-between; gap: 10px; }
-    .parameter output { color: var(--accent); font-variant-numeric: tabular-nums; }
-    .parameter input[type="range"] { display: block; margin-top: 9px; }
-    .sigmoid-parameter { display: grid; gap: 9px; }
-    .check-label {
+    .control { min-width: 0; }
+    .control label {
       display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .control output {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    input[type="range"] {
+      width: 100%;
+      margin-top: 9px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    input:disabled { cursor: not-allowed; opacity: .45; }
+    .sigmoid-control { display: grid; gap: 9px; }
+    .check-label {
+      display: flex !important;
       align-items: center;
       justify-content: flex-start !important;
       gap: 8px !important;
@@ -88,28 +111,72 @@
       cursor: pointer;
     }
     .check-label input { accent-color: var(--accent); }
-    input:disabled { cursor: not-allowed; opacity: .45; }
-    .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .support-formula { font-size: .78rem; color: var(--muted); }
+
+    /* ---------- Heatmap panel ---------- */
     .panel {
-      min-width: 0;
       padding: 18px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
       box-shadow: var(--shadow);
     }
-    .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 4px; }
-    .iteration { color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 650; }
-    .formula { min-height: 2.9em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; }
-    .range-wrap { margin: 14px 0 8px; }
-    input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
-    .range-ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums; }
-    .plot-wrap { position: relative; width: 100%; aspect-ratio: 1.18 / 1; min-height: 320px; }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+    .iteration {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      font-weight: 650;
+    }
+    .formula {
+      min-height: 2.9em;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .78rem;
+    }
+    .iteration-control { margin: 14px 0 8px; }
+    .range-ticks {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: .72rem;
+    }
+    .plot-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1.55 / 1;
+      min-height: 420px;
+    }
     canvas { display: block; width: 100%; height: 100%; }
-    .legend { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px; margin-top: 2px; font-size: .78rem; color: var(--muted); }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: .78rem;
+    }
     .symbol { display: inline-flex; align-items: center; gap: 6px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; background: #61a85b; border: 1px solid #202225; }
-    .triangle { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid #f3ca42; filter: drop-shadow(0 0 0 #202225); }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #61a85b;
+      border: 1px solid #202225;
+    }
+    .triangle {
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 11px solid #f3ca42;
+    }
     .score-key { display: inline-flex; align-items: center; gap: 4px; }
     .score-key i { display: block; border-radius: 50%; background: var(--accent); }
     .score-key i:first-child { width: 5px; height: 5px; opacity: .35; }
@@ -123,20 +190,25 @@
       font-variant-numeric: tabular-nums;
     }
     .detail strong { color: var(--text); }
-    .footer-note { margin-top: 16px; text-align: center; font-size: .78rem; color: var(--muted); }
-    @media (max-width: 900px) {
+    .footer-note {
+      margin-top: 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .78rem;
+    }
+
+    @media (max-width: 780px) {
       main { padding: 18px; }
       header { align-items: stretch; flex-direction: column; gap: 14px; }
       .field-control { width: 100%; }
-      .parameter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .panels { grid-template-columns: 1fr; }
-      .plot-wrap { min-height: 300px; }
+      .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .plot-wrap { min-height: 340px; }
     }
     @media (max-width: 480px) {
       main { padding: 10px; }
+      .controls { grid-template-columns: 1fr; padding: 12px; }
       .panel { padding: 12px; }
-      .parameter-bar { grid-template-columns: 1fr; padding: 12px; }
-      .plot-wrap { min-height: 260px; }
+      .plot-wrap { min-height: 280px; }
     }
   </style>
 </head>
@@ -144,8 +216,8 @@
   <main>
     <header>
       <div>
-        <h1>Iterative score updates</h1>
-        <p class="subtitle">Compare an original-confidence anchor with a fully recursive update.</p>
+        <h1>Original-confidence score updates</h1>
+        <p class="muted">Explore how neighboring features change scores while original confidence remains the anchor.</p>
       </div>
       <div class="field-control">
         <label for="field">Electric field (mV/nm)</label>
@@ -153,169 +225,184 @@
       </div>
     </header>
 
-    <section class="parameter-bar" aria-label="Support parameters">
-      <div class="parameter">
-        <label for="tau">Temperature spread τ <output id="tau-value">3.00</output></label>
-        <input id="tau" type="range" min="0.25" max="10" step="0.25" value="3">
+    <!-- All controls in this section recompute scores except display threshold. -->
+    <section class="controls" aria-label="Score and support parameters">
+      <div class="control">
+        <label for="tau">Temperature spread τ <output id="tau-value"></output></label>
+        <input id="tau" type="range" min="0.1" max="20" step="0.1">
       </div>
-      <div class="parameter">
-        <label for="neighborhood">Linecuts per side <output id="neighborhood-value">3</output></label>
-        <input id="neighborhood" type="range" min="1" step="1" value="3">
+      <div class="control">
+        <label for="neighborhood">Linecuts per side <output id="neighborhood-value"></output></label>
+        <input id="neighborhood" type="range" min="1" max="20" step="1">
       </div>
-      <div class="parameter sigmoid-parameter">
+      <div class="control">
+        <label for="lambda">Support weight λ <output id="lambda-value"></output></label>
+        <input id="lambda" type="range" min="0" max="1" step="0.02">
+      </div>
+      <div class="control">
+        <label for="threshold">Display scores ≥ <output id="threshold-value"></output></label>
+        <input id="threshold" type="range" min="0" max="1" step="0.02" value="0">
+      </div>
+      <div class="control sigmoid-control">
         <label class="check-label" for="sigmoid-enabled">
           <input id="sigmoid-enabled" type="checkbox">
           Use sigmoid support multiplier
         </label>
-        <span class="meta" id="support-formula">support = raw neighborhood support</span>
+        <span class="support-formula" id="support-formula"></span>
       </div>
-      <div class="parameter sigmoid-parameter">
+      <div class="control sigmoid-control">
         <div>
-          <label for="sigmoid-center">Sigmoid center <output id="sigmoid-center-value">0.60</output></label>
-          <input id="sigmoid-center" type="range" min="0" max="1" step="0.02" value="0.6" disabled>
+          <label for="sigmoid-center">Sigmoid center <output id="sigmoid-center-value"></output></label>
+          <input id="sigmoid-center" type="range" min="0" max="1" step="0.02" disabled>
         </div>
         <div>
-          <label for="sigmoid-width">Sigmoid width <output id="sigmoid-width-value">0.10</output></label>
-          <input id="sigmoid-width" type="range" min="0.02" max="0.40" step="0.02" value="0.1" disabled>
+          <label for="sigmoid-width">Sigmoid width <output id="sigmoid-width-value"></output></label>
+          <input id="sigmoid-width" type="range" min="0.02" max="0.40" step="0.02" disabled>
         </div>
       </div>
     </section>
 
-    <section class="panels" aria-label="Score update heatmap comparison">
-      <article class="panel" data-mode="original_anchor">
-        <div class="panel-head">
-          <h2>Original confidence anchor</h2>
-          <span class="iteration">Iteration 1</span>
-        </div>
-        <p class="formula"></p>
-        <div class="range-wrap">
-          <label for="anchor-iteration">Iterations</label>
-          <input id="anchor-iteration" type="range" min="0" step="1" value="1">
-          <div class="range-ticks"><span>original</span><span class="max-tick"></span></div>
-        </div>
-        <div class="plot-wrap">
-          <canvas aria-label="Heatmap of extracted features scored with the original confidence anchor"></canvas>
-        </div>
-        <div class="legend" aria-label="Feature legend">
-          <span class="symbol"><i class="triangle"></i>upturn</span>
-          <span class="symbol"><i class="dot"></i>downturn</span>
-          <span class="score-key"><i></i><i></i>size + opacity = score</span>
-        </div>
-        <p class="detail">Hover a feature to inspect its score.</p>
-      </article>
-
-      <article class="panel" data-mode="recursive">
-        <div class="panel-head">
-          <h2>Recursive score</h2>
-          <span class="iteration">Iteration 1</span>
-        </div>
-        <p class="formula"></p>
-        <div class="range-wrap">
-          <label for="recursive-iteration">Iterations</label>
-          <input id="recursive-iteration" type="range" min="0" step="1" value="1">
-          <div class="range-ticks"><span>original</span><span class="max-tick"></span></div>
-        </div>
-        <div class="plot-wrap">
-          <canvas aria-label="Heatmap of extracted features scored recursively"></canvas>
-        </div>
-        <div class="legend" aria-label="Feature legend">
-          <span class="symbol"><i class="triangle"></i>upturn</span>
-          <span class="symbol"><i class="dot"></i>downturn</span>
-          <span class="score-key"><i></i><i></i>size + opacity = score</span>
-        </div>
-        <p class="detail">Hover a feature to inspect its score.</p>
-      </article>
+    <section class="panel" aria-label="Feature score heatmap">
+      <div class="panel-head">
+        <h2>Updated feature scores</h2>
+        <span class="iteration" id="iteration-label"></span>
+      </div>
+      <p class="formula" id="score-formula"></p>
+      <div class="iteration-control">
+        <label for="iteration">Iterations</label>
+        <input id="iteration" type="range" min="0" step="1" value="1">
+        <div class="range-ticks"><span>original</span><span id="max-iteration"></span></div>
+      </div>
+      <div class="plot-wrap">
+        <canvas id="heatmap" aria-label="Heatmap of features scored using original confidence and neighborhood support"></canvas>
+      </div>
+      <div class="legend" aria-label="Feature legend">
+        <span class="symbol"><i class="triangle"></i>upturn</span>
+        <span class="symbol"><i class="dot"></i>downturn</span>
+        <span class="score-key"><i></i><i></i>size + opacity = score</span>
+      </div>
+      <p class="detail" id="detail"></p>
     </section>
-    <p class="footer-note">Heatmap: log-scaled ρxx (Ω). Feature support uses same-type neighbors on both sides.</p>
+    <p class="footer-note">Heatmap: log-scaled ρxx (Ω). Support uses the strongest same-type match on each side.</p>
   </main>
 
   <script>
     const MODEL = __SCORE_VISUALIZER_DATA__;
-    const fieldSelect = document.getElementById('field');
-    const panels = [...document.querySelectorAll('.panel')];
+
+    /* ---------- Application state and element references ---------- */
     const state = {
       fieldIndex: 0,
-      original_anchor: 1,
-      recursive: 1,
+      iteration: 1,
       tau: MODEL.tau,
       nHood: MODEL.nHood,
+      supportWeight: MODEL.supportWeight,
+      threshold: 0,
       sigmoidEnabled: false,
       sigmoidCenter: MODEL.sigmoidCenter,
       sigmoidWidth: MODEL.sigmoidWidth
     };
-    const css = () => getComputedStyle(document.documentElement);
-    const tauInput = document.getElementById('tau');
-    const neighborhoodInput = document.getElementById('neighborhood');
-    const sigmoidEnabledInput = document.getElementById('sigmoid-enabled');
-    const sigmoidCenterInput = document.getElementById('sigmoid-center');
-    const sigmoidWidthInput = document.getElementById('sigmoid-width');
 
-    tauInput.value = state.tau;
-    neighborhoodInput.value = state.nHood;
-    neighborhoodInput.max = MODEL.maxNHood;
-    sigmoidCenterInput.value = state.sigmoidCenter;
-    sigmoidWidthInput.value = state.sigmoidWidth;
-    document.getElementById('tau-value').value = state.tau.toFixed(2);
-    document.getElementById('neighborhood-value').value = state.nHood;
-    document.getElementById('sigmoid-center-value').value = state.sigmoidCenter.toFixed(2);
-    document.getElementById('sigmoid-width-value').value = state.sigmoidWidth.toFixed(2);
+    const elements = {
+      field: document.getElementById('field'),
+      tau: document.getElementById('tau'),
+      nHood: document.getElementById('neighborhood'),
+      supportWeight: document.getElementById('lambda'),
+      threshold: document.getElementById('threshold'),
+      sigmoidEnabled: document.getElementById('sigmoid-enabled'),
+      sigmoidCenter: document.getElementById('sigmoid-center'),
+      sigmoidWidth: document.getElementById('sigmoid-width'),
+      iteration: document.getElementById('iteration'),
+      canvas: document.getElementById('heatmap'),
+      detail: document.getElementById('detail')
+    };
 
-    MODEL.fields.forEach((field, index) => {
-      const option = document.createElement('option');
-      option.value = index;
-      option.textContent = `${field.field}`;
-      fieldSelect.appendChild(option);
-    });
-    panels.forEach(panel => {
-      const slider = panel.querySelector('input[type="range"]');
-      slider.max = MODEL.iterations;
-      panel.querySelector('.max-tick').textContent = MODEL.iterations;
-      slider.addEventListener('input', () => {
-        state[panel.dataset.mode] = Number(slider.value);
-        renderPanel(panel);
+    function setOutput(id, value) {
+      document.getElementById(id).value = value;
+    }
+
+    function initializeControls() {
+      MODEL.fields.forEach((field, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = field.field;
+        elements.field.appendChild(option);
       });
-      panel.querySelector('canvas').addEventListener('pointermove', event => inspectFeature(panel, event));
-      panel.querySelector('canvas').addEventListener('pointerleave', () => resetDetail(panel));
-    });
-    fieldSelect.addEventListener('change', () => {
-      state.fieldIndex = Number(fieldSelect.value);
-      renderAll();
-    });
 
+      elements.tau.value = state.tau;
+      elements.nHood.value = state.nHood;
+      elements.nHood.max = MODEL.maxNHood;
+      elements.supportWeight.value = state.supportWeight;
+      elements.threshold.value = state.threshold;
+      elements.sigmoidCenter.value = state.sigmoidCenter;
+      elements.sigmoidWidth.value = state.sigmoidWidth;
+      elements.iteration.max = MODEL.iterations;
+
+      setOutput('tau-value', state.tau.toFixed(1));
+      setOutput('neighborhood-value', state.nHood);
+      setOutput('lambda-value', state.supportWeight.toFixed(2));
+      setOutput('threshold-value', state.threshold.toFixed(2));
+      setOutput('sigmoid-center-value', state.sigmoidCenter.toFixed(2));
+      setOutput('sigmoid-width-value', state.sigmoidWidth.toFixed(2));
+      document.getElementById('max-iteration').textContent = MODEL.iterations;
+      updateSupportFormula();
+    }
+
+    /* ---------- Control events ---------- */
     let parameterFrame;
-    function scheduleParameterRender() {
+    function scheduleScoreUpdate() {
       cancelAnimationFrame(parameterFrame);
       parameterFrame = requestAnimationFrame(renderAll);
     }
-    tauInput.addEventListener('input', () => {
-      state.tau = Number(tauInput.value);
-      document.getElementById('tau-value').value = state.tau.toFixed(2);
-      scheduleParameterRender();
+
+    elements.field.addEventListener('change', () => {
+      state.fieldIndex = Number(elements.field.value);
+      renderAll();
     });
-    neighborhoodInput.addEventListener('input', () => {
-      state.nHood = Number(neighborhoodInput.value);
-      document.getElementById('neighborhood-value').value = state.nHood;
-      scheduleParameterRender();
+    elements.tau.addEventListener('input', () => {
+      state.tau = Number(elements.tau.value);
+      setOutput('tau-value', state.tau.toFixed(1));
+      scheduleScoreUpdate();
     });
-    sigmoidEnabledInput.addEventListener('change', () => {
-      state.sigmoidEnabled = sigmoidEnabledInput.checked;
-      sigmoidCenterInput.disabled = !state.sigmoidEnabled;
-      sigmoidWidthInput.disabled = !state.sigmoidEnabled;
+    elements.nHood.addEventListener('input', () => {
+      state.nHood = Number(elements.nHood.value);
+      setOutput('neighborhood-value', state.nHood);
+      scheduleScoreUpdate();
+    });
+    elements.supportWeight.addEventListener('input', () => {
+      state.supportWeight = Number(elements.supportWeight.value);
+      setOutput('lambda-value', state.supportWeight.toFixed(2));
+      scheduleScoreUpdate();
+    });
+    elements.threshold.addEventListener('input', () => {
+      state.threshold = Number(elements.threshold.value);
+      setOutput('threshold-value', state.threshold.toFixed(2));
+      renderVisual();
+    });
+    elements.sigmoidEnabled.addEventListener('change', () => {
+      state.sigmoidEnabled = elements.sigmoidEnabled.checked;
+      elements.sigmoidCenter.disabled = !state.sigmoidEnabled;
+      elements.sigmoidWidth.disabled = !state.sigmoidEnabled;
       updateSupportFormula();
-      scheduleParameterRender();
+      scheduleScoreUpdate();
     });
-    sigmoidCenterInput.addEventListener('input', () => {
-      state.sigmoidCenter = Number(sigmoidCenterInput.value);
-      document.getElementById('sigmoid-center-value').value = state.sigmoidCenter.toFixed(2);
+    elements.sigmoidCenter.addEventListener('input', () => {
+      state.sigmoidCenter = Number(elements.sigmoidCenter.value);
+      setOutput('sigmoid-center-value', state.sigmoidCenter.toFixed(2));
       updateSupportFormula();
-      scheduleParameterRender();
+      scheduleScoreUpdate();
     });
-    sigmoidWidthInput.addEventListener('input', () => {
-      state.sigmoidWidth = Number(sigmoidWidthInput.value);
-      document.getElementById('sigmoid-width-value').value = state.sigmoidWidth.toFixed(2);
+    elements.sigmoidWidth.addEventListener('input', () => {
+      state.sigmoidWidth = Number(elements.sigmoidWidth.value);
+      setOutput('sigmoid-width-value', state.sigmoidWidth.toFixed(2));
       updateSupportFormula();
-      scheduleParameterRender();
+      scheduleScoreUpdate();
     });
+    elements.iteration.addEventListener('input', () => {
+      state.iteration = Number(elements.iteration.value);
+      renderVisual();
+    });
+    elements.canvas.addEventListener('pointermove', inspectFeature);
+    elements.canvas.addEventListener('pointerleave', resetDetail);
 
     function updateSupportFormula() {
       document.getElementById('support-formula').textContent = state.sigmoidEnabled
@@ -323,26 +410,12 @@
         : 'support = raw neighborhood support';
     }
 
-    function scoreAt(feature, mode, iteration) {
-      if (iteration === 0) return feature.confidence;
-      const field = MODEL.fields[state.fieldIndex];
-      return field._computed[mode].scores[iteration][feature._index];
-    }
-
-    function supportAt(feature, mode, iteration) {
-      if (iteration === 0) return null;
-      const field = MODEL.fields[state.fieldIndex];
-      return field._computed[mode].supports[iteration][feature._index];
-    }
-
-    function rawSupportAt(feature, mode, iteration) {
-      if (iteration === 0) return null;
-      const field = MODEL.fields[state.fieldIndex];
-      return field._computed[mode].rawSupports[iteration][feature._index];
-    }
-
+    /* ---------- Iterative score calculation ---------- */
     function prepareField(field) {
       if (field._byLinecut) return;
+
+      // Group feature indexes by linecut and type. This avoids repeatedly
+      // searching all features when a slider triggers a recalculation.
       field._byLinecut = Array.from(
         { length: field.linecutCount },
         () => ({ upturn: [], downturn: [] })
@@ -362,13 +435,16 @@
       return growth / (1 + growth);
     }
 
-    function computeMode(field, mode) {
+    function computeScores(field) {
       const count = field.features.length;
-      const confidence = Float64Array.from(field.features, feature => feature.confidence);
+      const confidence = Float64Array.from(
+        field.features,
+        feature => feature.confidence
+      );
       const scores = [confidence];
       const supports = [null];
       const rawSupports = [null];
-      let previous = confidence;
+      let previousScores = confidence;
 
       for (let iteration = 1; iteration <= MODEL.iterations; iteration++) {
         const rawRound = new Float64Array(count);
@@ -377,96 +453,147 @@
 
         for (let index = 0; index < count; index++) {
           const feature = field.features[index];
-          let left = 0;
-          let right = 0;
-          const leftStart = Math.max(0, feature.linecut - state.nHood);
-          const rightEnd = Math.min(field.linecutCount, feature.linecut + state.nHood + 1);
+          let leftSupport = 0;
+          let rightSupport = 0;
+          const firstLeft = Math.max(0, feature.linecut - state.nHood);
+          const lastRight = Math.min(
+            field.linecutCount,
+            feature.linecut + state.nHood + 1
+          );
 
-          for (let line = leftStart; line < feature.linecut; line++) {
+          // Find the strongest same-type feature on the left.
+          for (let line = firstLeft; line < feature.linecut; line++) {
             for (const neighborIndex of field._byLinecut[line][feature.type]) {
-              const separation = feature.tIndex - field.features[neighborIndex].tIndex;
-              const candidate = previous[neighborIndex] * Math.exp(-0.5 * separation ** 2 / state.tau);
-              left = Math.max(left, candidate);
+              const neighbor = field.features[neighborIndex];
+              const separation = feature.tIndex - neighbor.tIndex;
+              const attenuation = Math.exp(
+                -0.5 * separation ** 2 / state.tau
+              );
+              leftSupport = Math.max(
+                leftSupport,
+                previousScores[neighborIndex] * attenuation
+              );
             }
           }
-          for (let line = feature.linecut + 1; line < rightEnd; line++) {
+
+          // Find the strongest same-type feature on the right.
+          for (let line = feature.linecut + 1; line < lastRight; line++) {
             for (const neighborIndex of field._byLinecut[line][feature.type]) {
-              const separation = feature.tIndex - field.features[neighborIndex].tIndex;
-              const candidate = previous[neighborIndex] * Math.exp(-0.5 * separation ** 2 / state.tau);
-              right = Math.max(right, candidate);
+              const neighbor = field.features[neighborIndex];
+              const separation = feature.tIndex - neighbor.tIndex;
+              const attenuation = Math.exp(
+                -0.5 * separation ** 2 / state.tau
+              );
+              rightSupport = Math.max(
+                rightSupport,
+                previousScores[neighborIndex] * attenuation
+              );
             }
           }
 
-          if (feature.linecut < state.nHood && left === 0) left = right;
-          if (field.linecutCount - feature.linecut - 1 < state.nHood && right === 0) right = left;
+          // Mirror the available side only when the dataset boundary prevents
+          // a complete neighborhood from existing.
+          if (feature.linecut < state.nHood && leftSupport === 0) {
+            leftSupport = rightSupport;
+          }
+          if (
+            field.linecutCount - feature.linecut - 1 < state.nHood
+            && rightSupport === 0
+          ) {
+            rightSupport = leftSupport;
+          }
 
-          const raw = Math.sqrt(left * right);
-          const adjusted = state.sigmoidEnabled
-            ? raw * sigmoid((raw - state.sigmoidCenter) / state.sigmoidWidth)
-            : raw;
-          const blendBase = mode === 'original_anchor' ? confidence[index] : previous[index];
-          rawRound[index] = raw;
-          supportRound[index] = adjusted;
-          scoreRound[index] = MODEL.retain * blendBase + MODEL.supportWeight * adjusted;
+          const rawSupport = Math.sqrt(leftSupport * rightSupport);
+          const support = state.sigmoidEnabled
+            ? rawSupport * sigmoid(
+                (rawSupport - state.sigmoidCenter) / state.sigmoidWidth
+              )
+            : rawSupport;
+
+          rawRound[index] = rawSupport;
+          supportRound[index] = support;
+
+          // Original confidence is the anchor in every iteration.
+          scoreRound[index] =
+            (1 - state.supportWeight) * confidence[index]
+            + state.supportWeight * support;
         }
 
         rawSupports.push(rawRound);
         supports.push(supportRound);
         scores.push(scoreRound);
-        previous = scoreRound;
+        previousScores = scoreRound;
       }
+
       return { scores, supports, rawSupports };
     }
 
-    function ensureComputed(field) {
+    function ensureScores(field) {
       prepareField(field);
-      const key = [
+      const parameters = [
         state.tau,
         state.nHood,
+        state.supportWeight,
         state.sigmoidEnabled,
         state.sigmoidCenter,
         state.sigmoidWidth
       ].join(':');
-      if (field._computedKey !== key) {
-        field._computed = {
-          original_anchor: computeMode(field, 'original_anchor'),
-          recursive: computeMode(field, 'recursive')
-        };
-        field._computedKey = key;
+
+      if (field._scoreKey !== parameters) {
+        field._scoreData = computeScores(field);
+        field._scoreKey = parameters;
       }
-      return field._computed;
+      return field._scoreData;
     }
 
-    function fmt(value) {
-      if (value === null || value === undefined) return '—';
-      if (value === 0) return '0';
-      return value < .001 ? value.toExponential(2) : value.toFixed(3);
+    function currentScore(feature) {
+      if (state.iteration === 0) return feature.confidence;
+      const field = MODEL.fields[state.fieldIndex];
+      return field._scoreData.scores[state.iteration][feature._index];
     }
 
-    function renderAll() {
-      ensureComputed(MODEL.fields[state.fieldIndex]);
-      panels.forEach(renderPanel);
+    function currentSupport(feature, raw = false) {
+      if (state.iteration === 0) return null;
+      const field = MODEL.fields[state.fieldIndex];
+      const rounds = raw
+        ? field._scoreData.rawSupports
+        : field._scoreData.supports;
+      return rounds[state.iteration][feature._index];
     }
 
-    function renderPanel(panel) {
-      const mode = panel.dataset.mode;
-      const iteration = state[mode];
-      panel.querySelector('.iteration').textContent = iteration === 0 ? 'Original' : `Iteration ${iteration}`;
-      const previous = iteration <= 1 ? 'confidence' : `score_${iteration - 1}`;
-      const keep = MODEL.retain.toFixed(2);
-      const add = MODEL.supportWeight.toFixed(2);
-      panel.querySelector('.formula').textContent = iteration === 0
-        ? 'score_0 = original confidence'
-        : mode === 'original_anchor'
-          ? `score_${iteration} = ${keep} × confidence + ${add} × support(${previous})`
-          : `score_${iteration} = ${keep} × ${previous} + ${add} × support(${previous})`;
-      drawHeatmap(panel);
-      resetDetail(panel);
+    /* ---------- Heatmap drawing helpers ---------- */
+    function cssColor(name) {
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
     }
 
-    function plotGeometry(canvas) {
-      return { left: 58, right: 18, top: 16, bottom: 48,
-        width: canvas.clientWidth - 76, height: canvas.clientHeight - 64 };
+    function surfaceRgb() {
+      const value = cssColor('--surface');
+      const hex = value.match(/^#([0-9a-f]{6})$/i);
+      if (hex) {
+        return [0, 2, 4].map(
+          index => parseInt(hex[1].slice(index, index + 2), 16)
+        );
+      }
+      const rgb = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+      return rgb ? rgb.slice(1, 4).map(Number) : [255, 255, 255];
+    }
+
+    function heatColor(value, field, midpoint) {
+      if (!(value > 0)) return `rgb(${midpoint.join(',')})`;
+      const scaled = (
+        Math.log10(value) - field.logMin
+      ) / (field.logMax - field.logMin);
+      const normalized = Math.max(0, Math.min(1, scaled));
+      const endpoint = normalized < .5 ? [42, 58, 235] : [242, 53, 65];
+      const amount = Math.abs(normalized - .5) * 2;
+      const rgb = midpoint.map(
+        (channel, index) => Math.round(
+          channel + (endpoint[index] - channel) * amount
+        )
+      );
+      return `rgb(${rgb.join(',')})`;
     }
 
     function resizeCanvas(canvas) {
@@ -474,141 +601,240 @@
       const width = Math.round(canvas.clientWidth * ratio);
       const height = Math.round(canvas.clientHeight * ratio);
       if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width; canvas.height = height;
+        canvas.width = width;
+        canvas.height = height;
       }
       const context = canvas.getContext('2d');
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       return context;
     }
 
-    function surfaceRgb() {
-      const value = css().getPropertyValue('--surface').trim();
-      const hex = value.match(/^#([0-9a-f]{6})$/i);
-      if (hex) return [0, 2, 4].map(i => parseInt(hex[1].slice(i, i + 2), 16));
-      const rgb = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
-      return rgb ? rgb.slice(1, 4).map(Number) : [255, 255, 255];
-    }
-
-    function heatColor(value, field, center) {
-      if (!(value > 0)) return `rgb(${center.join(',')})`;
-      const normalized = Math.max(0, Math.min(1,
-        (Math.log10(value) - field.logMin) / (field.logMax - field.logMin)));
-      const end = normalized < .5 ? [42, 58, 235] : [242, 53, 65];
-      const amount = Math.abs(normalized - .5) * 2;
-      const rgb = center.map((channel, i) => Math.round(channel + (end[i] - channel) * amount));
-      return `rgb(${rgb.join(',')})`;
-    }
-
-    function drawHeatmap(panel) {
-      const canvas = panel.querySelector('canvas');
-      const context = resizeCanvas(canvas);
-      const field = MODEL.fields[state.fieldIndex];
-      const geometry = plotGeometry(canvas);
+    function drawBackground(context, field, geometry, x, y) {
       const { left, top, width, height } = geometry;
-      const xmin = field.fillings[0], xmax = field.fillings.at(-1);
-      const ymin = field.temperatures[0], ymax = field.temperatures.at(-1);
-      const x = value => left + (value - xmin) / (xmax - xmin) * width;
-      const y = value => top + (ymax - value) / (ymax - ymin) * height;
-      context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      const midpoint = surfaceRgb();
+      const cacheKey = [
+        state.fieldIndex,
+        elements.canvas.width,
+        elements.canvas.height,
+        midpoint.join(',')
+      ].join(':');
 
-      const center = surfaceRgb();
-      const backgroundKey = `${state.fieldIndex}:${canvas.width}:${canvas.height}:${center.join(',')}`;
-      if (panel._backgroundKey === backgroundKey) {
-        context.drawImage(panel._background, 0, 0, canvas.clientWidth, canvas.clientHeight);
+      if (elements.canvas._backgroundKey === cacheKey) {
+        context.drawImage(
+          elements.canvas._background,
+          0,
+          0,
+          elements.canvas.clientWidth,
+          elements.canvas.clientHeight
+        );
+        return;
+      }
+
+      const temperatures = field.temperatures;
+      const fillings = field.fillings;
+      for (let row = 0; row < temperatures.length; row++) {
+        const lowT = row === 0
+          ? temperatures[0]
+          : (temperatures[row - 1] + temperatures[row]) / 2;
+        const highT = row === temperatures.length - 1
+          ? temperatures.at(-1)
+          : (temperatures[row] + temperatures[row + 1]) / 2;
+
+        for (let column = 0; column < fillings.length; column++) {
+          const lowFilling = column === 0
+            ? fillings[0]
+            : (fillings[column - 1] + fillings[column]) / 2;
+          const highFilling = column === fillings.length - 1
+            ? fillings.at(-1)
+            : (fillings[column] + fillings[column + 1]) / 2;
+
+          context.fillStyle = heatColor(
+            field.resistivity[row][column],
+            field,
+            midpoint
+          );
+          context.fillRect(
+            x(lowFilling),
+            y(highT),
+            Math.max(1, x(highFilling) - x(lowFilling) + .5),
+            Math.max(1, y(lowT) - y(highT) + .5)
+          );
+        }
+      }
+
+      // Axes are cached with the heatmap because neither changes with scores.
+      context.save();
+      context.strokeStyle = cssColor('--text');
+      context.fillStyle = cssColor('--text');
+      context.lineWidth = 1;
+      context.strokeRect(left, top, width, height);
+      context.font = '12px ui-sans-serif, system-ui, sans-serif';
+      context.textAlign = 'center';
+      context.textBaseline = 'top';
+
+      for (let index = 0; index <= 4; index++) {
+        const value = fillings[0]
+          + (fillings.at(-1) - fillings[0]) * index / 4;
+        context.fillText(value.toFixed(2), x(value), top + height + 8);
+      }
+      context.fillText('Filling ν', left + width / 2, top + height + 29);
+
+      context.textAlign = 'right';
+      context.textBaseline = 'middle';
+      for (let index = 0; index <= 4; index++) {
+        const value = temperatures[0]
+          + (temperatures.at(-1) - temperatures[0]) * index / 4;
+        context.fillText(
+          value.toFixed(value < 1 ? 2 : 1),
+          left - 8,
+          y(value)
+        );
+      }
+      context.translate(14, top + height / 2);
+      context.rotate(-Math.PI / 2);
+      context.textAlign = 'center';
+      context.fillText('Temperature T (K)', 0, 0);
+      context.restore();
+
+      const cached = document.createElement('canvas');
+      cached.width = elements.canvas.width;
+      cached.height = elements.canvas.height;
+      cached.getContext('2d').drawImage(elements.canvas, 0, 0);
+      elements.canvas._background = cached;
+      elements.canvas._backgroundKey = cacheKey;
+    }
+
+    function drawFeature(context, feature, score, x, y) {
+      const px = x(feature.nu);
+      const py = y(feature.T);
+      const radius = 2.6 + score * 4.6;
+
+      context.save();
+      context.globalAlpha = .08 + score * .92;
+      context.fillStyle = feature.type === 'upturn' ? '#f3ca42' : '#61a85b';
+      context.strokeStyle = '#202225';
+      context.lineWidth = .7;
+      context.beginPath();
+
+      if (feature.type === 'upturn') {
+        context.moveTo(px, py - radius);
+        context.lineTo(px + radius, py + radius);
+        context.lineTo(px - radius, py + radius);
+        context.closePath();
       } else {
-        const rows = field.temperatures.length, cols = field.fillings.length;
-        for (let row = 0; row < rows; row++) {
-          const t0 = row === 0 ? ymin : (field.temperatures[row - 1] + field.temperatures[row]) / 2;
-          const t1 = row === rows - 1 ? ymax : (field.temperatures[row] + field.temperatures[row + 1]) / 2;
-          for (let col = 0; col < cols; col++) {
-            const f0 = col === 0 ? xmin : (field.fillings[col - 1] + field.fillings[col]) / 2;
-            const f1 = col === cols - 1 ? xmax : (field.fillings[col] + field.fillings[col + 1]) / 2;
-            context.fillStyle = heatColor(field.resistivity[row][col], field, center);
-            context.fillRect(x(f0), y(t1), Math.max(1, x(f1) - x(f0) + .5), Math.max(1, y(t0) - y(t1) + .5));
-          }
-        }
-
-        context.save();
-        context.strokeStyle = css().getPropertyValue('--text').trim();
-        context.fillStyle = css().getPropertyValue('--text').trim();
-        context.lineWidth = 1;
-        context.strokeRect(left, top, width, height);
-        context.font = '12px ui-sans-serif, system-ui, sans-serif';
-        context.textAlign = 'center'; context.textBaseline = 'top';
-        for (let i = 0; i <= 4; i++) {
-          const value = xmin + (xmax - xmin) * i / 4;
-          context.fillText(value.toFixed(2), x(value), top + height + 8);
-        }
-        context.fillText('Filling ν', left + width / 2, top + height + 29);
-        context.textAlign = 'right'; context.textBaseline = 'middle';
-        for (let i = 0; i <= 4; i++) {
-          const value = ymin + (ymax - ymin) * i / 4;
-          context.fillText(value.toFixed(value < 1 ? 2 : 1), left - 8, y(value));
-        }
-        context.translate(14, top + height / 2); context.rotate(-Math.PI / 2);
-        context.textAlign = 'center'; context.fillText('Temperature T (K)', 0, 0);
-        context.restore();
-
-        panel._background = document.createElement('canvas');
-        panel._background.width = canvas.width;
-        panel._background.height = canvas.height;
-        panel._background.getContext('2d').drawImage(canvas, 0, 0);
-        panel._backgroundKey = backgroundKey;
+        context.arc(px, py, radius, 0, Math.PI * 2);
       }
 
-      const mode = panel.dataset.mode, iteration = state[mode];
-      panel._points = [];
+      context.fill();
+      context.stroke();
+      context.restore();
+      return { feature, px, py };
+    }
+
+    /* ---------- Render and hover detail ---------- */
+    function renderAll() {
+      ensureScores(MODEL.fields[state.fieldIndex]);
+      renderVisual();
+    }
+
+    function renderVisual() {
+      const field = MODEL.fields[state.fieldIndex];
+      const canvas = elements.canvas;
+      const context = resizeCanvas(canvas);
+      const geometry = {
+        left: 58,
+        right: 18,
+        top: 16,
+        bottom: 48,
+        width: canvas.clientWidth - 76,
+        height: canvas.clientHeight - 64
+      };
+      const x = value => geometry.left
+        + (value - field.fillings[0])
+        / (field.fillings.at(-1) - field.fillings[0])
+        * geometry.width;
+      const y = value => geometry.top
+        + (field.temperatures.at(-1) - value)
+        / (field.temperatures.at(-1) - field.temperatures[0])
+        * geometry.height;
+
+      context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      drawBackground(context, field, geometry, x, y);
+
+      canvas._visiblePoints = [];
       for (const feature of field.features) {
-        const score = Math.max(0, Math.min(1, scoreAt(feature, mode, iteration)));
-        const px = x(feature.nu), py = y(feature.T), radius = 2.6 + score * 4.6;
-        context.save();
-        context.globalAlpha = .08 + score * .92;
-        context.fillStyle = feature.type === 'upturn' ? '#f3ca42' : '#61a85b';
-        context.strokeStyle = '#202225'; context.lineWidth = .7;
-        context.beginPath();
-        if (feature.type === 'upturn') {
-          context.moveTo(px, py - radius); context.lineTo(px + radius, py + radius);
-          context.lineTo(px - radius, py + radius); context.closePath();
-        } else {
-          context.arc(px, py, radius, 0, Math.PI * 2);
+        const score = Math.max(0, Math.min(1, currentScore(feature)));
+        if (score < state.threshold) continue;
+        canvas._visiblePoints.push(
+          drawFeature(context, feature, score, x, y)
+        );
+      }
+
+      const iterationText = state.iteration === 0
+        ? 'Original'
+        : `Iteration ${state.iteration}`;
+      document.getElementById('iteration-label').textContent = iterationText;
+      document.getElementById('score-formula').textContent =
+        state.iteration === 0
+          ? 'score_0 = original confidence'
+          : `score_${state.iteration} = ${(1 - state.supportWeight).toFixed(2)} × confidence + ${state.supportWeight.toFixed(2)} × support(score_${state.iteration - 1})`;
+      resetDetail();
+    }
+
+    function formatScore(value) {
+      if (value === null || value === undefined) return '—';
+      if (value === 0) return '0';
+      return value < .001 ? value.toExponential(2) : value.toFixed(3);
+    }
+
+    function inspectFeature(event) {
+      const bounds = elements.canvas.getBoundingClientRect();
+      const pointerX = event.clientX - bounds.left;
+      const pointerY = event.clientY - bounds.top;
+      let closest = null;
+      let closestDistance = 12;
+
+      for (const point of elements.canvas._visiblePoints || []) {
+        const distance = Math.hypot(pointerX - point.px, pointerY - point.py);
+        if (distance < closestDistance) {
+          closest = point.feature;
+          closestDistance = distance;
         }
-        context.fill(); context.stroke(); context.restore();
-        panel._points.push({ feature, px, py });
       }
+      if (!closest) return resetDetail();
+
+      const supportText = state.sigmoidEnabled && state.iteration > 0
+        ? `raw support ${formatScore(currentSupport(closest, true))} · adjusted support ${formatScore(currentSupport(closest))}`
+        : `support ${formatScore(currentSupport(closest))}`;
+      elements.detail.innerHTML =
+        `<strong>${closest.type}</strong> · ν ${closest.nu.toFixed(3)} · `
+        + `T ${closest.T.toFixed(2)} K · confidence ${formatScore(closest.confidence)} · `
+        + `${supportText} · <strong>score ${formatScore(currentScore(closest))}</strong>`;
     }
 
-    function inspectFeature(panel, event) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      const px = event.clientX - rect.left, py = event.clientY - rect.top;
-      let best = null, distance = 12;
-      for (const point of panel._points || []) {
-        const candidate = Math.hypot(px - point.px, py - point.py);
-        if (candidate < distance) { best = point.feature; distance = candidate; }
-      }
-      if (!best) return resetDetail(panel);
-      const mode = panel.dataset.mode, iteration = state[mode];
-      const supportDetail = state.sigmoidEnabled && iteration > 0
-        ? `raw support ${fmt(rawSupportAt(best, mode, iteration))} · gated support ${fmt(supportAt(best, mode, iteration))}`
-        : `support ${fmt(supportAt(best, mode, iteration))}`;
-      panel.querySelector('.detail').innerHTML =
-        `<strong>${best.type}</strong> · ν ${best.nu.toFixed(3)} · T ${best.T.toFixed(2)} K · ` +
-        `confidence ${fmt(best.confidence)} · ${supportDetail} · ` +
-        `<strong>score ${fmt(scoreAt(best, mode, iteration))}</strong>`;
-    }
+    function resetDetail() {
+      const field = MODEL.fields[state.fieldIndex];
+      const visibleScores = field.features
+        .map(currentScore)
+        .filter(score => score >= state.threshold);
+      const mean = visibleScores.length
+        ? visibleScores.reduce((sum, score) => sum + score, 0)
+          / visibleScores.length
+        : 0;
 
-    function resetDetail(panel) {
-      const field = MODEL.fields[state.fieldIndex], mode = panel.dataset.mode, iteration = state[mode];
-      const values = field.features.map(feature => scoreAt(feature, mode, iteration));
-      const mean = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-      panel.querySelector('.detail').innerHTML =
-        `${values.length} features · mean score <strong>${fmt(mean)}</strong> · hover a marker for details`;
+      elements.detail.innerHTML =
+        `${visibleScores.length} of ${field.features.length} features shown · `
+        + `mean visible score <strong>${formatScore(mean)}</strong> · `
+        + `hover a marker for details`;
     }
 
     let resizeFrame;
     window.addEventListener('resize', () => {
       cancelAnimationFrame(resizeFrame);
-      resizeFrame = requestAnimationFrame(renderAll);
+      resizeFrame = requestAnimationFrame(renderVisual);
     });
+
+    initializeControls();
     renderAll();
   </script>
 </body>

@@ -21,19 +21,13 @@ def example_linecuts():
 
 
 class IterativeScoreTests(unittest.TestCase):
-    def test_update_modes_diverge_after_the_first_round(self):
+    def test_every_round_remains_anchored_to_original_confidence(self):
         anchored = example_linecuts()
-        recursive = example_linecuts()
-
-        update_scores_iter(anchored, 3, mode="original_anchor", n_hood=1)
-        update_scores_iter(recursive, 3, mode="recursive", n_hood=1)
+        update_scores_iter(anchored, 3, n_hood=1)
 
         anchored_middle = anchored[1]["features"][0]
-        recursive_middle = recursive[1]["features"][0]
         self.assertAlmostEqual(anchored_middle["score_1"], 0.5)
-        self.assertAlmostEqual(recursive_middle["score_1"], 0.5)
         self.assertAlmostEqual(anchored_middle["score_2"], 0.65)
-        self.assertAlmostEqual(recursive_middle["score_2"], 0.5)
         self.assertAlmostEqual(anchored_middle["score_3"], 0.575)
 
     def test_backward_compatible_keys_are_preserved(self):
@@ -43,16 +37,24 @@ class IterativeScoreTests(unittest.TestCase):
         self.assertEqual(feature["support"], feature["support_1"])
         self.assertIn("score_1", feature)
 
-    def test_invalid_mode_is_rejected(self):
+    def test_invalid_support_weight_is_rejected(self):
         with self.assertRaises(ValueError):
-            update_scores_iter(example_linecuts(), 1, mode="unknown")
+            update_scores_iter(example_linecuts(), 1, support_weight=1.1)
+
+    def test_lambda_controls_how_much_support_replaces_confidence(self):
+        original_only = example_linecuts()
+        support_only = example_linecuts()
+        update_scores_iter(original_only, 1, n_hood=1, support_weight=0.0)
+        update_scores_iter(support_only, 1, n_hood=1, support_weight=1.0)
+
+        self.assertAlmostEqual(original_only[1]["features"][0]["score_1"], 0.8)
+        self.assertAlmostEqual(support_only[1]["features"][0]["score_1"], 0.2)
 
     def test_sigmoid_gates_raw_support(self):
         linecuts = example_linecuts()
         update_scores_iter(
             linecuts,
             1,
-            mode="original_anchor",
             n_hood=1,
             sigmoid_support=True,
             sigmoid_center=0.6,

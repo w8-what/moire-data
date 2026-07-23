@@ -27,14 +27,17 @@ DEFAULT_FIELDS = [74, 87, 96, 96.2, 99, 103, 151, 176]
 
 
 def _round(value, digits=6):
+    """Convert NumPy values into compact, JSON-safe Python floats."""
     return round(float(value), digits)
 
 
 def extract_field(field):
+    """Extract heatmap and feature data for one electric field."""
     load_value = int(field) if float(field).is_integer() else field
     temperatures, fillings, resistivity = clean_sort_data(
         *load_field(load_value, ROOT / "source_data")
     )
+    # Reuse the repository's production smoothing and feature extraction.
     linecuts = []
     for index, filling in enumerate(fillings):
         rho = resistivity[:, index]
@@ -51,6 +54,8 @@ def extract_field(field):
         linecut["features"] += extract_downturns(temperatures, linecut)
         linecuts.append(linecut)
 
+    # The browser only needs compact feature coordinates and confidence. It
+    # recalculates all score iterations when a control changes.
     features = []
     for linecut_index, original_line in enumerate(linecuts):
         for original in original_line["features"]:
@@ -65,6 +70,8 @@ def extract_field(field):
                 }
             )
 
+    # Match the existing logarithmic heatmap scale. Limit the background to
+    # roughly 280 columns to keep the generated HTML responsive and compact.
     positive = resistivity[np.isfinite(resistivity) & (resistivity > 0)]
     low, high = np.nanpercentile(positive, [1, 99])
     stride = max(1, math.ceil(len(fillings) / 280))
@@ -86,12 +93,13 @@ def extract_field(field):
 
 
 def main():
+    """Parse build defaults and write one self-contained HTML file."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fields", nargs="+", type=float, default=DEFAULT_FIELDS)
     parser.add_argument("--iterations", type=int, default=10)
     parser.add_argument("--n-hood", type=int, default=3)
-    parser.add_argument("--max-n-hood", type=int, default=12)
-    parser.add_argument("--retain", type=float, default=0.5)
+    parser.add_argument("--max-n-hood", type=int, default=20)
+    parser.add_argument("--support-weight", type=float, default=0.5)
     parser.add_argument("--tau", type=float, default=3.0)
     parser.add_argument("--sigmoid-center", type=float, default=0.6)
     parser.add_argument("--sigmoid-width", type=float, default=0.1)
@@ -110,12 +118,13 @@ def main():
         parser.error("--tau must be positive")
     if args.sigmoid_width <= 0:
         parser.error("--sigmoid-width must be positive")
+    if not 0 <= args.support_weight <= 1:
+        parser.error("--support-weight must be between 0 and 1")
 
     fields = [extract_field(field) for field in args.fields]
     payload = {
         "iterations": args.iterations,
-        "retain": args.retain,
-        "supportWeight": 1.0 - args.retain,
+        "supportWeight": args.support_weight,
         "nHood": args.n_hood,
         "maxNHood": args.max_n_hood,
         "tau": args.tau,
