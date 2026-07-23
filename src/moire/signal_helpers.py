@@ -1,8 +1,10 @@
 
 import numpy as np
 from hampel import hampel 
+import math
 
 # ----- GENERAL SIGNAL HELPER FUNCTIONS ----- 
+
 
 # Moving average based on temperaure window 
 def moving_average(rho, T, window = None):

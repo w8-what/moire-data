@@ -55,13 +55,6 @@ for field in SELECT_FIELDS:
     # ----- New Scoring Updates -----
 
     update_scores(linecuts)
-    update_scores(linecuts)
-    update_scores(linecuts)
-    update_scores(linecuts)
-    update_scores(linecuts)
-
-
-
 
     # ----- Plotting and creating figures -----
     # numLinecuts = 60
@@ -80,7 +73,7 @@ for field in SELECT_FIELDS:
     draw_heatmap(fig, axes[1], nu, T, R, title = "1st re-scroing")
     overlay_features_heatmap(axes[1], linecuts, score_name = "score_1")
 
-    path = OUT / Path("heatmaps_comparison")
+    path = OUT / Path("heatmaps_comparison_independent")
     path.mkdir(exist_ok = True, parents = True)
     fig.savefig(path / Path(name + ".png"))
 
