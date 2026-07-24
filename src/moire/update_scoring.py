@@ -11,8 +11,8 @@ The original confidence is always the anchor:
               + support_weight * support_i
 """
 
+import copy
 import math
-
 import numpy as np
 
 
@@ -30,13 +30,20 @@ def _sigmoid(value):
     return growth / (1.0 + growth)
 
 
-def _strongest_match(target_index, feature_type, neighbors, score_name, tau):
+def _strongest_match(
+    target_index,
+    feature_type,
+    neighbors,
+    score_name,
+    tau,
+    feature_key="features",
+):
     """Find the strongest same-type feature in a group of linecuts."""
     strongest = 0.0
 
     for linecut in neighbors:
         temperatures = linecut["T"]
-        for neighbor in linecut.get("features", []):
+        for neighbor in linecut.get(feature_key, []):
             if neighbor.get("type") != feature_type:
                 continue
 
@@ -54,11 +61,12 @@ def _strongest_match(target_index, feature_type, neighbors, score_name, tau):
 def _calculate_support(
     linecuts,
     score_name,
-    n_hood,
-    tau,
-    sigmoid_support,
-    sigmoid_center,
-    sigmoid_width,
+    n_hood = 12,
+    tau = 20,
+    sigmoid_support = True,
+    sigmoid_center = 0,
+    sigmoid_width = 0.1,
+    feature_key = "features",
 ):
     """Calculate one synchronous support round for every feature."""
     support_values = []
@@ -69,15 +77,25 @@ def _calculate_support(
             linecut_index + 1 : linecut_index + n_hood + 1
         ]
 
-        for feature in linecut.get("features", []):
+        for feature in linecut.get(feature_key, []):
             target_index = _temperature_index(linecut["T"], feature["T"])
             feature_type = feature.get("type")
 
             left = _strongest_match(
-                target_index, feature_type, left_neighbors, score_name, tau
+                target_index,
+                feature_type,
+                left_neighbors,
+                score_name,
+                tau,
+                feature_key,
             )
             right = _strongest_match(
-                target_index, feature_type, right_neighbors, score_name, tau
+                target_index,
+                feature_type,
+                right_neighbors,
+                score_name,
+                tau,
+                feature_key,
             )
 
             # At a dataset edge, mirror the available side instead of treating
@@ -100,14 +118,55 @@ def _calculate_support(
     return support_values
 
 
+def _update_score_range(
+    linecuts,
+    first_iteration,
+    last_iteration,
+    feature_key,
+    n_hood,
+    tau,
+    support_weight,
+    sigmoid_support,
+    sigmoid_center,
+    sigmoid_width,
+):
+    """Run a consecutively numbered range of synchronous score updates."""
+    for iteration in range(first_iteration, last_iteration + 1):
+        previous_score = (
+            "confidence" if iteration == 1 else f"score_{iteration - 1}"
+        )
+        support_name = f"support_{iteration}"
+        score_name = f"score_{iteration}"
+
+        # Calculate the complete support round before mutating any feature.
+        support_round = _calculate_support(
+            linecuts=linecuts,
+            score_name=previous_score,
+            n_hood=n_hood,
+            tau=tau,
+            sigmoid_support=sigmoid_support,
+            sigmoid_center=sigmoid_center,
+            sigmoid_width=sigmoid_width,
+            feature_key=feature_key,
+        )
+
+        for feature, support in support_round:
+            original_confidence = float(feature["confidence"])
+            feature[support_name] = support
+            feature[score_name] = (
+                (1.0 - support_weight) * original_confidence
+                + support_weight * support
+            )
+
+
 def update_scores_iter(
     linecuts,
     num_iter,
-    n_hood=3,
-    tau=3.0,
-    support_weight=0.5,
-    sigmoid_support=False,
-    sigmoid_center=0.6,
+    n_hood = 12,
+    tau = 20,
+    support_weight = 0.8,
+    sigmoid_support = True,
+    sigmoid_center = 0,
     sigmoid_width=0.1,
 ):
     """Store ``support_i`` and ``score_i`` for each requested iteration.
@@ -136,50 +195,67 @@ def update_scores_iter(
     The blend itself always uses the original confidence as its anchor.
     Updates are synchronous, so traversal order cannot change the result.
     """
-    if num_iter < 0:
-        raise ValueError("num_iter cannot be negative")
-    if n_hood < 1:
-        raise ValueError("n_hood must be at least 1")
-    if tau <= 0:
-        raise ValueError("tau must be positive")
-    if not 0.0 <= support_weight <= 1.0:
-        raise ValueError("support_weight must be between 0 and 1")
-    if sigmoid_width <= 0:
-        raise ValueError("sigmoid_width must be positive")
 
-    for iteration in range(1, num_iter + 1):
-        previous_score = (
-            "confidence" if iteration == 1 else f"score_{iteration - 1}"
-        )
-        support_name = f"support_{iteration}"
-        score_name = f"score_{iteration}"
-
-        # Calculate the complete support round before mutating any feature.
-        support_round = _calculate_support(
-            linecuts=linecuts,
-            score_name=previous_score,
-            n_hood=n_hood,
-            tau=tau,
-            sigmoid_support=sigmoid_support,
-            sigmoid_center=sigmoid_center,
-            sigmoid_width=sigmoid_width,
-        )
-
-        for feature, support in support_round:
-            confidence = float(feature["confidence"])
-            feature[support_name] = support
-            feature[score_name] = (
-                (1.0 - support_weight) * confidence
-                + support_weight * support
-            )
+    _update_score_range(
+        linecuts=linecuts,
+        first_iteration=1,
+        last_iteration=num_iter,
+        feature_key="features",
+        n_hood=n_hood,
+        tau=tau,
+        support_weight=support_weight,
+        sigmoid_support=sigmoid_support,
+        sigmoid_center=sigmoid_center,
+        sigmoid_width=sigmoid_width,
+    )
 
     return linecuts
 
 
-def update_scores(linecuts, n_hood=3):
-    """Run one update while preserving the legacy ``support`` key."""
-    update_scores_iter(linecuts, 1, n_hood=n_hood)
+def update_score(linecuts, num_iter=5, num_passes=3, filter=0.10):
+    """Iteratively score copied features and prune noise between passes.
+
+    ``features_new`` starts as a deep copy of each linecut's ``features``.
+    Every pass performs ``num_iter`` score updates and then permanently removes
+    entries whose latest score is less than ``filter``. Score names remain
+    consecutive across passes, so the defaults produce ``score_1`` through
+    ``score_15`` on every surviving feature.
+
+    The original ``features`` lists and their feature dictionaries are not
+    modified.
+    """
+    if num_iter < 1:
+        raise ValueError("num_iter must be at least 1")
+    if num_passes < 1:
+        raise ValueError("num_passes must be at least 1")
+    if not 0.0 <= filter <= 1.0:
+        raise ValueError("filter must be between 0 and 1")
+
     for linecut in linecuts:
-        for feature in linecut.get("features", []):
-            feature["support"] = feature["support_1"]
+        linecut["features_new"] = copy.deepcopy(linecut.get("features", []))
+
+    for pass_index in range(num_passes):
+        first_iteration = pass_index * num_iter + 1
+        last_iteration = first_iteration + num_iter - 1
+        _update_score_range(
+            linecuts=linecuts,
+            first_iteration=first_iteration,
+            last_iteration=last_iteration,
+            feature_key="features_new",
+            n_hood=12,
+            tau=20,
+            support_weight=0.8,
+            sigmoid_support=True,
+            sigmoid_center=0,
+            sigmoid_width=0.1,
+        )
+
+        score_name = f"score_{last_iteration}"
+        for linecut in linecuts:
+            linecut["features_new"] = [
+                feature
+                for feature in linecut["features_new"]
+                if feature[score_name] >= filter
+            ]
+
     return linecuts

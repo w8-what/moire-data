@@ -14,7 +14,7 @@ from moire.extract_features import extract_upturns, extract_downturns
 
 from moire.draw_lines import plot_linecut, plot_linecut_noise, generate_layout
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap
-from moire.update_scoring import update_scores
+from moire.update_scoring import update_scores_iter, update_score
 
 OUT = Path(__file__).resolve().parent / Path("output")
 IN = ROOT / Path("source_data")
@@ -54,7 +54,7 @@ for field in SELECT_FIELDS:
 
     # ----- New Scoring Updates -----
 
-    update_scores(linecuts)
+    linecuts = update_score(linecuts)
 
     # ----- Plotting and creating figures -----
     # numLinecuts = 60
@@ -70,11 +70,11 @@ for field in SELECT_FIELDS:
     draw_heatmap(fig, axes[0], nu, T, R, title = "original scoring")
     overlay_features_heatmap(axes[0], linecuts, score_name = "confidence")
 
-    draw_heatmap(fig, axes[1], nu, T, R, title = "10thst re-scroing")
-    overlay_features_heatmap(axes[1], linecuts, score_name = "score_1")
+    draw_heatmap(fig, axes[1], nu, T, R, title = "3 passes x 5 iterations")
+    overlay_features_heatmap(axes[1], linecuts, feature_name = "features_new", score_name = "score_15")
 
 
-    path = OUT / Path("heatmaps_comparison_independent")
+    path = OUT / Path("heatmaps_comparison")
     path.mkdir(exist_ok = True, parents = True)
     fig.savefig(path / Path(name + ".png"))
 

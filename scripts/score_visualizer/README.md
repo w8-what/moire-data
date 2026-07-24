@@ -1,8 +1,9 @@
 # Score update visualizer
 
-This tool displays one scoring method: **original-confidence anchoring**.
-Support is recalculated from the preceding iteration, but every new score is
-blended with the feature's original confidence.
+This tool displays the default **pass-filtered iterative scoring** method.
+Support is recalculated from the preceding iteration, every new score is
+blended with the feature's original confidence, and low-scoring features are
+permanently removed after each pass.
 
 ## Scoring rule
 
@@ -12,6 +13,16 @@ For iteration `i`:
 support_i = neighborhood support calculated from score_(i-1)
 score_i   = (1 - lambda) * original_confidence + lambda * support_i
 ```
+
+After every `iterations_per_pass` rounds:
+
+```text
+features_new = features with score_i >= filter
+```
+
+With the defaults, three passes of five iterations produce `score_1` through
+`score_15` on every surviving feature. Removed features do not participate in
+later neighborhood-support calculations.
 
 `lambda` is the support weight:
 
@@ -36,6 +47,7 @@ control independently chooses how many linecuts are inspected on each side.
 - **Support weight lambda:** choose how strongly support updates confidence.
 - **Display scores:** hide markers below a score threshold. This only changes
   the visualization; it does not change score calculations.
+- **Pass filter:** permanently remove low-score features at each pass boundary.
 - **Sigmoid support:** optionally multiply raw support by
   `sigmoid((raw_support - center) / width)`.
 
@@ -55,9 +67,11 @@ Build-time defaults can be changed when needed:
 ```bash
 .venv/bin/python scripts/score_visualizer/build_visualizer.py \
   --fields 87 96.2 176 \
-  --iterations 15 \
-  --n-hood 3 \
+  --iterations-per-pass 5 \
+  --passes 3 \
+  --filter 0.01 \
+  --n-hood 12 \
   --max-n-hood 20 \
-  --support-weight 0.5 \
-  --tau 3
+  --support-weight 0.8 \
+  --tau 20
 ```

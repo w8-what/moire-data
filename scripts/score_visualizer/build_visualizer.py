@@ -96,12 +96,14 @@ def main():
     """Parse build defaults and write one self-contained HTML file."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fields", nargs="+", type=float, default=DEFAULT_FIELDS)
-    parser.add_argument("--iterations", type=int, default=10)
-    parser.add_argument("--n-hood", type=int, default=3)
+    parser.add_argument("--iterations-per-pass", type=int, default=5)
+    parser.add_argument("--passes", type=int, default=3)
+    parser.add_argument("--filter", type=float, default=0.01)
+    parser.add_argument("--n-hood", type=int, default=12)
     parser.add_argument("--max-n-hood", type=int, default=20)
-    parser.add_argument("--support-weight", type=float, default=0.5)
-    parser.add_argument("--tau", type=float, default=3.0)
-    parser.add_argument("--sigmoid-center", type=float, default=0.6)
+    parser.add_argument("--support-weight", type=float, default=0.8)
+    parser.add_argument("--tau", type=float, default=20.0)
+    parser.add_argument("--sigmoid-center", type=float, default=0.0)
     parser.add_argument("--sigmoid-width", type=float, default=0.1)
     parser.add_argument(
         "--output",
@@ -110,8 +112,12 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.iterations < 1:
-        parser.error("--iterations must be at least 1")
+    if args.iterations_per_pass < 1:
+        parser.error("--iterations-per-pass must be at least 1")
+    if args.passes < 1:
+        parser.error("--passes must be at least 1")
+    if not 0 <= args.filter <= 1:
+        parser.error("--filter must be between 0 and 1")
     if not 1 <= args.n_hood <= args.max_n_hood:
         parser.error("--n-hood must be between 1 and --max-n-hood")
     if args.tau <= 0:
@@ -123,7 +129,9 @@ def main():
 
     fields = [extract_field(field) for field in args.fields]
     payload = {
-        "iterations": args.iterations,
+        "iterationsPerPass": args.iterations_per_pass,
+        "passes": args.passes,
+        "filter": args.filter,
         "supportWeight": args.support_weight,
         "nHood": args.n_hood,
         "maxNHood": args.max_n_hood,

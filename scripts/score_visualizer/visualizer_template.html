@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Score update visualizer</title>
+  <title>Filtered score update visualizer</title>
   <style>
     /* ---------- Theme and page layout ---------- */
     :root {
@@ -216,8 +216,8 @@
   <main>
     <header>
       <div>
-        <h1>Original-confidence score updates</h1>
-        <p class="muted">Explore how neighboring features change scores while original confidence remains the anchor.</p>
+        <h1>Pass-filtered score updates</h1>
+        <p class="muted">Explore iterative scoring with low-score features removed between passes.</p>
       </div>
       <div class="field-control">
         <label for="field">Electric field (mV/nm)</label>
@@ -242,6 +242,10 @@
       <div class="control">
         <label for="threshold">Display scores ≥ <output id="threshold-value"></output></label>
         <input id="threshold" type="range" min="0" max="1" step="0.02" value="0">
+      </div>
+      <div class="control">
+        <label for="filter">Pass filter ≥ <output id="filter-value"></output></label>
+        <input id="filter" type="range" min="0" max="0.25" step="0.005">
       </div>
       <div class="control sigmoid-control">
         <label class="check-label" for="sigmoid-enabled">
@@ -274,7 +278,7 @@
         <div class="range-ticks"><span>original</span><span id="max-iteration"></span></div>
       </div>
       <div class="plot-wrap">
-        <canvas id="heatmap" aria-label="Heatmap of features scored using original confidence and neighborhood support"></canvas>
+        <canvas id="heatmap" aria-label="Heatmap of iteratively scored and pass-filtered features"></canvas>
       </div>
       <div class="legend" aria-label="Feature legend">
         <span class="symbol"><i class="triangle"></i>upturn</span>
@@ -283,7 +287,7 @@
       </div>
       <p class="detail" id="detail"></p>
     </section>
-    <p class="footer-note">Heatmap: log-scaled ρxx (Ω). Support uses the strongest same-type match on each side.</p>
+    <p class="footer-note">Heatmap: log-scaled ρxx (Ω). At each pass boundary, features below the pass filter are permanently removed.</p>
   </main>
 
   <script>
@@ -297,7 +301,8 @@
       nHood: MODEL.nHood,
       supportWeight: MODEL.supportWeight,
       threshold: 0,
-      sigmoidEnabled: false,
+      filter: MODEL.filter,
+      sigmoidEnabled: true,
       sigmoidCenter: MODEL.sigmoidCenter,
       sigmoidWidth: MODEL.sigmoidWidth
     };
@@ -308,6 +313,7 @@
       nHood: document.getElementById('neighborhood'),
       supportWeight: document.getElementById('lambda'),
       threshold: document.getElementById('threshold'),
+      filter: document.getElementById('filter'),
       sigmoidEnabled: document.getElementById('sigmoid-enabled'),
       sigmoidCenter: document.getElementById('sigmoid-center'),
       sigmoidWidth: document.getElementById('sigmoid-width'),
@@ -333,17 +339,23 @@
       elements.nHood.max = MODEL.maxNHood;
       elements.supportWeight.value = state.supportWeight;
       elements.threshold.value = state.threshold;
+      elements.filter.value = state.filter;
+      elements.sigmoidEnabled.checked = state.sigmoidEnabled;
+      elements.sigmoidCenter.disabled = !state.sigmoidEnabled;
+      elements.sigmoidWidth.disabled = !state.sigmoidEnabled;
       elements.sigmoidCenter.value = state.sigmoidCenter;
       elements.sigmoidWidth.value = state.sigmoidWidth;
-      elements.iteration.max = MODEL.iterations;
+      elements.iteration.max = MODEL.iterationsPerPass * MODEL.passes;
 
       setOutput('tau-value', state.tau.toFixed(1));
       setOutput('neighborhood-value', state.nHood);
       setOutput('lambda-value', state.supportWeight.toFixed(2));
       setOutput('threshold-value', state.threshold.toFixed(2));
+      setOutput('filter-value', state.filter.toFixed(3));
       setOutput('sigmoid-center-value', state.sigmoidCenter.toFixed(2));
       setOutput('sigmoid-width-value', state.sigmoidWidth.toFixed(2));
-      document.getElementById('max-iteration').textContent = MODEL.iterations;
+      document.getElementById('max-iteration').textContent =
+        `${MODEL.passes} passes × ${MODEL.iterationsPerPass}`;
       updateSupportFormula();
     }
 
@@ -377,6 +389,11 @@
       state.threshold = Number(elements.threshold.value);
       setOutput('threshold-value', state.threshold.toFixed(2));
       renderVisual();
+    });
+    elements.filter.addEventListener('input', () => {
+      state.filter = Number(elements.filter.value);
+      setOutput('filter-value', state.filter.toFixed(3));
+      scheduleScoreUpdate();
     });
     elements.sigmoidEnabled.addEventListener('change', () => {
       state.sigmoidEnabled = elements.sigmoidEnabled.checked;
@@ -444,14 +461,20 @@
       const scores = [confidence];
       const supports = [null];
       const rawSupports = [null];
+      const activeRounds = [
+        new Uint8Array(count).fill(1)
+      ];
+      const active = new Uint8Array(count).fill(1);
       let previousScores = confidence;
+      const totalIterations = MODEL.iterationsPerPass * MODEL.passes;
 
-      for (let iteration = 1; iteration <= MODEL.iterations; iteration++) {
+      for (let iteration = 1; iteration <= totalIterations; iteration++) {
         const rawRound = new Float64Array(count);
         const supportRound = new Float64Array(count);
         const scoreRound = new Float64Array(count);
 
         for (let index = 0; index < count; index++) {
+          if (!active[index]) continue;
           const feature = field.features[index];
           let leftSupport = 0;
           let rightSupport = 0;
@@ -464,6 +487,7 @@
           // Find the strongest same-type feature on the left.
           for (let line = firstLeft; line < feature.linecut; line++) {
             for (const neighborIndex of field._byLinecut[line][feature.type]) {
+              if (!active[neighborIndex]) continue;
               const neighbor = field.features[neighborIndex];
               const separation = feature.tIndex - neighbor.tIndex;
               const attenuation = Math.exp(
@@ -479,6 +503,7 @@
           // Find the strongest same-type feature on the right.
           for (let line = feature.linecut + 1; line < lastRight; line++) {
             for (const neighborIndex of field._byLinecut[line][feature.type]) {
+              if (!active[neighborIndex]) continue;
               const neighbor = field.features[neighborIndex];
               const separation = feature.tIndex - neighbor.tIndex;
               const attenuation = Math.exp(
@@ -523,9 +548,18 @@
         supports.push(supportRound);
         scores.push(scoreRound);
         previousScores = scoreRound;
+
+        if (iteration % MODEL.iterationsPerPass === 0) {
+          for (let index = 0; index < count; index++) {
+            if (active[index] && scoreRound[index] < state.filter) {
+              active[index] = 0;
+            }
+          }
+        }
+        activeRounds.push(active.slice());
       }
 
-      return { scores, supports, rawSupports };
+      return { scores, supports, rawSupports, activeRounds };
     }
 
     function ensureScores(field) {
@@ -534,6 +568,7 @@
         state.tau,
         state.nHood,
         state.supportWeight,
+        state.filter,
         state.sigmoidEnabled,
         state.sigmoidCenter,
         state.sigmoidWidth
@@ -559,6 +594,14 @@
         ? field._scoreData.rawSupports
         : field._scoreData.supports;
       return rounds[state.iteration][feature._index];
+    }
+
+    function isCurrentFeatureActive(feature) {
+      if (state.iteration === 0) return true;
+      const field = MODEL.fields[state.fieldIndex];
+      return Boolean(
+        field._scoreData.activeRounds[state.iteration][feature._index]
+      );
     }
 
     /* ---------- Heatmap drawing helpers ---------- */
@@ -763,6 +806,7 @@
 
       canvas._visiblePoints = [];
       for (const feature of field.features) {
+        if (!isCurrentFeatureActive(feature)) continue;
         const score = Math.max(0, Math.min(1, currentScore(feature)));
         if (score < state.threshold) continue;
         canvas._visiblePoints.push(
@@ -770,14 +814,20 @@
         );
       }
 
+      const passNumber = state.iteration === 0
+        ? 0
+        : Math.ceil(state.iteration / MODEL.iterationsPerPass);
       const iterationText = state.iteration === 0
         ? 'Original'
-        : `Iteration ${state.iteration}`;
+        : `Pass ${passNumber}/${MODEL.passes} · iteration ${state.iteration}`;
       document.getElementById('iteration-label').textContent = iterationText;
       document.getElementById('score-formula').textContent =
         state.iteration === 0
           ? 'score_0 = original confidence'
-          : `score_${state.iteration} = ${(1 - state.supportWeight).toFixed(2)} × confidence + ${state.supportWeight.toFixed(2)} × support(score_${state.iteration - 1})`;
+          : `score_${state.iteration} = ${(1 - state.supportWeight).toFixed(2)} × confidence + ${state.supportWeight.toFixed(2)} × support(score_${state.iteration - 1})`
+            + (state.iteration % MODEL.iterationsPerPass === 0
+              ? `; then remove scores < ${state.filter.toFixed(3)}`
+              : '');
       resetDetail();
     }
 
@@ -815,6 +865,7 @@
     function resetDetail() {
       const field = MODEL.fields[state.fieldIndex];
       const visibleScores = field.features
+        .filter(isCurrentFeatureActive)
         .map(currentScore)
         .filter(score => score >= state.threshold);
       const mean = visibleScores.length
