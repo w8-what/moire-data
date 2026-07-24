@@ -1,6 +1,12 @@
 import numpy as np
 from scipy.signal import find_peaks
 
+def _hill_sigmoid(x, reference_value, reference_score = 0.8, coeff = 2):
+
+    C = reference_value**coeff * (1 - reference_score) / reference_score
+    return x**coeff / (x**coeff + C)
+
+
 
 def extract_upturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff = 2) -> list[dict]:
 
@@ -161,8 +167,46 @@ def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff
 
 def extract_Tc(T, linecut, threshold = 20):
 
-    candidate_Tc = []
+    # find each point that are below the resistivity threshold
+    # for each point calculate the following
+        # 1. the temp fraction that is below the resistivity threshold
+        # 2. the number of points under the temperature
+        # 3. the temperature range of the threshold
+        # 4. use geometric mean for scoring
 
-    
+    candidate_Tcs = []
 
-    return candidate_Tc
+    rho = linecut.get("rho")
+    below = rho <= threshold
+    candidates_idx = np.flatnonzero(below)
+
+    for candidate in candidates:
+        num_points = np.argmin(np.abs(T - candidate))
+        temp_range = candidate
+
+        T_lower = T[:num_points + 1]
+        below_lower = rho[:num_points + 1] < threshold
+
+        temp_frac = np.trapezoid(
+            below_lower.astype(float),
+            T_lower,
+        ) / (T_lower[-1] - T_lower[0])
+
+        score_pts = _hill_sigmoid(num_points, 5)
+        score_temp = _hill_sigmoid(temp_range, 0.5)
+        score_frac = _hill_sigmoid(temp_frac, 0.9)
+
+        comb_score = score_frac**(1/3) * score_pts**(1/3) * score_temp**(1/3)
+
+        feature = {
+            "T" : candidate,
+            "nu" : linecut.get("nu"),
+            "type" : "T_c",
+            "confidence" : comb_score,
+        } 
+
+        candidate_Tcs.append(feature)
+
+    candidate_Tcs.sort(key=lambda feature: feature["confidence"], reverse=True)
+
+    return candidate_Tcs[:3]
