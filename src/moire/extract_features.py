@@ -156,3 +156,13 @@ def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff
         candidate_downturns.append(feature)
 
     return candidate_downturns
+
+
+
+def extract_Tc(T, linecut, threshold = 20):
+
+    candidate_Tc = []
+
+    
+
+    return candidate_Tc

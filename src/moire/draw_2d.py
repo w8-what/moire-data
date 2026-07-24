@@ -38,7 +38,7 @@ def draw_heatmap(fig, ax, col, row, data, title="heatmap", xlabel="Filling v", y
     fig.tight_layout()
 
 
-def overlay_features_heatmap(ax, linecuts, score_name = "confidence", filter = 0):
+def overlay_features_heatmap(ax, linecuts, feature_name = "features", score_name = "confidence", filter = 0):
 
     styles = {
         "upturn":   dict(color="yellow",    marker="^", label = "upturn"),
@@ -49,7 +49,7 @@ def overlay_features_heatmap(ax, linecuts, score_name = "confidence", filter = 0
 
 
     for linecut in linecuts:
-        features = linecut.get("features") 
+        features = linecut.get(feature_name) 
         nu = linecut.get("nu")
 
         for feat in features:
