@@ -165,7 +165,7 @@ def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff
 
 
 
-def extract_Tc(T, linecut, threshold = 20):
+def extract_Tc(T, linecut, threshold = 20, max_candidates = 3):
 
     # find each point that are below the resistivity threshold
     # for each point calculate the following
@@ -178,19 +178,17 @@ def extract_Tc(T, linecut, threshold = 20):
 
     rho = linecut.get("rho")
     below = rho <= threshold
-    candidates_idx = np.flatnonzero(below)
 
-    for candidate in candidates:
-        num_points = np.argmin(np.abs(T - candidate))
-        temp_range = candidate
+    for idx in np.flatnonzero(below):
 
-        T_lower = T[:num_points + 1]
-        below_lower = rho[:num_points + 1] < threshold
+        T_lower = T[:idx + 1]
+        below_lower = rho[:idx + 1] < threshold
 
-        temp_frac = np.trapezoid(
-            below_lower.astype(float),
-            T_lower,
-        ) / (T_lower[-1] - T_lower[0])
+        num_points = np.count_nonzero(below_lower) # not necessairely all prior points are below 
+        temp_range = np.trapezoid(below_lower.astype(float), T_lower)# not nessairely all prior points are below either 
+
+        total_range = T_lower[-1] - T_lower[0]
+        temp_frac =  temp_range / total_range if total_range > 0 else 0.0
 
         score_pts = _hill_sigmoid(num_points, 5)
         score_temp = _hill_sigmoid(temp_range, 0.5)
@@ -199,9 +197,9 @@ def extract_Tc(T, linecut, threshold = 20):
         comb_score = score_frac**(1/3) * score_pts**(1/3) * score_temp**(1/3)
 
         feature = {
-            "T" : candidate,
+            "T" : T[idx],
             "nu" : linecut.get("nu"),
-            "type" : "T_c",
+            "type" : "Tc",
             "confidence" : comb_score,
         } 
 
@@ -209,4 +207,4 @@ def extract_Tc(T, linecut, threshold = 20):
 
     candidate_Tcs.sort(key=lambda feature: feature["confidence"], reverse=True)
 
-    return candidate_Tcs[:3]
+    return candidate_Tcs[:max_candidates]

@@ -42,7 +42,8 @@ def overlay_features_heatmap(ax, linecuts, feature_name = "features", score_name
 
     styles = {
         "upturn":   dict(color="yellow",    marker="^", label = "upturn"),
-        "downturn": dict(color = "green", marker ="o", label = "downturn")
+        "downturn": dict(color = "green", marker ="v", label = "downturn"),
+        "Tc" :      dict(color = "navy", marker = "o", label = "Tc")
     }
 
     used_labels = set()
