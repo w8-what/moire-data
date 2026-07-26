@@ -9,7 +9,7 @@ from hampel import hampel
 from moire.io import load_field, clean_sort_data
 from moire.signal_helpers import adaptive_smooth, local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
-from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_pos_behaviors
+from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, get_fit_range
 
 from moire.draw_lines import plot_linecut, plot_linecut_noise, generate_layout
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
@@ -51,12 +51,15 @@ for field in SELECT_FIELDS:
         features += extract_downturns(T, linecut)
         features += extract_Tc(T, linecut)
         linecut.update({"features" : features})
+        linecut.update({"behaviors" : []})
 
     # ----- New Scoring Updates -----
 
     linecuts = update_score(linecuts)
+
+    # getting fit range 
     for linecut in linecuts:
-        extract_pos_behaviors(T, linecut)
+        get_fit_range(T, linecut)
 
     # ----- Plotting and creating figures -----
     numLinecuts = 60

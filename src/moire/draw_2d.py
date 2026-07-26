@@ -84,21 +84,46 @@ def overlay_features_heatmap(ax, linecuts, feature_name = "features", score_name
     ax.legend(frameon=True, fontsize=8)
 
 
-def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors = ["extraction_range"]):
+def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors = ["extraction_range"], alpha = 0.2):
     # for each linecut, draw the interval and shade it with alpha = something like 0.2 
     # do this for each drawn behavior 
 
+    nus = np.array([linecut["nu"] for linecut in linecuts])
+
+    # Boundaries halfway between neighboring filling values
+    edges = np.empty(len(nus) + 1)
+    edges[1:-1] = (nus[:-1] + nus[1:]) / 2
+    edges[0] = nus[0] - (nus[1] - nus[0]) / 2
+    edges[-1] = nus[-1] + (nus[-1] - nus[-2]) / 2
 
 
-    for linecut in linecuts:
-        for behavior in drawn_behaviors:
-            # get the range and draw the thing according to your given color?
-            # yup not bad
+    colors = {
+        "extraction_range": "grey",
+        "linear": "purple",
+        "superlinear": "red",
+        "sublinear": "blue",
+    }
 
-            color = "grey" if behavior == "extraction_range" else "purple"
-            draw 
+    for i, linecut in enumerate(linecuts):
+        behaviors = linecut.get("behaviors", {})
 
+        for behavior in behaviors:
 
+            if behavior.get("type") not in drawn_behaviors:
+                continue
+
+            T_lower, T_upper = behavior.get("T_upper"), behavior.get("T_lower")
+
+            ax.fill_betweenx(
+                [T_lower, T_upper],
+                edges[i],
+                edges[i + 1],
+                color=colors.get(behavior.get("type"), "purple"),
+                alpha=alpha,
+                linewidth=0,
+            )
+
+    return ax
 
 
 

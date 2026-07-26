@@ -212,8 +212,8 @@ def extract_Tc(T, linecut, threshold = 20, max_candidates = 3) -> list[dict]:
 def get_fit_range(T, linecut, pos_frac = 0.8) -> list[dict]:
 
     T_lower = T[0]; T_upper = T[-1]
-    features = linecut.get["features_new"]
-    rho_smoothed = linecut.get["rho_smoothed"]
+    features = linecut.get("features_new")
+    rho_smoothed = linecut.get("rho_smoothed")
 
     # Updating the lower bound to be the highest upturn 
     for feat in features:
@@ -245,7 +245,12 @@ def get_fit_range(T, linecut, pos_frac = 0.8) -> list[dict]:
     # Checking that > 80% of the range is positive
     if np.count_nonzero(dpdT[T_lower_idx : T_upper_idx + 1] > 0) / total_pts > pos_frac:
         behaviors = linecut.get("behaviors")
-        behaviors.update({"extraction_range" : (T_lower, T_upper)})
+        behavior = {
+            "type" : "extraction_range",
+            "T_lower" : T_lower, 
+            "T_upper" : T_upper
+        }
+        behaviors.append(behavior)
 
     return linecut
 
