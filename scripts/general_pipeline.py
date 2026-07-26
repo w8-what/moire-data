@@ -9,10 +9,10 @@ from hampel import hampel
 from moire.io import load_field, clean_sort_data
 from moire.signal_helpers import adaptive_smooth, local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
-from moire.extract_features import extract_upturns, extract_downturns
+from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_pos_behaviors
 
 from moire.draw_lines import plot_linecut, plot_linecut_noise, generate_layout
-from moire.draw_2d import draw_heatmap, overlay_features_heatmap
+from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
 from moire.update_scoring import update_score
 
 OUT = ROOT / Path("output")
@@ -49,11 +49,14 @@ for field in SELECT_FIELDS:
         features = []
         features += extract_upturns(T, linecut)
         features += extract_downturns(T, linecut)
+        features += extract_Tc(T, linecut)
         linecut.update({"features" : features})
 
     # ----- New Scoring Updates -----
 
     linecuts = update_score(linecuts)
+    for linecut in linecuts:
+        extract_pos_behaviors(T, linecut)
 
     # ----- Plotting and creating figures -----
     numLinecuts = 60
@@ -78,6 +81,7 @@ for field in SELECT_FIELDS:
 
     draw_heatmap(fig, axes[1], nu, T, R, title = "3 passes x 5 iterations")
     overlay_features_heatmap(axes[1], linecuts, feature_name = "features_new", score_name = "score_15")
+    overlay_behaviors_heatmap(axes[1], linecuts)
 
     path = OUT / Path("heatmaps_comparison")
     path.mkdir(exist_ok = True, parents = True)

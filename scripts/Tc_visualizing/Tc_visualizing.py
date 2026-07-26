@@ -50,6 +50,8 @@ for field in SELECT_FIELDS:
         features += extract_downturns(T, linecut)
         features += extract_Tc(T, linecut, max_candidates=1)
         linecut.update({"features" : features})
+        linecut.update({"behaviors" : []})
+
 
     # ----- New Scoring Updates -----
 

@@ -84,6 +84,25 @@ def overlay_features_heatmap(ax, linecuts, feature_name = "features", score_name
     ax.legend(frameon=True, fontsize=8)
 
 
+def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors = ["extraction_range"]):
+    # for each linecut, draw the interval and shade it with alpha = something like 0.2 
+    # do this for each drawn behavior 
+
+
+
+    for linecut in linecuts:
+        for behavior in drawn_behaviors:
+            # get the range and draw the thing according to your given color?
+            # yup not bad
+
+            color = "grey" if behavior == "extraction_range" else "purple"
+            draw 
+
+
+
+
+
+
 
 # def draw_mosaic_diagrams(col, row, data, OUT=None, name="mosaic_phase_diagram", save=False):
 #     phase_to_id = {"Unknown": 0, "AFM": 1, "Metal": 2, "Insulator": 3}
