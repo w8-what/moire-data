@@ -61,11 +61,11 @@ def plot_general_line(
     return ax
 
 
-def overlay_features(ax, linecut):
+def overlay_features(ax, linecut, feature_name = "features", score_name = "confidence"):
 
     T = linecut.get("T")
     rho_smoothed = linecut.get("rho_smoothed")
-    features = linecut.get("features") or []
+    features = linecut.get(feature_name) or []
     used_labels = set()
 
     for feature in features:
@@ -82,8 +82,8 @@ def overlay_features(ax, linecut):
         T_feature = feature.get("T")
         rho_at_T = rho_smoothed[np.argmin(np.abs(T - T_feature))]
 
-        conf = feature.get("confidence")
-        conf_label = f"conf={float(conf):.3g}"
+        conf = feature.get(score_name)
+        conf_label = f"conf={float(conf):.4g}"
 
         ax.scatter(T_feature, rho_at_T, alpha=conf, **style)
         ax.axvline(T_feature, linewidth=1, linestyle="--", color="grey", zorder=3)
@@ -171,17 +171,11 @@ def plot_linecut(T: list, linecut, OUT):
     }
 
     plot_general_line(axes[0], T, rho, title="Raw Data", **linecut_axis_kwargs)
-    plot_general_line(
-        axes[1],
-        T,
-        rho_smoothed,
-        title="Smoothed Data, Features, Behaviors",
-        **linecut_axis_kwargs,
-    )
+    plot_general_line(axes[1], T, rho_smoothed, title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
     plot_general_line(axes[2], T, dpdT, title="First Derivative", shaded=True, fill_alpha=0.5)
     plot_general_line(axes[3], T, d2pdT2, title="Second Derivative", shaded=True, fill_alpha=0.5)
 
-    overlay_features(axes[1], linecut)
+    overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
     overlay_behaviors(axes[1], linecut)
     fig.tight_layout()
 

@@ -7,11 +7,11 @@ sys.path.insert(0, str(ROOT / Path("src")))
 
 from hampel import hampel
 from moire.io import load_field, clean_sort_data
-from moire.signal_helpers import adaptive_smooth, local_noise
+from moire.signal_helpers import local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
 from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, get_fit_range
 
-from moire.draw_lines import plot_linecut, plot_linecut_noise, generate_layout
+from moire.draw_lines import plot_linecut, generate_layout
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
 from moire.update_scoring import update_score
 
@@ -67,7 +67,7 @@ for field in SELECT_FIELDS:
     for i, linecut in enumerate(linecuts):
         if i in selectedLinecuts:
 
-            plot_linecut_noise(T, linecut, OUT=OUT / Path("linecuts"))
+            plot_linecut(T, linecut, OUT=OUT / Path("linecuts"))
 
     # ----- 2d Figures -----
 
