@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rough-screened phase heatmaps</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f2f1ed;
+      --surface: #fffefa;
+      --surface-2: #f7f6f1;
+      --text: #202124;
+      --muted: #6a6d72;
+      --border: #d9d7cf;
+      --accent: #2359c4;
+      --accent-soft: #dfe9ff;
+      --superlinear: #64b9df;
+      --linear: #f0e8d8;
+      --sublinear: #747b87;
+      --shadow: 0 12px 34px rgba(27, 31, 36, .07);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #151719;
+        --surface: #202327;
+        --surface-2: #191c1f;
+        --text: #f0f2f4;
+        --muted: #aeb3ba;
+        --border: #3d4248;
+        --accent: #8eacff;
+        --accent-soft: #293752;
+        --linear: #d9d1c2;
+        --shadow: 0 12px 34px rgba(0, 0, 0, .24);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    main { max-width: 1500px; margin: 0 auto; padding: 28px; }
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0 0 5px;
+      font-size: clamp(1.5rem, 3vw, 2.35rem);
+      font-weight: 680;
+      letter-spacing: -.03em;
+    }
+    h2 { margin: 0; font-size: 1.05rem; font-weight: 680; }
+    p { margin: 0; }
+    .muted { color: var(--muted); }
+    label {
+      display: block;
+      color: var(--text);
+      font-size: .76rem;
+      font-weight: 700;
+      letter-spacing: .045em;
+      text-transform: uppercase;
+    }
+    select, button {
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font: inherit;
+    }
+    select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 9px 34px 9px 11px;
+    }
+    button {
+      padding: 8px 11px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .field-control { min-width: 190px; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(220px, .8fr) 1fr 1fr minmax(240px, 1.25fr);
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    output {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    input[type="range"] {
+      width: 100%;
+      margin: 10px 0 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .control-help {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .72rem;
+    }
+    .formula {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    .reset-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .screen-note {
+      margin-top: 7px;
+      font-size: .74rem;
+      color: var(--muted);
+    }
+
+    .threshold-track {
+      position: relative;
+      height: 12px;
+      margin-top: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg,
+          var(--sublinear) 0 var(--b-position),
+          var(--linear) var(--b-position) var(--a-position),
+          var(--superlinear) var(--a-position) 100%);
+    }
+    .threshold-track::before,
+    .threshold-track::after {
+      content: "";
+      position: absolute;
+      top: -3px;
+      width: 2px;
+      height: 18px;
+      background: var(--text);
+    }
+    .threshold-track::before { left: var(--b-position); }
+    .threshold-track::after { left: var(--a-position); }
+    .threshold-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: .67rem;
+    }
+
+    .plots {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .panel {
+      min-width: 0;
+      padding: 17px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+    .panel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 2px;
+    }
+    .eyebrow {
+      color: var(--accent);
+      font-size: .72rem;
+      font-weight: 750;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .panel-subtitle {
+      min-height: 2.7em;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .78rem;
+    }
+    .plot-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1.16 / 1;
+      min-height: 420px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+      min-height: 27px;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .76rem;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch {
+      width: 13px;
+      height: 13px;
+      border: 1px solid rgba(30, 32, 35, .36);
+      border-radius: 3px;
+    }
+    .swatch.superlinear { background: var(--superlinear); }
+    .swatch.linear { background: var(--linear); }
+    .swatch.sublinear { background: var(--sublinear); }
+    .triangle-up {
+      width: 0;
+      height: 0;
+      border-right: 6px solid transparent;
+      border-bottom: 11px solid #f3ca42;
+      border-left: 6px solid transparent;
+    }
+    .triangle-down {
+      width: 0;
+      height: 0;
+      border-top: 11px solid #61a85b;
+      border-right: 6px solid transparent;
+      border-left: 6px solid transparent;
+    }
+    .tc-dot {
+      width: 10px;
+      height: 10px;
+      background: #324a8a;
+      border: 1px solid #17191b;
+      border-radius: 50%;
+    }
+    .detail {
+      min-height: 3em;
+      margin-top: 14px;
+      padding: 12px 14px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      font-size: .8rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .detail strong { color: var(--text); }
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .stat {
+      padding: 5px 9px;
+      color: var(--muted);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: .72rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat strong { color: var(--text); }
+    .linecut-panel { margin-top: 18px; }
+    .linecut-panel .panel-head { margin-bottom: 13px; }
+    .linecut-title {
+      color: var(--accent);
+      font-size: .82rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .linecut-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .mini-plot {
+      min-width: 0;
+      padding: 11px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .mini-plot-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 3px;
+    }
+    .mini-plot h3 {
+      margin: 0;
+      font-size: .82rem;
+      font-weight: 700;
+    }
+    .mini-key {
+      color: var(--muted);
+      font-size: .67rem;
+    }
+    .mini-canvas-wrap {
+      width: 100%;
+      height: 225px;
+    }
+    .linecut-hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: .74rem;
+    }
+    footer {
+      margin-top: 14px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .74rem;
+    }
+
+    @media (max-width: 1050px) {
+      .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .plots { grid-template-columns: 1fr; }
+      .plot-wrap { aspect-ratio: 1.55 / 1; }
+    }
+    @media (max-width: 680px) {
+      main { padding: 15px; }
+      header { align-items: stretch; flex-direction: column; gap: 14px; }
+      .field-control { width: 100%; }
+      .controls { grid-template-columns: 1fr; padding: 13px; }
+      .panel { padding: 11px; }
+      .plot-wrap { min-height: 330px; aspect-ratio: 1.12 / 1; }
+      .linecut-grid { grid-template-columns: 1fr; }
+      .mini-canvas-wrap { height: 210px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Rough-screened transport phases</h1>
+        <p class="muted">Compare the measured resistivity features with phases classified only inside accepted fit ranges.</p>
+      </div>
+      <div class="field-control">
+        <label for="field">Electric field (mV/nm)</label>
+        <select id="field"></select>
+      </div>
+    </header>
+
+    <section class="controls" aria-label="Phase thresholds">
+      <div>
+        <div class="reset-row">
+          <div>
+            <label>Phase rule</label>
+            <div class="formula">x = d ln(dρ/dT) / dT</div>
+          </div>
+          <button id="reset" type="button">Reset</button>
+        </div>
+        <p class="screen-note">Only get_fit_range windows are classified; no purple fill is drawn.</p>
+      </div>
+      <div class="control">
+        <label for="upper">A · upper threshold <output id="upper-value"></output></label>
+        <input id="upper" type="range" min="0" max="1" step="0.01">
+        <div class="control-help">x &gt; A is superlinear · 0 ≤ A ≤ 1</div>
+      </div>
+      <div class="control">
+        <label for="lower">B · lower threshold <output id="lower-value"></output></label>
+        <input id="lower" type="range" min="-1" max="0" step="0.01">
+        <div class="control-help">x &lt; B is sublinear · −1 ≤ B ≤ 0</div>
+      </div>
+      <div>
+        <label>Classification interval</label>
+        <div id="threshold-track" class="threshold-track" aria-hidden="true"></div>
+        <div class="threshold-labels">
+          <span>sublinear</span>
+          <span>linear</span>
+          <span>superlinear</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="plots">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Raw heatmap + features</h2>
+          <span class="eyebrow">Measured</span>
+        </div>
+        <p class="panel-subtitle">Log-scaled ρxx with features retained by the rough 3 × 5 pass screen.</p>
+        <div class="plot-wrap">
+          <canvas id="raw-map" aria-label="Raw resistivity heatmap with rough-screened feature markers"></canvas>
+        </div>
+        <div class="legend" aria-label="Feature legend">
+          <span class="legend-item"><i class="triangle-up"></i>upturn</span>
+          <span class="legend-item"><i class="triangle-down"></i>downturn</span>
+          <span class="legend-item"><i class="tc-dot"></i>Tc</span>
+          <span>opacity = score₁₅</span>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Phase labels</h2>
+          <span class="eyebrow">Rough screen</span>
+        </div>
+        <p class="panel-subtitle" id="phase-rule"></p>
+        <div class="plot-wrap">
+          <canvas id="phase-map" aria-label="Superlinear, linear, and sublinear phases inside get_fit_range windows"></canvas>
+        </div>
+        <div class="legend" aria-label="Phase legend">
+          <span class="legend-item"><i class="swatch superlinear"></i>superlinear</span>
+          <span class="legend-item"><i class="swatch linear"></i>linear</span>
+          <span class="legend-item"><i class="swatch sublinear"></i>sublinear</span>
+          <span class="legend-item">unfilled = not accepted</span>
+        </div>
+      </article>
+    </section>
+
+    <div id="stats" class="stats" aria-live="polite"></div>
+    <p id="detail" class="detail" aria-live="polite">Move over either heatmap to inspect filling, temperature, x, and the resulting phase.</p>
+
+    <section class="panel linecut-panel" aria-label="Hovered linecut plots">
+      <div class="panel-head">
+        <div>
+          <h2>Hovered linecut</h2>
+          <p class="panel-subtitle">The four plots update as the pointer moves across either heatmap.</p>
+        </div>
+        <span id="linecut-title" class="linecut-title"></span>
+      </div>
+      <div class="linecut-grid">
+        <article class="mini-plot">
+          <div class="mini-plot-head">
+            <h3>Raw ρ</h3>
+            <span class="mini-key">measured</span>
+          </div>
+          <div class="mini-canvas-wrap">
+            <canvas id="linecut-raw" aria-label="Raw resistivity for the hovered linecut"></canvas>
+          </div>
+        </article>
+        <article class="mini-plot">
+          <div class="mini-plot-head">
+            <h3>Smoothed ρ + screen</h3>
+            <span class="mini-key">features + behavior range</span>
+          </div>
+          <div class="mini-canvas-wrap">
+            <canvas id="linecut-smoothed" aria-label="Smoothed resistivity with features and behavior range"></canvas>
+          </div>
+        </article>
+        <article class="mini-plot">
+          <div class="mini-plot-head">
+            <h3>dρ/dT</h3>
+            <span class="mini-key">Hampel filtered</span>
+          </div>
+          <div class="mini-canvas-wrap">
+            <canvas id="linecut-dpdt" aria-label="First temperature derivative of resistivity"></canvas>
+          </div>
+        </article>
+        <article class="mini-plot">
+          <div class="mini-plot-head">
+            <h3>d ln(dρ/dT) / dT</h3>
+            <span class="mini-key">live A / B thresholds</span>
+          </div>
+          <div class="mini-canvas-wrap">
+            <canvas id="linecut-x" aria-label="Log derivative with superlinear and sublinear thresholds"></canvas>
+          </div>
+        </article>
+      </div>
+      <p class="linecut-hint">The neutral shaded window is the accepted get_fit_range behavior. Feature markers match the heatmap; the x plot colors only the classified part of that window.</p>
+    </section>
+
+    <footer>Rough screen: score filter 0.10 after each of 3 passes × 5 iterations; get_fit_range requires &gt;80% positive dρ/dT. Phase x is smoothed over 1 K.</footer>
+  </main>
+
+  <script>
+    const MODEL = __PHASE_VISUALIZER_DATA__;
+
+    const state = {
+      fieldIndex: 0,
+      upper: MODEL.upper,
+      lower: MODEL.lower,
+      linecutIndex: null
+    };
+
+    const elements = {
+      field: document.getElementById('field'),
+      upper: document.getElementById('upper'),
+      lower: document.getElementById('lower'),
+      reset: document.getElementById('reset'),
+      raw: document.getElementById('raw-map'),
+      phase: document.getElementById('phase-map'),
+      rule: document.getElementById('phase-rule'),
+      stats: document.getElementById('stats'),
+      detail: document.getElementById('detail'),
+      thresholdTrack: document.getElementById('threshold-track'),
+      linecutTitle: document.getElementById('linecut-title'),
+      linecutRaw: document.getElementById('linecut-raw'),
+      linecutSmoothed: document.getElementById('linecut-smoothed'),
+      linecutDpdt: document.getElementById('linecut-dpdt'),
+      linecutX: document.getElementById('linecut-x')
+    };
+
+    function cssColor(name) {
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
+    }
+
+    function rgbFromCss(name, fallback) {
+      const value = cssColor(name);
+      const hex = value.match(/^#([0-9a-f]{6})$/i);
+      if (hex) {
+        return [0, 2, 4].map(index =>
+          parseInt(hex[1].slice(index, index + 2), 16)
+        );
+      }
+      const rgb = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+      return rgb ? rgb.slice(1, 4).map(Number) : fallback;
+    }
+
+    function initialize() {
+      MODEL.fields.forEach((field, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = field.field;
+        elements.field.appendChild(option);
+      });
+      elements.upper.value = state.upper;
+      elements.lower.value = state.lower;
+      state.linecutIndex = Math.floor(MODEL.fields[0].fillings.length / 2);
+      updateControls();
+      render();
+    }
+
+    function updateControls() {
+      document.getElementById('upper-value').value = `+${state.upper.toFixed(2)}`;
+      document.getElementById('lower-value').value = state.lower.toFixed(2);
+      const bPosition = ((state.lower + 1) / 2) * 100;
+      const aPosition = ((state.upper + 1) / 2) * 100;
+      elements.thresholdTrack.style.setProperty('--b-position', `${bPosition}%`);
+      elements.thresholdTrack.style.setProperty('--a-position', `${aPosition}%`);
+      elements.rule.textContent =
+        `sublinear: x < ${state.lower.toFixed(2)} · linear: ${state.lower.toFixed(2)} ≤ x ≤ ${state.upper.toFixed(2)} · superlinear: x > ${state.upper.toFixed(2)}`;
+    }
+
+    let renderFrame;
+    function scheduleRender() {
+      cancelAnimationFrame(renderFrame);
+      renderFrame = requestAnimationFrame(render);
+    }
+
+    elements.field.addEventListener('change', () => {
+      state.fieldIndex = Number(elements.field.value);
+      state.linecutIndex = Math.floor(
+        MODEL.fields[state.fieldIndex].fillings.length / 2
+      );
+      render();
+    });
+    elements.upper.addEventListener('input', () => {
+      state.upper = Number(elements.upper.value);
+      updateControls();
+      scheduleRender();
+    });
+    elements.lower.addEventListener('input', () => {
+      state.lower = Number(elements.lower.value);
+      updateControls();
+      scheduleRender();
+    });
+    elements.reset.addEventListener('click', () => {
+      state.upper = MODEL.upper;
+      state.lower = MODEL.lower;
+      elements.upper.value = state.upper;
+      elements.lower.value = state.lower;
+      updateControls();
+      render();
+    });
+
+    function resizeCanvas(canvas) {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.round(canvas.clientWidth * ratio));
+      const height = Math.max(1, Math.round(canvas.clientHeight * ratio));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+      const context = canvas.getContext('2d');
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return context;
+    }
+
+    function geometryFor(canvas, colorbar = false) {
+      const left = 55;
+      const right = colorbar ? 52 : 17;
+      const top = 12;
+      const bottom = 47;
+      return {
+        left,
+        right,
+        top,
+        bottom,
+        width: Math.max(1, canvas.clientWidth - left - right),
+        height: Math.max(1, canvas.clientHeight - top - bottom)
+      };
+    }
+
+    function scales(field, geometry) {
+      const minX = field.fillings[0];
+      const maxX = field.fillings.at(-1);
+      const minY = field.temperatures[0];
+      const maxY = field.temperatures.at(-1);
+      return {
+        x: value => geometry.left
+          + (value - minX) / (maxX - minX) * geometry.width,
+        y: value => geometry.top
+          + (maxY - value) / (maxY - minY) * geometry.height
+      };
+    }
+
+    function edge(values, index, side) {
+      if (side < 0) {
+        return index === 0
+          ? values[0] - (values[1] - values[0]) / 2
+          : (values[index - 1] + values[index]) / 2;
+      }
+      return index === values.length - 1
+        ? values.at(-1) + (values.at(-1) - values.at(-2)) / 2
+        : (values[index] + values[index + 1]) / 2;
+    }
+
+    function drawAxes(context, field, geometry, x, y) {
+      context.save();
+      context.strokeStyle = cssColor('--text');
+      context.fillStyle = cssColor('--text');
+      context.lineWidth = 1;
+      context.strokeRect(
+        geometry.left,
+        geometry.top,
+        geometry.width,
+        geometry.height
+      );
+      context.font = '11px ui-sans-serif, system-ui, sans-serif';
+      context.textAlign = 'center';
+      context.textBaseline = 'top';
+      for (let index = 0; index <= 4; index++) {
+        const value = field.fillings[0]
+          + (field.fillings.at(-1) - field.fillings[0]) * index / 4;
+        context.fillText(value.toFixed(2), x(value), geometry.top + geometry.height + 7);
+      }
+      context.fillText(
+        'Filling ν',
+        geometry.left + geometry.width / 2,
+        geometry.top + geometry.height + 28
+      );
+
+      context.textAlign = 'right';
+      context.textBaseline = 'middle';
+      for (let index = 0; index <= 4; index++) {
+        const value = field.temperatures[0]
+          + (field.temperatures.at(-1) - field.temperatures[0]) * index / 4;
+        context.fillText(
+          value.toFixed(value < 1 ? 2 : 1),
+          geometry.left - 7,
+          y(value)
+        );
+      }
+      context.translate(13, geometry.top + geometry.height / 2);
+      context.rotate(-Math.PI / 2);
+      context.textAlign = 'center';
+      context.fillText('Temperature T (K)', 0, 0);
+      context.restore();
+    }
+
+    function heatRgb(value, field, midpoint) {
+      if (!(value > 0)) return midpoint;
+      const scaled = (Math.log10(value) - field.logMin)
+        / (field.logMax - field.logMin);
+      const normalized = Math.max(0, Math.min(1, scaled));
+      const endpoint = normalized < .5 ? [42, 58, 235] : [242, 53, 65];
+      const amount = Math.abs(normalized - .5) * 2;
+      return midpoint.map((channel, index) =>
+        Math.round(channel + (endpoint[index] - channel) * amount)
+      );
+    }
+
+    function drawColorbar(context, field, geometry) {
+      const barX = geometry.left + geometry.width + 11;
+      const barWidth = 8;
+      const steps = 90;
+      const midpoint = rgbFromCss('--surface', [255, 255, 255]);
+      for (let index = 0; index < steps; index++) {
+        const normalized = index / (steps - 1);
+        const value = 10 ** (field.logMax - normalized * (field.logMax - field.logMin));
+        context.fillStyle = `rgb(${heatRgb(value, field, midpoint).join(',')})`;
+        context.fillRect(
+          barX,
+          geometry.top + index * geometry.height / steps,
+          barWidth,
+          geometry.height / steps + 1
+        );
+      }
+      context.strokeStyle = cssColor('--text');
+      context.strokeRect(barX, geometry.top, barWidth, geometry.height);
+      context.fillStyle = cssColor('--muted');
+      context.font = '9px ui-sans-serif, system-ui, sans-serif';
+      context.textAlign = 'left';
+      context.textBaseline = 'top';
+      context.fillText(
+        `10^${Math.round(field.logMax)}`,
+        barX + 11,
+        geometry.top - 1
+      );
+      context.textBaseline = 'bottom';
+      context.fillText(
+        `10^${Math.round(field.logMin)}`,
+        barX + 11,
+        geometry.top + geometry.height + 1
+      );
+    }
+
+    function drawFeature(context, feature, x, y) {
+      const px = x(feature.nu);
+      const py = y(feature.T);
+      const radius = 3.1 + 2.3 * feature.score;
+      context.save();
+      context.globalAlpha = .25 + .75 * feature.score;
+      context.strokeStyle = '#17191b';
+      context.lineWidth = .65;
+      context.beginPath();
+      if (feature.type === 'upturn') {
+        context.fillStyle = '#f3ca42';
+        context.moveTo(px, py - radius);
+        context.lineTo(px + radius, py + radius);
+        context.lineTo(px - radius, py + radius);
+        context.closePath();
+      } else if (feature.type === 'downturn') {
+        context.fillStyle = '#61a85b';
+        context.moveTo(px, py + radius);
+        context.lineTo(px + radius, py - radius);
+        context.lineTo(px - radius, py - radius);
+        context.closePath();
+      } else {
+        context.fillStyle = '#324a8a';
+        context.arc(px, py, radius, 0, Math.PI * 2);
+      }
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+
+    function renderRaw(field) {
+      const canvas = elements.raw;
+      const context = resizeCanvas(canvas);
+      const geometry = geometryFor(canvas, true);
+      const { x, y } = scales(field, geometry);
+      const midpoint = rgbFromCss('--surface', [255, 255, 255]);
+      context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+      field.temperatures.forEach((temperature, row) => {
+        const lowT = edge(field.temperatures, row, -1);
+        const highT = edge(field.temperatures, row, 1);
+        field.heatFillings.forEach((filling, column) => {
+          const lowNu = edge(field.heatFillings, column, -1);
+          const highNu = edge(field.heatFillings, column, 1);
+          context.fillStyle =
+            `rgb(${heatRgb(field.resistivity[row][column], field, midpoint).join(',')})`;
+          context.fillRect(
+            x(lowNu),
+            y(highT),
+            Math.max(1, x(highNu) - x(lowNu) + .5),
+            Math.max(1, y(lowT) - y(highT) + .5)
+          );
+        });
+      });
+
+      field.features.forEach(feature => drawFeature(context, feature, x, y));
+      drawAxes(context, field, geometry, x, y);
+      drawColorbar(context, field, geometry);
+      canvas._geometry = geometry;
+    }
+
+    function classify(value) {
+      if (value > state.upper) return 'superlinear';
+      if (value < state.lower) return 'sublinear';
+      return 'linear';
+    }
+
+    function phaseColor(phase) {
+      return cssColor(`--${phase}`);
+    }
+
+    function renderPhases(field) {
+      const canvas = elements.phase;
+      const context = resizeCanvas(canvas);
+      const geometry = geometryFor(canvas, false);
+      const { x, y } = scales(field, geometry);
+      const counts = { superlinear: 0, linear: 0, sublinear: 0 };
+      context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      context.fillStyle = cssColor('--surface-2');
+      context.fillRect(geometry.left, geometry.top, geometry.width, geometry.height);
+
+      field.phaseColumns.forEach((column, columnIndex) => {
+        const lowNu = edge(field.fillings, columnIndex, -1);
+        const highNu = edge(field.fillings, columnIndex, 1);
+        column.x.forEach((value, row) => {
+          if (value === null || !Number.isFinite(value)) return;
+          const phase = classify(value);
+          counts[phase] += 1;
+          const lowT = edge(field.temperatures, row, -1);
+          const highT = edge(field.temperatures, row, 1);
+          context.fillStyle = phaseColor(phase);
+          context.fillRect(
+            x(lowNu),
+            y(highT),
+            Math.max(.8, x(highNu) - x(lowNu) + .25),
+            Math.max(.8, y(lowT) - y(highT) + .25)
+          );
+        });
+      });
+
+      // Neutral graphite boundaries show the accepted windows without using
+      // the old purple behavior fill.
+      context.save();
+      context.strokeStyle = cssColor('--text');
+      context.globalAlpha = .32;
+      context.lineWidth = .65;
+      field.phaseColumns.forEach((column, columnIndex) => {
+        if (column.lower === null) return;
+        const lowNu = edge(field.fillings, columnIndex, -1);
+        const highNu = edge(field.fillings, columnIndex, 1);
+        context.beginPath();
+        context.moveTo(x(lowNu), y(column.lower));
+        context.lineTo(x(highNu), y(column.lower));
+        context.moveTo(x(lowNu), y(column.upper));
+        context.lineTo(x(highNu), y(column.upper));
+        context.stroke();
+      });
+      context.restore();
+
+      drawAxes(context, field, geometry, x, y);
+      canvas._geometry = geometry;
+      return counts;
+    }
+
+    function renderStats(field, counts) {
+      const total = counts.superlinear + counts.linear + counts.sublinear;
+      const pct = value => total ? `${(100 * value / total).toFixed(1)}%` : '0.0%';
+      elements.stats.innerHTML = [
+        `<span class="stat"><strong>${field.acceptedCount}</strong> / ${field.phaseColumns.length} linecuts accepted</span>`,
+        `<span class="stat"><strong>${total.toLocaleString()}</strong> classified samples</span>`,
+        `<span class="stat">superlinear <strong>${pct(counts.superlinear)}</strong></span>`,
+        `<span class="stat">linear <strong>${pct(counts.linear)}</strong></span>`,
+        `<span class="stat">sublinear <strong>${pct(counts.sublinear)}</strong></span>`
+      ].join('');
+    }
+
+    function quantile(values, fraction) {
+      if (!values.length) return 0;
+      const sorted = [...values].sort((a, b) => a - b);
+      const position = (sorted.length - 1) * fraction;
+      const lower = Math.floor(position);
+      const upper = Math.ceil(position);
+      const weight = position - lower;
+      return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+    }
+
+    function axisNumber(value) {
+      const magnitude = Math.abs(value);
+      if (magnitude >= 10000 || (magnitude > 0 && magnitude < .01)) {
+        return value.toExponential(1);
+      }
+      if (magnitude >= 100) return value.toFixed(0);
+      if (magnitude >= 10) return value.toFixed(1);
+      return value.toFixed(2);
+    }
+
+    function miniGeometry(canvas) {
+      const left = 53;
+      const right = 12;
+      const top = 12;
+      const bottom = 34;
+      return {
+        left,
+        right,
+        top,
+        bottom,
+        width: Math.max(1, canvas.clientWidth - left - right),
+        height: Math.max(1, canvas.clientHeight - top - bottom)
+      };
+    }
+
+    function drawMiniFeature(context, feature, px, py) {
+      const radius = 4;
+      context.save();
+      context.globalAlpha = .35 + .65 * feature.score;
+      context.strokeStyle = '#17191b';
+      context.lineWidth = .65;
+      context.beginPath();
+      if (feature.type === 'upturn') {
+        context.fillStyle = '#f3ca42';
+        context.moveTo(px, py - radius);
+        context.lineTo(px + radius, py + radius);
+        context.lineTo(px - radius, py + radius);
+        context.closePath();
+      } else if (feature.type === 'downturn') {
+        context.fillStyle = '#61a85b';
+        context.moveTo(px, py + radius);
+        context.lineTo(px + radius, py - radius);
+        context.lineTo(px - radius, py - radius);
+        context.closePath();
+      } else {
+        context.fillStyle = '#324a8a';
+        context.arc(px, py, radius, 0, Math.PI * 2);
+      }
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+
+    function drawLinecutPlot(canvas, field, series, options = {}) {
+      const context = resizeCanvas(canvas);
+      const geometry = miniGeometry(canvas);
+      const temperatures = field.temperatures;
+      const allValues = series
+        .flatMap(item => item.values)
+        .filter(value => value !== null && Number.isFinite(value));
+      const thresholdValues = (options.thresholds || []).map(item => item.value);
+      let yMin;
+      let yMax;
+      if (options.robust && allValues.length > 10) {
+        yMin = quantile(allValues, .02);
+        yMax = quantile(allValues, .98);
+      } else {
+        yMin = Math.min(...allValues);
+        yMax = Math.max(...allValues);
+      }
+      if (options.zeroLine) {
+        yMin = Math.min(yMin, 0);
+        yMax = Math.max(yMax, 0);
+      }
+      if (thresholdValues.length) {
+        yMin = Math.min(yMin, ...thresholdValues);
+        yMax = Math.max(yMax, ...thresholdValues);
+      }
+      if (!Number.isFinite(yMin) || !Number.isFinite(yMax)) {
+        yMin = -1;
+        yMax = 1;
+      }
+      if (yMin === yMax) {
+        const padding = Math.abs(yMin) * .1 || 1;
+        yMin -= padding;
+        yMax += padding;
+      } else {
+        const padding = (yMax - yMin) * .08;
+        yMin -= padding;
+        yMax += padding;
+      }
+
+      const x = value => geometry.left
+        + (value - temperatures[0])
+        / (temperatures.at(-1) - temperatures[0])
+        * geometry.width;
+      const y = value => geometry.top
+        + (yMax - value) / (yMax - yMin) * geometry.height;
+
+      context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      context.fillStyle = cssColor('--surface');
+      context.fillRect(geometry.left, geometry.top, geometry.width, geometry.height);
+
+      if (
+        options.phaseValues &&
+        options.behavior &&
+        options.behavior.lower !== null
+      ) {
+        context.save();
+        context.globalAlpha = .20;
+        options.phaseValues.forEach((value, index) => {
+          if (value === null || !Number.isFinite(value)) return;
+          const temperature = temperatures[index];
+          if (
+            temperature < options.behavior.lower ||
+            temperature > options.behavior.upper
+          ) return;
+          const lowT = edge(temperatures, index, -1);
+          const highT = edge(temperatures, index, 1);
+          context.fillStyle = phaseColor(classify(value));
+          context.fillRect(
+            x(lowT),
+            geometry.top,
+            Math.max(1, x(highT) - x(lowT) + .5),
+            geometry.height
+          );
+        });
+        context.restore();
+      } else if (options.behavior && options.behavior.lower !== null) {
+        context.save();
+        context.fillStyle = cssColor('--accent-soft');
+        context.globalAlpha = .72;
+        context.fillRect(
+          x(options.behavior.lower),
+          geometry.top,
+          x(options.behavior.upper) - x(options.behavior.lower),
+          geometry.height
+        );
+        context.restore();
+      }
+
+      context.save();
+      context.strokeStyle = cssColor('--border');
+      context.fillStyle = cssColor('--muted');
+      context.lineWidth = 1;
+      context.font = '9px ui-sans-serif, system-ui, sans-serif';
+      for (let index = 0; index <= 4; index++) {
+        const value = yMin + (yMax - yMin) * index / 4;
+        const py = y(value);
+        context.globalAlpha = .7;
+        context.beginPath();
+        context.moveTo(geometry.left, py);
+        context.lineTo(geometry.left + geometry.width, py);
+        context.stroke();
+        context.globalAlpha = 1;
+        context.textAlign = 'right';
+        context.textBaseline = 'middle';
+        context.fillText(axisNumber(value), geometry.left - 5, py);
+      }
+      context.textAlign = 'center';
+      context.textBaseline = 'top';
+      for (let index = 0; index <= 4; index++) {
+        const value = temperatures[0]
+          + (temperatures.at(-1) - temperatures[0]) * index / 4;
+        context.fillText(
+          value.toFixed(value < 1 ? 2 : 1),
+          x(value),
+          geometry.top + geometry.height + 6
+        );
+      }
+      context.fillText(
+        'Temperature T (K)',
+        geometry.left + geometry.width / 2,
+        geometry.top + geometry.height + 20
+      );
+      context.strokeStyle = cssColor('--text');
+      context.globalAlpha = 1;
+      context.strokeRect(
+        geometry.left,
+        geometry.top,
+        geometry.width,
+        geometry.height
+      );
+      context.restore();
+
+      if (options.zeroLine && yMin < 0 && yMax > 0) {
+        context.save();
+        context.strokeStyle = cssColor('--muted');
+        context.globalAlpha = .7;
+        context.setLineDash([4, 4]);
+        context.beginPath();
+        context.moveTo(geometry.left, y(0));
+        context.lineTo(geometry.left + geometry.width, y(0));
+        context.stroke();
+        context.restore();
+      }
+
+      for (const threshold of options.thresholds || []) {
+        context.save();
+        context.strokeStyle = threshold.color;
+        context.fillStyle = threshold.color;
+        context.lineWidth = 1.2;
+        context.setLineDash([5, 4]);
+        context.beginPath();
+        context.moveTo(geometry.left, y(threshold.value));
+        context.lineTo(geometry.left + geometry.width, y(threshold.value));
+        context.stroke();
+        context.font = '9px ui-sans-serif, system-ui, sans-serif';
+        context.textAlign = 'right';
+        context.textBaseline = 'bottom';
+        context.fillText(
+          `${threshold.label} ${threshold.value.toFixed(2)}`,
+          geometry.left + geometry.width - 3,
+          y(threshold.value) - 2
+        );
+        context.restore();
+      }
+
+      for (const item of series) {
+        context.save();
+        context.strokeStyle = item.color;
+        context.lineWidth = item.width || 1.4;
+        context.globalAlpha = item.alpha ?? 1;
+        context.beginPath();
+        let drawing = false;
+        item.values.forEach((value, index) => {
+          if (value === null || !Number.isFinite(value)) {
+            drawing = false;
+            return;
+          }
+          const clipped = Math.max(yMin, Math.min(yMax, value));
+          if (!drawing) {
+            context.moveTo(x(temperatures[index]), y(clipped));
+            drawing = true;
+          } else {
+            context.lineTo(x(temperatures[index]), y(clipped));
+          }
+        });
+        context.stroke();
+        context.restore();
+      }
+
+      if (options.features?.length && series[0]) {
+        for (const feature of options.features) {
+          const index = nearestIndex(temperatures, feature.T);
+          const value = series[0].values[index];
+          if (value === null || !Number.isFinite(value)) continue;
+          drawMiniFeature(
+            context,
+            feature,
+            x(feature.T),
+            y(Math.max(yMin, Math.min(yMax, value)))
+          );
+        }
+      }
+    }
+
+    function renderLinecut(field, linecutIndex) {
+      if (
+        linecutIndex === null ||
+        linecutIndex < 0 ||
+        linecutIndex >= field.linecuts.length
+      ) return;
+      const linecut = field.linecuts[linecutIndex];
+      const behavior = field.phaseColumns[linecutIndex];
+      const features = field.features.filter(
+        feature => feature.linecut === linecutIndex
+      );
+      elements.linecutTitle.textContent =
+        `E = ${field.field} mV/nm · ν = ${field.fillings[linecutIndex].toFixed(4)}`;
+
+      drawLinecutPlot(
+        elements.linecutRaw,
+        field,
+        [{ values: linecut.rho, color: cssColor('--accent'), width: 1.25 }]
+      );
+      drawLinecutPlot(
+        elements.linecutSmoothed,
+        field,
+        [{ values: linecut.smoothed, color: cssColor('--accent'), width: 1.7 }],
+        { behavior, features }
+      );
+      drawLinecutPlot(
+        elements.linecutDpdt,
+        field,
+        [{ values: linecut.dpdt, color: '#d06a43', width: 1.35 }],
+        { robust: true, zeroLine: true }
+      );
+      drawLinecutPlot(
+        elements.linecutX,
+        field,
+        [{ values: linecut.x, color: cssColor('--text'), width: 1.25 }],
+        {
+          robust: true,
+          zeroLine: true,
+          behavior,
+          phaseValues: linecut.x,
+          thresholds: [
+            { value: state.upper, label: 'A', color: phaseColor('superlinear') },
+            { value: state.lower, label: 'B', color: phaseColor('sublinear') }
+          ]
+        }
+      );
+    }
+
+    function render() {
+      const field = MODEL.fields[state.fieldIndex];
+      renderRaw(field);
+      const counts = renderPhases(field);
+      renderStats(field, counts);
+      renderLinecut(field, state.linecutIndex);
+    }
+
+    function nearestIndex(values, target) {
+      let low = 0;
+      let high = values.length - 1;
+      while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        if (values[mid] < target) low = mid + 1;
+        else high = mid;
+      }
+      if (low === 0) return 0;
+      return Math.abs(values[low] - target) < Math.abs(values[low - 1] - target)
+        ? low
+        : low - 1;
+    }
+
+    let linecutFrame;
+    function selectLinecut(index) {
+      if (state.linecutIndex === index) return;
+      state.linecutIndex = index;
+      cancelAnimationFrame(linecutFrame);
+      linecutFrame = requestAnimationFrame(() => {
+        renderLinecut(MODEL.fields[state.fieldIndex], state.linecutIndex);
+      });
+    }
+
+    function inspect(event) {
+      const canvas = event.currentTarget;
+      const field = MODEL.fields[state.fieldIndex];
+      const geometry = canvas._geometry;
+      if (!geometry) return;
+      const bounds = canvas.getBoundingClientRect();
+      const px = event.clientX - bounds.left;
+      const py = event.clientY - bounds.top;
+      if (
+        px < geometry.left ||
+        px > geometry.left + geometry.width ||
+        py < geometry.top ||
+        py > geometry.top + geometry.height
+      ) {
+        resetDetail();
+        return;
+      }
+
+      const nu = field.fillings[0]
+        + (px - geometry.left) / geometry.width
+        * (field.fillings.at(-1) - field.fillings[0]);
+      const temperature = field.temperatures.at(-1)
+        - (py - geometry.top) / geometry.height
+        * (field.temperatures.at(-1) - field.temperatures[0]);
+      const columnIndex = nearestIndex(field.fillings, nu);
+      const rowIndex = nearestIndex(field.temperatures, temperature);
+      selectLinecut(columnIndex);
+      const column = field.phaseColumns[columnIndex];
+      const value = column.x[rowIndex];
+      const heatColumn = nearestIndex(field.heatFillings, nu);
+      const rho = field.resistivity[rowIndex][heatColumn];
+      const phaseText = value === null || !Number.isFinite(value)
+        ? 'not classified (outside get_fit_range)'
+        : `${classify(value)} · x = ${value.toFixed(4)}`;
+
+      elements.detail.innerHTML =
+        `<strong>E = ${field.field} mV/nm</strong> · ν = ${field.fillings[columnIndex].toFixed(4)} · ` +
+        `T = ${field.temperatures[rowIndex].toFixed(3)} K · ρxx ≈ ${Number(rho).toPrecision(4)} Ω · ` +
+        `<strong>${phaseText}</strong>`;
+    }
+
+    function resetDetail() {
+      elements.detail.textContent =
+        'Move over either heatmap to inspect filling, temperature, x, and the resulting phase.';
+    }
+
+    elements.raw.addEventListener('pointermove', inspect);
+    elements.phase.addEventListener('pointermove', inspect);
+    elements.raw.addEventListener('pointerleave', resetDetail);
+    elements.phase.addEventListener('pointerleave', resetDetail);
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(render, 100);
+    });
+    const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+    if (scheme.addEventListener) scheme.addEventListener('change', render);
+
+    initialize();
+  </script>
+</body>
+</html>

@@ -49,7 +49,7 @@ for field in [103, 99]:
         features = []
         features += extract_upturns(T, linecut)
         features += extract_downturns(T, linecut)
-        features += extract_Tc(T, linecut)
+        features += extract_Tc(T, linecut, max_candidates=1)
         linecut.update({"features": features})
         linecut.update({"behaviors": []})
 
