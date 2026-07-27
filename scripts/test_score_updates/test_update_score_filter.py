@@ -2,7 +2,6 @@ import sys
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -31,9 +30,7 @@ class FilteredScoreTests(unittest.TestCase):
         self.assertEqual(len(linecuts[0]["features_new"]), 1)
         survivor = linecuts[0]["features_new"][0]
         self.assertEqual(survivor["confidence"], 0.8)
-        self.assertTrue(
-            all(f"score_{iteration}" in survivor for iteration in range(1, 16))
-        )
+        self.assertTrue(all(f"score_{iteration}" in survivor for iteration in range(1, 16)))
 
     def test_filter_removes_noise_without_changing_original_features(self):
         linecuts = example_linecuts()
@@ -43,22 +40,11 @@ class FilteredScoreTests(unittest.TestCase):
 
         self.assertEqual(len(linecuts[0]["features"]), 2)
         self.assertNotIn("score_1", original_low_feature)
-        self.assertEqual(
-            [feature["confidence"] for feature in linecuts[0]["features_new"]],
-            [0.8],
-        )
-        self.assertIsNot(
-            linecuts[0]["features_new"][0],
-            linecuts[0]["features"][0],
-        )
+        self.assertEqual([feature["confidence"] for feature in linecuts[0]["features_new"]], [0.8])
+        self.assertIsNot(linecuts[0]["features_new"][0], linecuts[0]["features"][0])
 
     def test_invalid_pass_configuration_is_rejected(self):
-        for arguments in (
-            {"num_iter": 0},
-            {"num_passes": 0},
-            {"filter": -0.01},
-            {"filter": 1.01},
-        ):
+        for arguments in ({"num_iter": 0}, {"num_passes": 0}, {"filter": -0.01}, {"filter": 1.01}):
             with self.subTest(arguments=arguments):
                 with self.assertRaises(ValueError):
                     update_score(example_linecuts(), **arguments)

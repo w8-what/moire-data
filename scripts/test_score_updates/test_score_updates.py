@@ -1,12 +1,12 @@
 import sys
 from pathlib import Path
-import numpy as np 
+import numpy as np
 import copy
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / Path("src")))
 
-from hampel import hampel 
+from hampel import hampel
 from moire.io import load_field, clean_sort_data
 from moire.signal_helpers import local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
@@ -24,13 +24,12 @@ SELECT_FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
 for field in SELECT_FIELDS:
 
     # ----- Data Preprocessing -----
-    T, nu, R = load_field(field, IN) # loads initial dataset
-    T, nu, R = clean_sort_data(T, nu, R) # sorts data and removes nans
+    T, nu, R = load_field(field, IN)  # loads initial dataset
+    T, nu, R = clean_sort_data(T, nu, R)  # sorts data and removes nans
 
     linecuts = []
     for i, v in enumerate(nu):
-        linecuts.append({"E" : field, "nu" : v, "T": T, "rho" : R[:, i]}) 
-
+        linecuts.append({"E": field, "nu": v, "T": T, "rho": R[:, i]})
 
     # ----- Data Processing -----
     for linecut in linecuts:
@@ -40,48 +39,38 @@ for field in SELECT_FIELDS:
         rho = linecut.get("rho")
         rho_hampel = hampel(rho).filtered_data
         rho_smoothed = adaptive_multiscale_smooth(T, rho, z_threshold=3)
-        linecut.update({"rho_smoothed" : rho_smoothed})
+        linecut.update({"rho_smoothed": rho_smoothed})
 
         # Noise estimates
         noise = local_noise(T, rho, rho_smoothed)
-        linecut.update({"local_noise" : noise})
+        linecut.update({"local_noise": noise})
 
-        # Upturn & downturn feature extraction  
+        # Upturn & downturn feature extraction
         features = []
         features += extract_upturns(T, linecut)
         features += extract_downturns(T, linecut)
-        linecut.update({"features" : features})
+        linecut.update({"features": features})
 
     # ----- New Scoring Updates -----
 
     update_scores(linecuts)
 
     # ----- Plotting and creating figures -----
-    # numLinecuts = 60
-    # selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype = "int")
-    # for i, linecut in enumerate(linecuts):
-    #     if i in selectedLinecuts:
-    #         plot_linecut_noise(T, linecut, OUT = OUT / Path("linecuts"))
+    numLinecuts = 60
+    selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype="int")
+    for i, linecut in enumerate(linecuts):
+        if i in selectedLinecuts:
+            plot_linecut_noise(T, linecut, OUT=OUT / Path("linecuts"))
 
     name = f"{field}_Score_Comparison"
-    fig, axes = generate_layout(2, title = name)
+    fig, axes = generate_layout(2, title=name)
 
+    draw_heatmap(fig, axes[0], nu, T, R, title="original scoring")
+    overlay_features_heatmap(axes[0], linecuts, score_name="confidence")
 
-    draw_heatmap(fig, axes[0], nu, T, R, title = "original scoring")
-    overlay_features_heatmap(axes[0], linecuts, score_name = "confidence")
-
-    draw_heatmap(fig, axes[1], nu, T, R, title = "10thst re-scroing")
-    overlay_features_heatmap(axes[1], linecuts, score_name = "score_1")
-
+    draw_heatmap(fig, axes[1], nu, T, R, title="10thst re-scroing")
+    overlay_features_heatmap(axes[1], linecuts, score_name="score_1")
 
     path = OUT / Path("heatmaps_comparison_independent")
-    path.mkdir(exist_ok = True, parents = True)
+    path.mkdir(exist_ok=True, parents=True)
     fig.savefig(path / Path(name + ".png"))
-
-
-    
-
-
-
-        
-

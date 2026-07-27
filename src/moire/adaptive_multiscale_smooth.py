@@ -45,9 +45,7 @@ def estimate_noise_1d(T: np.ndarray, y: np.ndarray, neighbors: int = 11) -> np.n
     left = (T[2:] - T[1:-1]) / (T[2:] - T[:-2])
     right = (T[1:-1] - T[:-2]) / (T[2:] - T[:-2])
     residual = np.empty(n)
-    residual[1:-1] = (
-        y[1:-1] - left * y[:-2] - right * y[2:]
-    ) / np.sqrt(1 + left**2 + right**2)
+    residual[1:-1] = (y[1:-1] - left * y[:-2] - right * y[2:]) / np.sqrt(1 + left**2 + right**2)
     residual[0], residual[-1] = residual[1], residual[-2]
 
     sigma = np.empty(n)

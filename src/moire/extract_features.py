@@ -1,23 +1,23 @@
 import numpy as np
 from scipy.signal import find_peaks
 
-def _hill_sigmoid(x, reference_value, reference_score = 0.8, coeff = 2):
+
+def _hill_sigmoid(x, reference_value, reference_score=0.8, coeff=2):
 
     C = reference_value**coeff * (1 - reference_score) / reference_score
     return x**coeff / (x**coeff + C)
 
 
-
-def extract_upturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff = 2) -> list[dict]:
+def extract_upturns(T, linecut, min_pts=5, min_width=0.5, sigma=5, coeff=2) -> list[dict]:
 
     candidate_upturns = []
     rho_smoothed = linecut.get("rho_smoothed")
     noise = linecut.get("local_noise")
 
-    peaks, prop = find_peaks(-rho_smoothed, prominence = (None, None), height = (None, None))
+    peaks, prop = find_peaks(-rho_smoothed, prominence=(None, None), height=(None, None))
 
     for i, idx in enumerate(peaks):
-        
+
         # Finding horizontal persistence
         left_base_idx = prop["left_bases"][i]
         right_base_idx = prop["right_bases"][i]
@@ -26,7 +26,7 @@ def extract_upturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff =
 
         if rho_smoothed[right_base_idx] - rho_smoothed[left_base_idx] > 0:
             # use right as point and find right point that corresponds to right
-            j = idx + 1 # watch out edge 
+            j = idx + 1  # watch out edge
             while j <= right_base_idx:
                 low = min(rho_smoothed[j - 1], rho_smoothed[j])
                 high = max(rho_smoothed[j - 1], rho_smoothed[j])
@@ -41,7 +41,7 @@ def extract_upturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff =
 
         else:
             # use left as point and find right point that corresponds to right
-            j = idx - 1 # watch out edge 
+            j = idx - 1  # watch out edge
             while j >= left_base_idx:
                 low = min(rho_smoothed[j + 1], rho_smoothed[j])
                 high = max(rho_smoothed[j + 1], rho_smoothed[j])
@@ -56,10 +56,10 @@ def extract_upturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff =
 
         local_noise = np.mean(noise[left_idx : right_idx + 1])
         prominence = prop.get("prominences")[i]
-        prom_z = (prominence / local_noise)
+        prom_z = prominence / local_noise
 
         width = T[right_idx] - T[left_idx]
-        pts = len(T[left_idx:right_idx+1])
+        pts = len(T[left_idx : right_idx + 1])
 
         target = 0.8
 
@@ -71,30 +71,26 @@ def extract_upturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff =
         pts_score = pts**coeff / (pts**coeff + C_pts)
         width_score = width**coeff / (width**coeff + C_width)
 
-        comb_score = prom_score ** 0.5 * pts_score ** 0.3 * width_score ** 0.2 
+        comb_score = prom_score**0.5 * pts_score**0.3 * width_score**0.2
         comb_score = float(f"{comb_score:.3g}")
 
-        feature = {
-            "T" : T[idx],
-            "nu" : linecut.get("nu"),
-            "type" : "upturn",
-            "confidence" : comb_score,
-        }
-        
+        feature = {"T": T[idx], "nu": linecut.get("nu"), "type": "upturn", "confidence": comb_score}
+
         candidate_upturns.append(feature)
 
     return candidate_upturns
 
-def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff = 2) -> list[dict]:
+
+def extract_downturns(T, linecut, min_pts=5, min_width=0.5, sigma=5, coeff=2) -> list[dict]:
 
     candidate_downturns = []
     rho_smoothed = linecut.get("rho_smoothed")
     noise = linecut.get("local_noise")
 
-    peaks, prop = find_peaks(rho_smoothed, prominence = (None, None), height = (None, None))
+    peaks, prop = find_peaks(rho_smoothed, prominence=(None, None), height=(None, None))
 
     for i, idx in enumerate(peaks):
-        
+
         # Finding horizontal persistence
         left_base_idx = prop["left_bases"][i]
         right_base_idx = prop["right_bases"][i]
@@ -103,7 +99,7 @@ def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff
 
         if rho_smoothed[right_base_idx] - rho_smoothed[left_base_idx] > 0:
             # use right as point and find left point that corresponds to right
-            j = idx - 1 # watch out edge 
+            j = idx - 1  # watch out edge
             while j >= left_base_idx:
                 low = min(rho_smoothed[j + 1], rho_smoothed[j])
                 high = max(rho_smoothed[j + 1], rho_smoothed[j])
@@ -118,7 +114,7 @@ def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff
 
         else:
             # use left as point and find right point that corresponds to right
-            j = idx + 1 # watch out edge 
+            j = idx + 1  # watch out edge
             while j <= right_base_idx:
                 low = min(rho_smoothed[j - 1], rho_smoothed[j])
                 high = max(rho_smoothed[j - 1], rho_smoothed[j])
@@ -131,13 +127,12 @@ def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff
             left_idx = left_base_idx
             right_idx = j
 
-
         local_noise = np.mean(noise[left_idx : right_idx + 1])
         prominence = prop.get("prominences")[i]
-        prom_z = (prominence / local_noise)
+        prom_z = prominence / local_noise
 
         width = T[right_idx] - T[left_idx]
-        pts = len(T[left_idx:right_idx+1])
+        pts = len(T[left_idx : right_idx + 1])
 
         target = 0.8
 
@@ -149,30 +144,29 @@ def extract_downturns(T, linecut, min_pts = 5, min_width = 0.5, sigma = 5, coeff
         pts_score = pts**coeff / (pts**coeff + C_pts)
         width_score = width**coeff / (width**coeff + C_width)
 
-        comb_score = prom_score ** 0.5 * pts_score ** 0.3 * width_score ** 0.2 
+        comb_score = prom_score**0.5 * pts_score**0.3 * width_score**0.2
         comb_score = float(f"{comb_score:.3g}")
 
         feature = {
-            "T" : T[idx],
-            "nu" : linecut.get("nu"),
-            "type" : "downturn",
-            "confidence" : comb_score,
+            "T": T[idx],
+            "nu": linecut.get("nu"),
+            "type": "downturn",
+            "confidence": comb_score,
         }
-        
+
         candidate_downturns.append(feature)
 
     return candidate_downturns
 
-def extract_Tc(T, linecut, threshold = 20, max_candidates = 3) -> list[dict]:
 
-
+def extract_Tc(T, linecut, threshold=20, max_candidates=3) -> list[dict]:
 
     # find each point that are below the resistivity threshold
     # for each point calculate the following
-        # 1. the temp fraction that is below the resistivity threshold
-        # 2. the number of points under the temperature
-        # 3. the temperature range of the threshold
-        # 4. use geometric mean for scoring
+    # 1. the temp fraction that is below the resistivity threshold
+    # 2. the number of points under the temperature
+    # 3. the temperature range of the threshold
+    # 4. use geometric mean for scoring
 
     candidate_Tcs = []
 
@@ -181,27 +175,24 @@ def extract_Tc(T, linecut, threshold = 20, max_candidates = 3) -> list[dict]:
 
     for idx in np.flatnonzero(below):
 
-        T_lower = T[:idx + 1]
-        below_lower = rho[:idx + 1] < threshold
+        T_lower = T[: idx + 1]
+        below_lower = rho[: idx + 1] < threshold
 
-        num_points = np.count_nonzero(below_lower) # not necessairely all prior points are below 
-        temp_range = np.trapezoid(below_lower.astype(float), T_lower)# not nessairely all prior points are below either 
+        num_points = np.count_nonzero(below_lower)  # not necessairely all prior points are below
+        temp_range = np.trapezoid(
+            below_lower.astype(float), T_lower
+        )  # not nessairely all prior points are below either
 
         total_range = T_lower[-1] - T_lower[0]
-        temp_frac =  temp_range / total_range if total_range > 0 else 0.0
+        temp_frac = temp_range / total_range if total_range > 0 else 0.0
 
         score_pts = _hill_sigmoid(num_points, 5)
         score_temp = _hill_sigmoid(temp_range, 0.5)
         score_frac = _hill_sigmoid(temp_frac, 0.9)
 
-        comb_score = score_frac**(1/3) * score_pts**(1/3) * score_temp**(1/3)
+        comb_score = score_frac ** (1 / 3) * score_pts ** (1 / 3) * score_temp ** (1 / 3)
 
-        feature = {
-            "T" : T[idx],
-            "nu" : linecut.get("nu"),
-            "type" : "Tc",
-            "confidence" : comb_score,
-        } 
+        feature = {"T": T[idx], "nu": linecut.get("nu"), "type": "Tc", "confidence": comb_score}
 
         candidate_Tcs.append(feature)
 
@@ -209,20 +200,22 @@ def extract_Tc(T, linecut, threshold = 20, max_candidates = 3) -> list[dict]:
 
     return candidate_Tcs[:max_candidates]
 
-def get_fit_range(T, linecut, pos_frac = 0.8) -> list[dict]:
 
-    T_lower = T[0]; T_upper = T[-1]
+def get_fit_range(T, linecut, pos_frac=0.8) -> list[dict]:
+
+    T_lower = T[0]
+    T_upper = T[-1]
     features = linecut.get("features_new")
     rho_smoothed = linecut.get("rho_smoothed")
 
-    # Updating the lower bound to be the highest upturn 
+    # Updating the lower bound to be the highest upturn
     for feat in features:
         if feat.get("type") == "upturn":
             T_feature = feat.get("T")
             if T_feature > T_lower:
                 T_lower = T_feature
 
-    # Updating the upper bound to be the lowest downturn if downturn exists in current bound 
+    # Updating the upper bound to be the lowest downturn if downturn exists in current bound
     for feat in features:
         if feat.get("type") == "downturn":
             T_feature = feat.get("T")
@@ -235,7 +228,7 @@ def get_fit_range(T, linecut, pos_frac = 0.8) -> list[dict]:
             T_feature = feat.get("T")
             if T_lower < T_feature and T_feature < T_upper:
                 if T_feature > T_lower:
-                    T_lower = T_feature 
+                    T_lower = T_feature
 
     T_lower_idx = np.argmin(np.abs(T - T_lower))
     T_upper_idx = np.argmin(np.abs(T - T_upper))
@@ -245,18 +238,12 @@ def get_fit_range(T, linecut, pos_frac = 0.8) -> list[dict]:
     # Checking that > 80% of the range is positive
     if np.count_nonzero(dpdT[T_lower_idx : T_upper_idx + 1] > 0) / total_pts > pos_frac:
         behaviors = linecut.get("behaviors")
-        behavior = {
-            "type" : "extraction_range",
-            "T_lower" : T_lower, 
-            "T_upper" : T_upper
-        }
+        behavior = {"type": "extraction_range", "T_lower": T_lower, "T_upper": T_upper}
         behaviors.append(behavior)
 
     return linecut
 
 
+def extrac_beheavior_fits(T, linecut, max_candidates=3):
 
-
-def extrac_beheavior_fits(T, linecut, max_candidates = 3):
-
-    return None 
+    return None

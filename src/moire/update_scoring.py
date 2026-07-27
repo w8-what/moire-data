@@ -31,12 +31,7 @@ def _sigmoid(value):
 
 
 def _strongest_match(
-    target_index,
-    feature_type,
-    neighbors,
-    score_name,
-    tau,
-    feature_key="features",
+    target_index, feature_type, neighbors, score_name, tau, feature_key="features"
 ):
     """Find the strongest same-type feature in a group of linecuts."""
     strongest = 0.0
@@ -61,41 +56,29 @@ def _strongest_match(
 def _calculate_support(
     linecuts,
     score_name,
-    n_hood = 12,
-    tau = 20,
-    sigmoid_support = True,
-    sigmoid_center = 0,
-    sigmoid_width = 0.1,
-    feature_key = "features",
+    n_hood=12,
+    tau=20,
+    sigmoid_support=True,
+    sigmoid_center=0,
+    sigmoid_width=0.1,
+    feature_key="features",
 ):
     """Calculate one synchronous support round for every feature."""
     support_values = []
 
     for linecut_index, linecut in enumerate(linecuts):
         left_neighbors = linecuts[max(0, linecut_index - n_hood) : linecut_index]
-        right_neighbors = linecuts[
-            linecut_index + 1 : linecut_index + n_hood + 1
-        ]
+        right_neighbors = linecuts[linecut_index + 1 : linecut_index + n_hood + 1]
 
         for feature in linecut.get(feature_key, []):
             target_index = _temperature_index(linecut["T"], feature["T"])
             feature_type = feature.get("type")
 
             left = _strongest_match(
-                target_index,
-                feature_type,
-                left_neighbors,
-                score_name,
-                tau,
-                feature_key,
+                target_index, feature_type, left_neighbors, score_name, tau, feature_key
             )
             right = _strongest_match(
-                target_index,
-                feature_type,
-                right_neighbors,
-                score_name,
-                tau,
-                feature_key,
+                target_index, feature_type, right_neighbors, score_name, tau, feature_key
             )
 
             # At a dataset edge, mirror the available side instead of treating
@@ -108,9 +91,7 @@ def _calculate_support(
             raw_support = math.sqrt(left * right)
             support = raw_support
             if sigmoid_support:
-                multiplier = _sigmoid(
-                    (raw_support - sigmoid_center) / sigmoid_width
-                )
+                multiplier = _sigmoid((raw_support - sigmoid_center) / sigmoid_width)
                 support *= multiplier
 
             support_values.append((feature, support))
@@ -132,9 +113,7 @@ def _update_score_range(
 ):
     """Run a consecutively numbered range of synchronous score updates."""
     for iteration in range(first_iteration, last_iteration + 1):
-        previous_score = (
-            "confidence" if iteration == 1 else f"score_{iteration - 1}"
-        )
+        previous_score = "confidence" if iteration == 1 else f"score_{iteration - 1}"
         support_name = f"support_{iteration}"
         score_name = f"score_{iteration}"
 
@@ -154,19 +133,18 @@ def _update_score_range(
             original_confidence = float(feature["confidence"])
             feature[support_name] = support
             feature[score_name] = (
-                (1.0 - support_weight) * original_confidence
-                + support_weight * support
-            )
+                1.0 - support_weight
+            ) * original_confidence + support_weight * support
 
 
 def update_scores_iter(
     linecuts,
     num_iter,
-    n_hood = 12,
-    tau = 20,
-    support_weight = 0.8,
-    sigmoid_support = True,
-    sigmoid_center = 0,
+    n_hood=12,
+    tau=20,
+    support_weight=0.8,
+    sigmoid_support=True,
+    sigmoid_center=0,
     sigmoid_width=0.1,
 ):
     """Store ``support_i`` and ``score_i`` for each requested iteration.
@@ -253,9 +231,7 @@ def update_score(linecuts, num_iter=5, num_passes=3, filter=0.10):
         score_name = f"score_{last_iteration}"
         for linecut in linecuts:
             linecut["features_new"] = [
-                feature
-                for feature in linecut["features_new"]
-                if feature[score_name] >= filter
+                feature for feature in linecut["features_new"] if feature[score_name] >= filter
             ]
 
     return linecuts

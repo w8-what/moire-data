@@ -1,14 +1,15 @@
 import pandas as pd
-import numpy as np 
-import math 
+import numpy as np
+import math
+
 
 def load_field(E, IN):
 
-    df = pd.read_csv(IN / f'Rxx_matrix_E-{E}mV_nm.csv')
+    df = pd.read_csv(IN / f"Rxx_matrix_E-{E}mV_nm.csv")
 
-    T  = df.iloc[:, 0].astype(float).to_numpy()
+    T = df.iloc[:, 0].astype(float).to_numpy()
     nu = np.array([float(c) for c in df.columns[1:]])
-    R  = df.iloc[:, 1:].astype(float).to_numpy()
+    R = df.iloc[:, 1:].astype(float).to_numpy()
 
     return T, nu, R
 

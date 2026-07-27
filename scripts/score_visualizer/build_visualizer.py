@@ -13,7 +13,6 @@ from pathlib import Path
 
 import numpy as np
 
-
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -21,7 +20,6 @@ from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
 from moire.extract_features import extract_downturns, extract_upturns
 from moire.io import clean_sort_data, load_field
 from moire.signal_helpers import local_noise
-
 
 DEFAULT_FIELDS = [74, 87, 96, 96.2, 99, 103, 151, 176]
 
@@ -83,9 +81,7 @@ def extract_field(field):
         "linecutCount": len(linecuts),
         "temperatures": [_round(value) for value in temperatures],
         "fillings": [_round(value) for value in sampled_fillings],
-        "resistivity": [
-            [_round(value, 4) for value in row] for row in sampled_resistivity
-        ],
+        "resistivity": [[_round(value, 4) for value in row] for row in sampled_resistivity],
         "logMin": math.log10(float(low)),
         "logMax": math.log10(float(high)),
         "features": features,
@@ -106,9 +102,7 @@ def main():
     parser.add_argument("--sigmoid-center", type=float, default=0.0)
     parser.add_argument("--sigmoid-width", type=float, default=0.1)
     parser.add_argument(
-        "--output",
-        type=Path,
-        default=Path(__file__).resolve().parent / "score_visualizer.html",
+        "--output", type=Path, default=Path(__file__).resolve().parent / "score_visualizer.html"
     )
     args = parser.parse_args()
 
