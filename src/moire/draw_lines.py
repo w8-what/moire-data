@@ -83,6 +83,7 @@ def overlay_features(ax, linecut):
         rho_at_T = rho_smoothed[np.argmin(np.abs(T - T_feature))]
 
         conf = feature.get("confidence")
+        conf_label = f"conf={float(conf):.3g}"
 
         ax.scatter(T_feature, rho_at_T, alpha=conf, **style)
         ax.axvline(T_feature, linewidth=1, linestyle="--", color="grey", zorder=3)
@@ -91,7 +92,7 @@ def overlay_features(ax, linecut):
         top_half = rho_at_T > (max_rho / 2)
         y_text = 0.8 * max_rho if top_half else 0.2 * max_rho
         ax.annotate(
-            f"{conf=}",
+            conf_label,
             xy=(T_feature, rho_at_T),
             xytext=(T_feature, y_text),
             bbox=dict(boxstyle="round", fc="0.8", alpha=0.8),
@@ -174,13 +175,14 @@ def plot_linecut(T: list, linecut, OUT):
         axes[1],
         T,
         rho_smoothed,
-        title="Smoothed Data + Candidate Transitions",
+        title="Smoothed Data, Features, Behaviors",
         **linecut_axis_kwargs,
     )
     plot_general_line(axes[2], T, dpdT, title="First Derivative", shaded=True, fill_alpha=0.5)
     plot_general_line(axes[3], T, d2pdT2, title="Second Derivative", shaded=True, fill_alpha=0.5)
 
     overlay_features(axes[1], linecut)
+    overlay_behaviors(axes[1], linecut)
     fig.tight_layout()
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -190,48 +192,3 @@ def plot_linecut(T: list, linecut, OUT):
 
     return fig, axes
 
-
-def plot_linecut_noise(T: list, linecut, save=False, OUT=None):
-    """Plot a linecut with local-noise bands and candidate transitions."""
-
-    param_string = "  ".join(
-        f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu"
-    )
-
-    rho = linecut.get("rho")
-    rho_smoothed = linecut.get("rho_smoothed")
-    local_noise = linecut.get("local_noise")
-
-    fig, axes = generate_layout(3, title=param_string)
-    linecut_axis_kwargs = {
-        "xlabel": "Temperature (K)",
-        "ylabel": "Resistivity (Ω*cm)",
-        "xlim": (0, None),
-        "ylim": (0, None),
-    }
-
-    plot_general_line(
-        axes[0], T, rho, title="Raw Data", error=local_noise, fill_alpha=0.5, **linecut_axis_kwargs
-    )
-    plot_general_line(
-        axes[1], T, rho_smoothed, title="Smoothed Data with Noise", **linecut_axis_kwargs
-    )
-    plot_general_line(
-        axes[2],
-        T,
-        rho_smoothed,
-        title="Candidates with Noise",
-        error=local_noise,
-        fill_alpha=0.5,
-        **linecut_axis_kwargs,
-    )
-
-    overlay_features(axes[2], linecut)
-    fig.tight_layout()
-
-    OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / Path(param_string + ".png")
-    fig.savefig(path, dpi=250, bbox_inches="tight")
-    plt.close(fig)
-
-    return fig, axes
