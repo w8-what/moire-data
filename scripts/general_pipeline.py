@@ -71,7 +71,7 @@ for field in SELECT_FIELDS:
 
     # ----- Plotting and creating figures -----
 
-    numLinecuts = 60
+    numLinecuts = 30
     selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype="int")
     for i, linecut in enumerate(linecuts):
         if i in selectedLinecuts:
@@ -98,11 +98,13 @@ for field in SELECT_FIELDS:
             plot_general_line(axes[0], T, rho, title="Raw Data", **linecut_axis_kwargs)
             plot_general_line(axes[1], T, rho_smoothed, title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
             # plot_general_line(axes[2], T, dpdT, title="First Derivative", shaded=True, fill_alpha=0.5)
+
+
             plot_general_line(axes[3], T, n, error = n_sigma, title="Fitted n", shaded=True, fill_alpha=0.5, 
                               xlim = (0, np.max(T)), ylim = (0, 4))
+            for y in [0, 0.8, 1.2]:
+                axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
 
-            horizontal_line = np.linspace(0, 0, len(T)) + 1
-            plot_general_line(axes[3], T, horizontal_line)
 
             overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
             overlay_behaviors(axes[1], linecut)
