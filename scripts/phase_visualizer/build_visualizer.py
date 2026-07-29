@@ -27,7 +27,7 @@ from moire.extract_features import (
     get_fit_range,
 )
 from moire.io import clean_sort_data, load_field
-from moire.signal_helpers import local_noise, moving_average
+from moire.signal_helpers import local_noise
 from moire.update_scoring import update_score
 
 DEFAULT_FIELDS = [74, 87, 96, 96.2, 99, 103, 151, 176]
@@ -39,25 +39,9 @@ def _round(value, digits=6):
     return round(value, digits) if math.isfinite(value) else None
 
 
-def _phase_metrics(temperatures, smoothed):
-    """Calculate dρ/dT and x = d ln(dρ/dT) / dT.
-
-    get_fit_range already requires predominantly positive dρ/dT. Remaining
-    non-positive samples are short gaps in most accepted windows, so their log
-    derivative is filled by linear interpolation before the 1 K moving average.
-    """
-    dpdt = np.asarray(hampel(np.gradient(smoothed, temperatures)).filtered_data)
-    positive = np.isfinite(dpdt) & (dpdt > 0)
-    if np.count_nonzero(positive) < 2:
-        return dpdt, np.full_like(temperatures, np.nan, dtype=float)
-
-    log_dpdt = np.interp(
-        temperatures,
-        temperatures[positive],
-        np.log(dpdt[positive]),
-    )
-    exponent = np.gradient(log_dpdt, temperatures)
-    return dpdt, moving_average(exponent, temperatures, 1.0)
+def _first_derivative(temperatures, smoothed):
+    """Return the Hampel-filtered dρ/dT trace used in the linecut inspector."""
+    return np.asarray(hampel(np.gradient(smoothed, temperatures)).filtered_data)
 
 
 def _extract_field(field):
@@ -110,7 +94,7 @@ def _extract_field(field):
                 }
             )
 
-        dpdt, exponent = _phase_metrics(temperatures, linecut["rho_smoothed"])
+        dpdt = _first_derivative(temperatures, linecut["rho_smoothed"])
         extraction = next(
             (
                 behavior
@@ -125,7 +109,6 @@ def _extract_field(field):
                 "rho": [_round(value, 4) for value in linecut["rho"]],
                 "smoothed": [_round(value, 4) for value in linecut["rho_smoothed"]],
                 "dpdt": [_round(value, 4) for value in dpdt],
-                "x": [_round(value) for value in exponent],
             }
         )
 
@@ -135,7 +118,6 @@ def _extract_field(field):
                     "nu": _round(linecut["nu"]),
                     "lower": None,
                     "upper": None,
-                    "x": [None] * len(temperatures),
                 }
             )
             continue
@@ -143,17 +125,11 @@ def _extract_field(field):
         accepted_count += 1
         lower = float(extraction["T_lower"])
         upper = float(extraction["T_upper"])
-        inside = (temperatures >= lower) & (temperatures <= upper)
-        values = [
-            _round(value) if keep else None
-            for value, keep in zip(exponent, inside, strict=True)
-        ]
         phase_columns.append(
             {
                 "nu": _round(linecut["nu"]),
                 "lower": _round(lower),
                 "upper": _round(upper),
-                "x": values,
             }
         )
 
@@ -184,6 +160,8 @@ def main():
     parser.add_argument("--fields", nargs="+", type=float, default=DEFAULT_FIELDS)
     parser.add_argument("--upper", type=float, default=0.2)
     parser.add_argument("--lower", type=float, default=-0.2)
+    parser.add_argument("--min-points", type=int, default=9)
+    parser.add_argument("--min-temperature-span", type=float, default=1.0)
     parser.add_argument(
         "--output",
         type=Path,
@@ -197,17 +175,25 @@ def main():
         parser.error("--lower must be between -1 and 0")
     if args.lower > args.upper:
         parser.error("--lower must not exceed --upper")
+    if not 4 <= args.min_points <= 25:
+        parser.error("--min-points must be between 4 and 25")
+    if not 0.1 <= args.min_temperature_span <= 4:
+        parser.error("--min-temperature-span must be between 0.1 and 4 K")
 
     fields = [_extract_field(field) for field in args.fields]
     payload = {
         "upper": args.upper,
         "lower": args.lower,
+        "minPoints": args.min_points,
+        "minTemperatureSpan": args.min_temperature_span,
         "screen": {
             "passes": 3,
             "iterationsPerPass": 5,
             "filter": 0.1,
             "positiveSlopeFraction": 0.8,
-            "phaseSmoothingWindowK": 1.0,
+            "powerLawExponentMin": 0.1,
+            "powerLawExponentMax": 4.0,
+            "powerLawExponentStep": 0.02,
         },
         "fields": fields,
     }

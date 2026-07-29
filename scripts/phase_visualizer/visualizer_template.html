@@ -18,6 +18,8 @@
       --superlinear: #64b9df;
       --linear: #f0e8d8;
       --sublinear: #747b87;
+      --unlabeled: #c6c8cc;
+      --fit: #d45b35;
       --shadow: 0 12px 34px rgba(27, 31, 36, .07);
     }
     @media (prefers-color-scheme: dark) {
@@ -92,7 +94,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: minmax(220px, .8fr) 1fr 1fr minmax(240px, 1.25fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 18px;
       align-items: center;
       margin-bottom: 18px;
@@ -237,6 +239,13 @@
     .swatch.superlinear { background: var(--superlinear); }
     .swatch.linear { background: var(--linear); }
     .swatch.sublinear { background: var(--sublinear); }
+    .swatch.unlabeled {
+      background: repeating-linear-gradient(
+        135deg,
+        var(--unlabeled) 0 4px,
+        transparent 4px 7px
+      );
+    }
     .triangle-up {
       width: 0;
       height: 0;
@@ -373,28 +382,38 @@
         <div class="reset-row">
           <div>
             <label>Phase rule</label>
-            <div class="formula">x = d ln(dρ/dT) / dT</div>
+            <div class="formula">local fit: ρ(T) = ρ₀ + aTⁿ</div>
           </div>
           <button id="reset" type="button">Reset</button>
         </div>
-        <p class="screen-note">Only get_fit_range windows are classified; no purple fill is drawn.</p>
+        <p class="screen-note">Fit input: raw ρ → adaptive multiscale smoothing. n = 1 is linear; only get_fit_range windows are considered.</p>
       </div>
       <div class="control">
         <label for="upper">A · upper threshold <output id="upper-value"></output></label>
         <input id="upper" type="range" min="0" max="1" step="0.01">
-        <div class="control-help">x &gt; A is superlinear · 0 ≤ A ≤ 1</div>
+        <div class="control-help">n − σₙ &gt; 1 + A is superlinear · 0 ≤ A ≤ 1</div>
       </div>
       <div class="control">
         <label for="lower">B · lower threshold <output id="lower-value"></output></label>
         <input id="lower" type="range" min="-1" max="0" step="0.01">
-        <div class="control-help">x &lt; B is sublinear · −1 ≤ B ≤ 0</div>
+        <div class="control-help">n + σₙ &lt; 1 + B is sublinear · −1 ≤ B ≤ 0</div>
+      </div>
+      <div class="control">
+        <label for="min-points">Minimum fit points <output id="min-points-value"></output></label>
+        <input id="min-points" type="range" min="4" max="25" step="1">
+        <div class="control-help">Smallest allowed local sample count</div>
+      </div>
+      <div class="control">
+        <label for="min-span">Minimum T range <output id="min-span-value"></output></label>
+        <input id="min-span" type="range" min="0.1" max="4" step="0.1">
+        <div class="control-help">Smallest allowed local temperature span</div>
       </div>
       <div>
         <label>Classification interval</label>
         <div id="threshold-track" class="threshold-track" aria-hidden="true"></div>
         <div class="threshold-labels">
           <span>sublinear</span>
-          <span>linear</span>
+          <span>linear-compatible</span>
           <span>superlinear</span>
         </div>
       </div>
@@ -429,15 +448,16 @@
         </div>
         <div class="legend" aria-label="Phase legend">
           <span class="legend-item"><i class="swatch superlinear"></i>superlinear</span>
-          <span class="legend-item"><i class="swatch linear"></i>linear</span>
+          <span class="legend-item"><i class="swatch linear"></i>linear-compatible</span>
           <span class="legend-item"><i class="swatch sublinear"></i>sublinear</span>
-          <span class="legend-item">unfilled = not accepted</span>
+          <span class="legend-item"><i class="swatch unlabeled"></i>unlabeled</span>
+          <span class="legend-item">unfilled = not in get_fit_range</span>
         </div>
       </article>
     </section>
 
     <div id="stats" class="stats" aria-live="polite"></div>
-    <p id="detail" class="detail" aria-live="polite">Move over either heatmap to inspect filling, temperature, x, and the resulting phase.</p>
+    <p id="detail" class="detail" aria-live="polite">Move over either heatmap to inspect filling, temperature, local n, fit window, and the resulting phase.</p>
 
     <section class="panel linecut-panel" aria-label="Hovered linecut plots">
       <div class="panel-head">
@@ -459,11 +479,11 @@
         </article>
         <article class="mini-plot">
           <div class="mini-plot-head">
-            <h3>Smoothed ρ + screen</h3>
-            <span class="mini-key">features + behavior range</span>
+            <h3>Adaptive-smoothed ρ + local fit</h3>
+            <span class="mini-key">raw → multiscale smoothing → fit</span>
           </div>
           <div class="mini-canvas-wrap">
-            <canvas id="linecut-smoothed" aria-label="Smoothed resistivity with features and behavior range"></canvas>
+            <canvas id="linecut-smoothed" aria-label="Adaptive multiscale smoothed resistivity with features and local power-law fit"></canvas>
           </div>
         </article>
         <article class="mini-plot">
@@ -477,18 +497,18 @@
         </article>
         <article class="mini-plot">
           <div class="mini-plot-head">
-            <h3>d ln(dρ/dT) / dT</h3>
-            <span class="mini-key">live A / B thresholds</span>
+            <h3>Local power-law exponent n</h3>
+            <span class="mini-key">n ± one standard error</span>
           </div>
           <div class="mini-canvas-wrap">
-            <canvas id="linecut-x" aria-label="Log derivative with superlinear and sublinear thresholds"></canvas>
+            <canvas id="linecut-x" aria-label="Local power-law exponent with superlinear and sublinear thresholds"></canvas>
           </div>
         </article>
       </div>
-      <p class="linecut-hint">The neutral shaded window is the accepted get_fit_range behavior. Feature markers match the heatmap; the x plot colors only the classified part of that window.</p>
+      <p class="linecut-hint">The broad neutral window is get_fit_range; the highlighted sub-window and orange curve show the adaptive-smoothed local fit. The n plot’s band is ± one standard error.</p>
     </section>
 
-    <footer>Rough screen: score filter 0.10 after each of 3 passes × 5 iterations; get_fit_range requires &gt;80% positive dρ/dT. Phase x is smoothed over 1 K.</footer>
+    <footer>Rough screen: score filter 0.10 after each of 3 passes × 5 iterations; get_fit_range requires &gt;80% positive dρ/dT. Local n is fit from adaptive multiscale smoothed ρ.</footer>
   </main>
 
   <script>
@@ -498,13 +518,18 @@
       fieldIndex: 0,
       upper: MODEL.upper,
       lower: MODEL.lower,
-      linecutIndex: null
+      minPoints: MODEL.minPoints,
+      minTemperatureSpan: MODEL.minTemperatureSpan,
+      linecutIndex: null,
+      rowIndex: null
     };
 
     const elements = {
       field: document.getElementById('field'),
       upper: document.getElementById('upper'),
       lower: document.getElementById('lower'),
+      minPoints: document.getElementById('min-points'),
+      minSpan: document.getElementById('min-span'),
       reset: document.getElementById('reset'),
       raw: document.getElementById('raw-map'),
       phase: document.getElementById('phase-map'),
@@ -546,7 +571,10 @@
       });
       elements.upper.value = state.upper;
       elements.lower.value = state.lower;
+      elements.minPoints.value = state.minPoints;
+      elements.minSpan.value = state.minTemperatureSpan;
       state.linecutIndex = Math.floor(MODEL.fields[0].fillings.length / 2);
+      state.rowIndex = Math.floor(MODEL.fields[0].temperatures.length / 2);
       updateControls();
       render();
     }
@@ -554,12 +582,15 @@
     function updateControls() {
       document.getElementById('upper-value').value = `+${state.upper.toFixed(2)}`;
       document.getElementById('lower-value').value = state.lower.toFixed(2);
+      document.getElementById('min-points-value').value = state.minPoints;
+      document.getElementById('min-span-value').value =
+        `${state.minTemperatureSpan.toFixed(1)} K`;
       const bPosition = ((state.lower + 1) / 2) * 100;
       const aPosition = ((state.upper + 1) / 2) * 100;
       elements.thresholdTrack.style.setProperty('--b-position', `${bPosition}%`);
       elements.thresholdTrack.style.setProperty('--a-position', `${aPosition}%`);
       elements.rule.textContent =
-        `sublinear: x < ${state.lower.toFixed(2)} · linear: ${state.lower.toFixed(2)} ≤ x ≤ ${state.upper.toFixed(2)} · superlinear: x > ${state.upper.toFixed(2)}`;
+        `sublinear: n + σₙ < ${(1 + state.lower).toFixed(2)} · linear-compatible: uncertainty overlaps the threshold band · superlinear: n − σₙ > ${(1 + state.upper).toFixed(2)}`;
     }
 
     let renderFrame;
@@ -573,6 +604,9 @@
       state.linecutIndex = Math.floor(
         MODEL.fields[state.fieldIndex].fillings.length / 2
       );
+      state.rowIndex = Math.floor(
+        MODEL.fields[state.fieldIndex].temperatures.length / 2
+      );
       render();
     });
     elements.upper.addEventListener('input', () => {
@@ -585,11 +619,35 @@
       updateControls();
       scheduleRender();
     });
+    let fitTimer;
+    function scheduleFitUpdate() {
+      clearTimeout(fitTimer);
+      elements.rule.textContent = 'Recomputing local power-law fits…';
+      fitTimer = setTimeout(() => {
+        updateControls();
+        render();
+      }, 180);
+    }
+    elements.minPoints.addEventListener('input', () => {
+      state.minPoints = Number(elements.minPoints.value);
+      document.getElementById('min-points-value').value = state.minPoints;
+      scheduleFitUpdate();
+    });
+    elements.minSpan.addEventListener('input', () => {
+      state.minTemperatureSpan = Number(elements.minSpan.value);
+      document.getElementById('min-span-value').value =
+        `${state.minTemperatureSpan.toFixed(1)} K`;
+      scheduleFitUpdate();
+    });
     elements.reset.addEventListener('click', () => {
       state.upper = MODEL.upper;
       state.lower = MODEL.lower;
+      state.minPoints = MODEL.minPoints;
+      state.minTemperatureSpan = MODEL.minTemperatureSpan;
       elements.upper.value = state.upper;
       elements.lower.value = state.lower;
+      elements.minPoints.value = state.minPoints;
+      elements.minSpan.value = state.minTemperatureSpan;
       updateControls();
       render();
     });
@@ -797,9 +855,12 @@
       canvas._geometry = geometry;
     }
 
-    function classify(value) {
-      if (value > state.upper) return 'superlinear';
-      if (value < state.lower) return 'sublinear';
+    function classify(value, uncertainty) {
+      if (!Number.isFinite(value) || !Number.isFinite(uncertainty)) {
+        return 'unlabeled';
+      }
+      if (value - uncertainty > 1 + state.upper) return 'superlinear';
+      if (value + uncertainty < 1 + state.lower) return 'sublinear';
       return 'linear';
     }
 
@@ -807,22 +868,304 @@
       return cssColor(`--${phase}`);
     }
 
+    function extractionIndexes(field, behavior) {
+      if (!behavior || behavior.lower === null) return null;
+      return {
+        lower: nearestIndex(field.temperatures, behavior.lower),
+        upper: nearestIndex(field.temperatures, behavior.upper)
+      };
+    }
+
+    function makeLocalWindows(field, behavior) {
+      const count = field.temperatures.length;
+      const starts = new Int16Array(count).fill(-1);
+      const ends = new Int16Array(count).fill(-1);
+      const bounds = extractionIndexes(field, behavior);
+      if (!bounds) return { starts, ends, eligible: false, bounds: null };
+      const temperatures = field.temperatures;
+      const availablePoints = bounds.upper - bounds.lower + 1;
+      const availableSpan =
+        temperatures[bounds.upper] - temperatures[bounds.lower];
+      if (
+        availablePoints < state.minPoints ||
+        availableSpan + 1e-9 < state.minTemperatureSpan
+      ) {
+        return { starts, ends, eligible: false, bounds };
+      }
+
+      for (let center = bounds.lower; center <= bounds.upper; center++) {
+        let left = center;
+        let right = center;
+        while (
+          right - left + 1 < state.minPoints ||
+          temperatures[right] - temperatures[left] + 1e-9
+            < state.minTemperatureSpan
+        ) {
+          const leftDistance = left > bounds.lower
+            ? temperatures[center] - temperatures[left - 1]
+            : Infinity;
+          const rightDistance = right < bounds.upper
+            ? temperatures[right + 1] - temperatures[center]
+            : Infinity;
+          if (!Number.isFinite(leftDistance) && !Number.isFinite(rightDistance)) {
+            break;
+          }
+          if (leftDistance <= rightDistance) left -= 1;
+          else right += 1;
+        }
+        if (
+          right - left + 1 >= state.minPoints &&
+          temperatures[right] - temperatures[left] + 1e-9
+            >= state.minTemperatureSpan
+        ) {
+          starts[center] = left;
+          ends[center] = right;
+        }
+      }
+      return { starts, ends, eligible: true, bounds };
+    }
+
+    function prefix(values, square = false) {
+      const result = new Float64Array(values.length + 1);
+      for (let index = 0; index < values.length; index++) {
+        const value = values[index];
+        result[index + 1] = result[index] + (square ? value * value : value);
+      }
+      return result;
+    }
+
+    function rangeSum(values, start, end) {
+      return values[end + 1] - values[start];
+    }
+
+    function ensurePowerFits(field) {
+      const key = [
+        state.minPoints,
+        state.minTemperatureSpan.toFixed(2)
+      ].join(':');
+      if (field._fitKey === key && field._fitData) return field._fitData;
+
+      const temperatures = field.temperatures;
+      const rowCount = temperatures.length;
+      const windows = field.phaseColumns.map(
+        behavior => makeLocalWindows(field, behavior)
+      );
+      const exponents = field.linecuts.map(
+        () => new Float32Array(rowCount).fill(NaN)
+      );
+      const bestErrors = field.linecuts.map(
+        () => new Float64Array(rowCount).fill(Infinity)
+      );
+      const uncertainties = field.linecuts.map(
+        () => new Float32Array(rowCount).fill(NaN)
+      );
+      const prepared = field.linecuts.map(linecut => ({
+        y: linecut.smoothed,
+        yPrefix: prefix(linecut.smoothed),
+        yyPrefix: prefix(linecut.smoothed, true)
+      }));
+      const eligibleCount = windows.filter(window => window.eligible).length;
+      const exponentMin = MODEL.screen.powerLawExponentMin;
+      const exponentMax = MODEL.screen.powerLawExponentMax;
+      const exponentStep = MODEL.screen.powerLawExponentStep;
+      const candidateCount =
+        Math.round((exponentMax - exponentMin) / exponentStep) + 1;
+      const xyPrefix = new Float64Array(rowCount + 1);
+
+      for (let candidate = 0; candidate < candidateCount; candidate++) {
+        const exponent = exponentMin + candidate * exponentStep;
+        const powers = temperatures.map(value => value ** exponent);
+        const xPrefix = prefix(powers);
+        const xxPrefix = prefix(powers, true);
+
+        for (let linecutIndex = 0; linecutIndex < field.linecuts.length; linecutIndex++) {
+          const window = windows[linecutIndex];
+          if (!window.eligible) continue;
+          const data = prepared[linecutIndex];
+          xyPrefix[0] = 0;
+          for (let row = 0; row < rowCount; row++) {
+            xyPrefix[row + 1] = xyPrefix[row] + powers[row] * data.y[row];
+          }
+
+          for (
+            let row = window.bounds.lower;
+            row <= window.bounds.upper;
+            row++
+          ) {
+            const start = window.starts[row];
+            const end = window.ends[row];
+            if (start < 0 || end < start) continue;
+            const sampleCount = end - start + 1;
+            const sx = rangeSum(xPrefix, start, end);
+            const sxx = rangeSum(xxPrefix, start, end);
+            const sy = rangeSum(data.yPrefix, start, end);
+            const syy = rangeSum(data.yyPrefix, start, end);
+            const sxy = rangeSum(xyPrefix, start, end);
+            const varianceX = sxx - sx * sx / sampleCount;
+            const varianceY = syy - sy * sy / sampleCount;
+            const covariance = sxy - sx * sy / sampleCount;
+            if (!(varianceX > 1e-18) || !(covariance > 0)) continue;
+            const error = Math.max(
+              0,
+              varianceY - covariance * covariance / varianceX
+            );
+            if (error < bestErrors[linecutIndex][row]) {
+              bestErrors[linecutIndex][row] = error;
+              exponents[linecutIndex][row] = exponent;
+            }
+          }
+        }
+      }
+
+      // Approximate one-standard-error uncertainty from the local nonlinear
+      // least-squares covariance: σ² (JᵀJ)⁻¹, with parameters (ρ₀, a, n).
+      for (let linecutIndex = 0; linecutIndex < field.linecuts.length; linecutIndex++) {
+        const window = windows[linecutIndex];
+        if (!window.eligible) continue;
+        const values = prepared[linecutIndex].y;
+        for (
+          let row = window.bounds.lower;
+          row <= window.bounds.upper;
+          row++
+        ) {
+          const exponent = exponents[linecutIndex][row];
+          const start = window.starts[row];
+          const end = window.ends[row];
+          const sampleCount = end - start + 1;
+          if (
+            !Number.isFinite(exponent) ||
+            start < 0 ||
+            end < start ||
+            sampleCount <= 3
+          ) continue;
+
+          let sx = 0;
+          let sxx = 0;
+          let sy = 0;
+          let sxy = 0;
+          for (let index = start; index <= end; index++) {
+            const power = temperatures[index] ** exponent;
+            sx += power;
+            sxx += power * power;
+            sy += values[index];
+            sxy += power * values[index];
+          }
+          const varianceX = sxx - sx * sx / sampleCount;
+          const covariance = sxy - sx * sy / sampleCount;
+          if (!(varianceX > 1e-18) || !(covariance > 0)) continue;
+          const amplitude = covariance / varianceX;
+
+          let j01 = 0;
+          let j02 = 0;
+          let j11 = 0;
+          let j12 = 0;
+          let j22 = 0;
+          for (let index = start; index <= end; index++) {
+            const power = temperatures[index] ** exponent;
+            const derivativeN =
+              amplitude * power * Math.log(temperatures[index]);
+            j01 += power;
+            j02 += derivativeN;
+            j11 += power * power;
+            j12 += power * derivativeN;
+            j22 += derivativeN * derivativeN;
+          }
+          const j00 = sampleCount;
+          const determinant =
+            j00 * (j11 * j22 - j12 * j12)
+            - j01 * (j01 * j22 - j12 * j02)
+            + j02 * (j01 * j12 - j11 * j02);
+          const cofactor22 = j00 * j11 - j01 * j01;
+          const residualVariance =
+            bestErrors[linecutIndex][row] / (sampleCount - 3);
+          const varianceN = residualVariance * cofactor22 / determinant;
+          if (determinant > 0 && varianceN >= 0 && Number.isFinite(varianceN)) {
+            uncertainties[linecutIndex][row] = Math.sqrt(varianceN);
+          }
+        }
+      }
+
+      const fitData = { exponents, uncertainties, windows, eligibleCount };
+      field._fitKey = key;
+      field._fitData = fitData;
+      return fitData;
+    }
+
+    function localFitParameters(field, fitData, linecutIndex, rowIndex) {
+      const exponent = fitData.exponents[linecutIndex][rowIndex];
+      const window = fitData.windows[linecutIndex];
+      const start = window.starts[rowIndex];
+      const end = window.ends[rowIndex];
+      if (!Number.isFinite(exponent) || start < 0 || end < start) return null;
+      const temperatures = field.temperatures;
+      const values = field.linecuts[linecutIndex].smoothed;
+      let sx = 0;
+      let sxx = 0;
+      let sy = 0;
+      let syy = 0;
+      let sxy = 0;
+      for (let index = start; index <= end; index++) {
+        const power = temperatures[index] ** exponent;
+        const value = values[index];
+        sx += power;
+        sxx += power * power;
+        sy += value;
+        syy += value * value;
+        sxy += power * value;
+      }
+      const count = end - start + 1;
+      const varianceX = sxx - sx * sx / count;
+      const covariance = sxy - sx * sy / count;
+      if (!(varianceX > 1e-18) || !(covariance > 0)) return null;
+      const amplitude = covariance / varianceX;
+      const rho0 = (sy - amplitude * sx) / count;
+      const varianceY = syy - sy * sy / count;
+      const error = Math.max(
+        0,
+        varianceY - covariance * covariance / varianceX
+      );
+      const rSquared = varianceY > 0 ? 1 - error / varianceY : 1;
+      const fitted = new Array(temperatures.length).fill(null);
+      for (let index = start; index <= end; index++) {
+        fitted[index] = rho0 + amplitude * temperatures[index] ** exponent;
+      }
+      return {
+        exponent,
+        exponentUncertainty: fitData.uncertainties[linecutIndex][rowIndex],
+        amplitude,
+        rho0,
+        rSquared,
+        start,
+        end,
+        fitted
+      };
+    }
+
     function renderPhases(field) {
       const canvas = elements.phase;
       const context = resizeCanvas(canvas);
       const geometry = geometryFor(canvas, false);
       const { x, y } = scales(field, geometry);
-      const counts = { superlinear: 0, linear: 0, sublinear: 0 };
+      const fitData = ensurePowerFits(field);
+      const counts = {
+        superlinear: 0,
+        linear: 0,
+        sublinear: 0,
+        unlabeled: 0
+      };
       context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
       context.fillStyle = cssColor('--surface-2');
       context.fillRect(geometry.left, geometry.top, geometry.width, geometry.height);
 
       field.phaseColumns.forEach((column, columnIndex) => {
+        if (column.lower === null) return;
         const lowNu = edge(field.fillings, columnIndex, -1);
         const highNu = edge(field.fillings, columnIndex, 1);
-        column.x.forEach((value, row) => {
-          if (value === null || !Number.isFinite(value)) return;
-          const phase = classify(value);
+        const bounds = extractionIndexes(field, column);
+        for (let row = bounds.lower; row <= bounds.upper; row++) {
+          const value = fitData.exponents[columnIndex][row];
+          const uncertainty = fitData.uncertainties[columnIndex][row];
+          const phase = classify(value, uncertainty);
           counts[phase] += 1;
           const lowT = edge(field.temperatures, row, -1);
           const highT = edge(field.temperatures, row, 1);
@@ -833,7 +1176,7 @@
             Math.max(.8, x(highNu) - x(lowNu) + .25),
             Math.max(.8, y(lowT) - y(highT) + .25)
           );
-        });
+        }
       });
 
       // Neutral graphite boundaries show the accepted windows without using
@@ -857,17 +1200,31 @@
 
       drawAxes(context, field, geometry, x, y);
       canvas._geometry = geometry;
+      canvas._fitData = fitData;
       return counts;
     }
 
     function renderStats(field, counts) {
-      const total = counts.superlinear + counts.linear + counts.sublinear;
-      const pct = value => total ? `${(100 * value / total).toFixed(1)}%` : '0.0%';
+      const labeled = counts.superlinear + counts.linear + counts.sublinear;
+      const total = labeled + counts.unlabeled;
+      const pct = value => labeled
+        ? `${(100 * value / labeled).toFixed(1)}%`
+        : '0.0%';
+      const fitData = ensurePowerFits(field);
+      const finiteUncertainties = fitData.uncertainties
+        .flatMap(values => Array.from(values))
+        .filter(value => Number.isFinite(value));
+      const medianUncertainty = finiteUncertainties.length
+        ? quantile(finiteUncertainties, .5)
+        : null;
       elements.stats.innerHTML = [
         `<span class="stat"><strong>${field.acceptedCount}</strong> / ${field.phaseColumns.length} linecuts accepted</span>`,
-        `<span class="stat"><strong>${total.toLocaleString()}</strong> classified samples</span>`,
+        `<span class="stat"><strong>${fitData.eligibleCount}</strong> ranges satisfy fit constraints</span>`,
+        `<span class="stat"><strong>${labeled.toLocaleString()}</strong> fitted samples</span>`,
+        `<span class="stat"><strong>${counts.unlabeled.toLocaleString()}</strong> unlabeled samples</span>`,
+        `<span class="stat">median σₙ <strong>${medianUncertainty === null ? 'n/a' : medianUncertainty.toFixed(2)}</strong></span>`,
         `<span class="stat">superlinear <strong>${pct(counts.superlinear)}</strong></span>`,
-        `<span class="stat">linear <strong>${pct(counts.linear)}</strong></span>`,
+        `<span class="stat">linear-compatible <strong>${pct(counts.linear)}</strong></span>`,
         `<span class="stat">sublinear <strong>${pct(counts.sublinear)}</strong></span>`
       ].join('');
     }
@@ -941,6 +1298,11 @@
       const temperatures = field.temperatures;
       const allValues = series
         .flatMap(item => item.values)
+        .concat(
+          options.band
+            ? [...options.band.lower, ...options.band.upper]
+            : []
+        )
         .filter(value => value !== null && Number.isFinite(value));
       const thresholdValues = (options.thresholds || []).map(item => item.value);
       let yMin;
@@ -993,7 +1355,6 @@
         context.save();
         context.globalAlpha = .20;
         options.phaseValues.forEach((value, index) => {
-          if (value === null || !Number.isFinite(value)) return;
           const temperature = temperatures[index];
           if (
             temperature < options.behavior.lower ||
@@ -1001,7 +1362,10 @@
           ) return;
           const lowT = edge(temperatures, index, -1);
           const highT = edge(temperatures, index, 1);
-          context.fillStyle = phaseColor(classify(value));
+          const uncertainty = options.phaseUncertainties
+            ? options.phaseUncertainties[index]
+            : NaN;
+          context.fillStyle = phaseColor(classify(value, uncertainty));
           context.fillRect(
             x(lowT),
             geometry.top,
@@ -1021,6 +1385,56 @@
           geometry.height
         );
         context.restore();
+      }
+
+      if (options.fitWindow) {
+        context.save();
+        context.fillStyle = cssColor('--fit');
+        context.globalAlpha = .14;
+        context.fillRect(
+          x(temperatures[options.fitWindow.start]),
+          geometry.top,
+          x(temperatures[options.fitWindow.end])
+            - x(temperatures[options.fitWindow.start]),
+          geometry.height
+        );
+        context.restore();
+      }
+
+      if (options.band) {
+        const validIndexes = temperatures
+          .map((_, index) => index)
+          .filter(index =>
+            Number.isFinite(options.band.lower[index])
+            && Number.isFinite(options.band.upper[index])
+          );
+        if (validIndexes.length > 1) {
+          context.save();
+          context.fillStyle = options.band.color;
+          context.globalAlpha = options.band.alpha ?? .18;
+          context.beginPath();
+          validIndexes.forEach((index, position) => {
+            const value = Math.max(
+              yMin,
+              Math.min(yMax, options.band.upper[index])
+            );
+            if (position === 0) {
+              context.moveTo(x(temperatures[index]), y(value));
+            } else {
+              context.lineTo(x(temperatures[index]), y(value));
+            }
+          });
+          [...validIndexes].reverse().forEach(index => {
+            const value = Math.max(
+              yMin,
+              Math.min(yMax, options.band.lower[index])
+            );
+            context.lineTo(x(temperatures[index]), y(value));
+          });
+          context.closePath();
+          context.fill();
+          context.restore();
+        }
       }
 
       context.save();
@@ -1139,7 +1553,7 @@
       }
     }
 
-    function renderLinecut(field, linecutIndex) {
+    function renderLinecut(field, linecutIndex, rowIndex = state.rowIndex) {
       if (
         linecutIndex === null ||
         linecutIndex < 0 ||
@@ -1147,11 +1561,25 @@
       ) return;
       const linecut = field.linecuts[linecutIndex];
       const behavior = field.phaseColumns[linecutIndex];
+      const fitData = ensurePowerFits(field);
+      const localFit = localFitParameters(
+        field,
+        fitData,
+        linecutIndex,
+        rowIndex
+      );
       const features = field.features.filter(
         feature => feature.linecut === linecutIndex
       );
+      const uncertaintyText = localFit
+        && Number.isFinite(localFit.exponentUncertainty)
+        ? ` ± ${localFit.exponentUncertainty.toFixed(2)}`
+        : '';
+      const fitSummary = localFit
+        ? ` · T = ${field.temperatures[rowIndex].toFixed(3)} K · n = ${localFit.exponent.toFixed(2)}${uncertaintyText} · R² = ${localFit.rSquared.toFixed(3)}`
+        : ` · T = ${field.temperatures[rowIndex].toFixed(3)} K · unlabeled`;
       elements.linecutTitle.textContent =
-        `E = ${field.field} mV/nm · ν = ${field.fillings[linecutIndex].toFixed(4)}`;
+        `E = ${field.field} mV/nm · ν = ${field.fillings[linecutIndex].toFixed(4)}${fitSummary}`;
 
       drawLinecutPlot(
         elements.linecutRaw,
@@ -1161,8 +1589,19 @@
       drawLinecutPlot(
         elements.linecutSmoothed,
         field,
-        [{ values: linecut.smoothed, color: cssColor('--accent'), width: 1.7 }],
-        { behavior, features }
+        [
+          { values: linecut.smoothed, color: cssColor('--accent'), width: 1.7 },
+          ...(localFit
+            ? [{ values: localFit.fitted, color: cssColor('--fit'), width: 2.1 }]
+            : [])
+        ],
+        {
+          behavior,
+          features,
+          fitWindow: localFit
+            ? { start: localFit.start, end: localFit.end }
+            : null
+        }
       );
       drawLinecutPlot(
         elements.linecutDpdt,
@@ -1173,15 +1612,54 @@
       drawLinecutPlot(
         elements.linecutX,
         field,
-        [{ values: linecut.x, color: cssColor('--text'), width: 1.25 }],
+        [{
+          values: Array.from(fitData.exponents[linecutIndex], value =>
+            Number.isFinite(value) ? value : null
+          ),
+          color: cssColor('--text'),
+          width: 1.25
+        }],
         {
           robust: true,
-          zeroLine: true,
           behavior,
-          phaseValues: linecut.x,
+          phaseValues: fitData.exponents[linecutIndex],
+          phaseUncertainties: fitData.uncertainties[linecutIndex],
+          band: {
+            lower: Array.from(
+              fitData.exponents[linecutIndex],
+              (value, index) => {
+                const uncertainty = fitData.uncertainties[linecutIndex][index];
+                return Number.isFinite(value) && Number.isFinite(uncertainty)
+                  ? value - uncertainty
+                  : null;
+              }
+            ),
+            upper: Array.from(
+              fitData.exponents[linecutIndex],
+              (value, index) => {
+                const uncertainty = fitData.uncertainties[linecutIndex][index];
+                return Number.isFinite(value) && Number.isFinite(uncertainty)
+                  ? value + uncertainty
+                  : null;
+              }
+            ),
+            color: cssColor('--accent'),
+            alpha: .2
+          },
+          fitWindow: localFit
+            ? { start: localFit.start, end: localFit.end }
+            : null,
           thresholds: [
-            { value: state.upper, label: 'A', color: phaseColor('superlinear') },
-            { value: state.lower, label: 'B', color: phaseColor('sublinear') }
+            {
+              value: 1 + state.upper,
+              label: '1 + A',
+              color: phaseColor('superlinear')
+            },
+            {
+              value: 1 + state.lower,
+              label: '1 + B',
+              color: phaseColor('sublinear')
+            }
           ]
         }
       );
@@ -1210,12 +1688,17 @@
     }
 
     let linecutFrame;
-    function selectLinecut(index) {
-      if (state.linecutIndex === index) return;
+    function selectLinecut(index, rowIndex) {
+      if (state.linecutIndex === index && state.rowIndex === rowIndex) return;
       state.linecutIndex = index;
+      state.rowIndex = rowIndex;
       cancelAnimationFrame(linecutFrame);
       linecutFrame = requestAnimationFrame(() => {
-        renderLinecut(MODEL.fields[state.fieldIndex], state.linecutIndex);
+        renderLinecut(
+          MODEL.fields[state.fieldIndex],
+          state.linecutIndex,
+          state.rowIndex
+        );
       });
     }
 
@@ -1245,14 +1728,36 @@
         * (field.temperatures.at(-1) - field.temperatures[0]);
       const columnIndex = nearestIndex(field.fillings, nu);
       const rowIndex = nearestIndex(field.temperatures, temperature);
-      selectLinecut(columnIndex);
+      selectLinecut(columnIndex, rowIndex);
       const column = field.phaseColumns[columnIndex];
-      const value = column.x[rowIndex];
+      const fitData = ensurePowerFits(field);
+      const value = fitData.exponents[columnIndex][rowIndex];
+      const localFit = localFitParameters(
+        field,
+        fitData,
+        columnIndex,
+        rowIndex
+      );
       const heatColumn = nearestIndex(field.heatFillings, nu);
       const rho = field.resistivity[rowIndex][heatColumn];
-      const phaseText = value === null || !Number.isFinite(value)
-        ? 'not classified (outside get_fit_range)'
-        : `${classify(value)} · x = ${value.toFixed(4)}`;
+      const inRange = column.lower !== null
+        && field.temperatures[rowIndex] >= column.lower
+        && field.temperatures[rowIndex] <= column.upper;
+      let phaseText;
+      if (!inRange) {
+        phaseText = 'not classified (outside get_fit_range)';
+      } else if (!Number.isFinite(value) || !localFit) {
+        phaseText = 'unlabeled (fit constraints not satisfied)';
+      } else {
+        const startT = field.temperatures[localFit.start];
+        const endT = field.temperatures[localFit.end];
+        const pointCount = localFit.end - localFit.start + 1;
+        const uncertaintyText = Number.isFinite(localFit.exponentUncertainty)
+          ? ` ± ${localFit.exponentUncertainty.toFixed(2)}`
+          : ' (σₙ unavailable)';
+        phaseText =
+          `${classify(value, localFit.exponentUncertainty)} · n = ${value.toFixed(2)}${uncertaintyText} · fit ${startT.toFixed(2)}–${endT.toFixed(2)} K (${pointCount} pts)`;
+      }
 
       elements.detail.innerHTML =
         `<strong>E = ${field.field} mV/nm</strong> · ν = ${field.fillings[columnIndex].toFixed(4)} · ` +
@@ -1262,7 +1767,7 @@
 
     function resetDetail() {
       elements.detail.textContent =
-        'Move over either heatmap to inspect filling, temperature, x, and the resulting phase.';
+        'Move over either heatmap to inspect filling, temperature, local n, fit window, and the resulting phase.';
     }
 
     elements.raw.addEventListener('pointermove', inspect);
