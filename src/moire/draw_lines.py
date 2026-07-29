@@ -47,6 +47,9 @@ def plot_general_line(
 ):
     """Draw and configure a line on an existing axis."""
 
+    x = np.asarray(x)
+    y = np.asarray(y)
+
     style = {**DEFAULT_LINE_PLOT_KWARGS, **plot_kwargs}
     ax.plot(x, y, **style)
 
@@ -113,7 +116,7 @@ def overlay_features(ax, linecut, feature_name = "features", score_name = "confi
     return ax
 
 
-def overlay_behaviors(ax, linecut):
+def overlay_behaviors(ax, linecut, drawn_behaviors = ["linear", "sublinear", "superlinear"]):
     """Shade each extracted behavior's temperature range on a line plot.
 
     A behavior's confidence is used directly as its opacity, up to a maximum
@@ -127,6 +130,10 @@ def overlay_behaviors(ax, linecut):
         return ax
 
     for behavior in behaviors:
+
+        if behavior not in drawn_behaviors:
+            continue 
+
         T_lower = behavior.get("T_lower")
         T_upper = behavior.get("T_upper")
 
