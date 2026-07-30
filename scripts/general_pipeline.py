@@ -110,8 +110,9 @@ for field in SELECT_FIELDS:
             overlay_behaviors(axes[1], linecut)
             fig.tight_layout()
 
-            OUT.mkdir(parents=True, exist_ok=True)
-            path = OUT / Path("linecuts") / Path(param_string + ".png")
+            linecut_dir = OUT / "linecuts"
+            linecut_dir.mkdir(parents=True, exist_ok=True)
+            path = linecut_dir / f"{param_string}.png"
             fig.savefig(path, dpi=250, bbox_inches="tight")
             plt.close(fig)
 

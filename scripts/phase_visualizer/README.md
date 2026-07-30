@@ -1,39 +1,76 @@
-# Rough-screened phase heatmap visualizer
+# Transport linecut explorer
 
-This folder is self-contained. It reuses the repository's current smoothing,
-feature extraction, 3-pass × 5-iteration rough screening, and `get_fit_range`
-logic without changing those source files.
+Everything for this visualizer lives in this folder. The interface is now
+linecut-first; the raw and classified heatmaps are secondary and remain closed
+until requested.
 
-The right heatmap applies adaptive multiscale smoothing to raw resistivity,
-then fits a local power law inside each `get_fit_range` window:
+## Run
 
-`ρ(T) = ρ₀ + aTⁿ`
-
-It classifies the fitted exponent relative to linear `n = 1`, requiring the
-one-standard-error interval to clear a nonlinear threshold:
-
-- `n - σₙ > 1 + A`: superlinear
-- `n + σₙ < 1 + B`: sublinear
-- otherwise: linear-compatible
-
-The default threshold offsets are `A = 0.2` and `B = -0.2`. A is adjustable
-from 0 to 1 and B from -1 to 0. Every local window must contain at least 9
-points and span at least 1 K by default; both constraints are adjustable.
-Accepted ranges that cannot satisfy both constraints are labeled as unlabeled.
-The visualizer reports a one-standard-error uncertainty for n from the local
-nonlinear least-squares covariance. This prevents noisy central estimates from
-being labeled nonlinear when their uncertainty still overlaps the linear band.
-
-Build the standalone HTML:
+Build the preprocessed data bundle:
 
 ```sh
 .venv/bin/python scripts/phase_visualizer/build_visualizer.py
 ```
 
-Then open `phase_visualizer.html` in a browser. The generated file has no server
-or external dependency.
+Start the local Python analysis server:
 
-Hover over either heatmap to select a filling linecut. The linked detail section
-shows raw resistivity, adaptive multiscale smoothed resistivity with retained
-features and the accepted behavior range and local power-law fit, dρ/dT, and
-fitted n ± σₙ with the current A/B thresholds.
+```sh
+.venv/bin/python scripts/phase_visualizer/serve_visualizer.py
+```
+
+Open <http://127.0.0.1:8765>.
+
+The server is required because local power-law fitting and noise calculations
+remain in Python instead of being duplicated in browser JavaScript.
+It uses up to eight worker processes for full-field phase calculations; override
+that with `--workers N` when needed.
+
+## Linecut plots
+
+The primary explorer follows the current `general_pipeline.py` presentation:
+
+1. Raw resistivity.
+2. Adaptive-multiscale smoothed resistivity with rough-screened features,
+   `get_fit_range`, and the selected local fit.
+3. Local exponent `n` with its approximate `n_sigma`.
+
+Move across any plot to inspect the local fit at that temperature. Fits use:
+
+```text
+rho(T) = rho0 + A*T^n
+```
+
+Every local window stays inside `get_fit_range` and must satisfy the selected
+minimum point count and temperature span.
+
+## Fit choices
+
+- Source: adaptive-smoothed or raw resistivity.
+- Loss: ordinary squared (`linear`), `soft_l1`, or `cauchy`.
+- No normalization: residuals stay in resistivity units. Robust losses use
+  `f_scale=1`.
+- Existing `local_noise`: each residual is divided by the project’s
+  temperature-dependent raw-minus-smoothed noise estimate.
+- Fit-residual MAD: each window first receives an unweighted linear-loss power
+  law; the final fit uses one robust scale calculated as
+  `1.4826 * MAD(raw rho - preliminary fit)`.
+- Pooled estimate: each temperature’s noise is estimated from detrended
+  neighboring-temperature residuals pooled across all fillings.
+
+The pooled option is useful when one linecut’s physical structure would
+otherwise contaminate its own noise estimate.
+
+## Phase overview
+
+The secondary phase section calculates only when opened. It uses the current
+fit configuration and the uncertainty-aware rules:
+
+```text
+n - n_sigma > 1 + A  -> superlinear
+n + n_sigma < 1 + B  -> sublinear
+otherwise             -> linear-compatible
+```
+
+Full-field calculations are cached by the local server after the first request.
+Changing A or B reclassifies the cached `n` and `n_sigma` values immediately in
+the browser and does not run the fits again.
