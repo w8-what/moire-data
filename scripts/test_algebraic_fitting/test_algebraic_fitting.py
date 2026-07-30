@@ -12,9 +12,10 @@ sys.path.insert(0, str(ROOT / Path("src")))
 from moire.io import load_field, clean_sort_data, fmt4
 from moire.signal_helpers import local_noise, moving_average
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
+
 from moire.extract_features import extract_upturns, extract_downturns, extract_Tc
 from moire.extract_power_law import extract_local_fits
-from moire.extract_behaviors import get_fit_range
+from moire.extract_behaviors import get_fit_range, extract_beheavior_fits
 
 from moire.draw_lines import generate_layout, plot_general_line, overlay_behaviors, overlay_features
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
@@ -64,6 +65,7 @@ for field in SELECT_FIELDS:
     # getting fit range
     for linecut in linecuts:
         get_fit_range(T, linecut)
+        linecut["behaviors"] += extract_beheavior_fits(T, linecut)
 
         # extracting algebraic behaviors
 
@@ -103,7 +105,11 @@ for field in SELECT_FIELDS:
                 axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
 
             overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
-            overlay_behaviors(axes[1], linecut, drawn_behaviors = ["extraction_range"])
+
+            
+            print(f"{linecut["behaviors"]}=")
+
+            overlay_behaviors(axes[1], linecut)
             fig.tight_layout()
 
             linecut_dir = OUT / Path("linecuts") / Path("moving_average")
@@ -114,16 +120,16 @@ for field in SELECT_FIELDS:
 
     # ----- 2d Figures -----
 
-    # name = f"{field}_Score_Comparison"
-    # fig, axes = generate_layout(2, title=name)
+    name = f"{field}_Score_Comparison"
+    fig, axes = generate_layout(2, title=name)
 
-    # draw_heatmap(fig, axes[0], nu, T, R, title="original scoring")
-    # overlay_features_heatmap(axes[0], linecuts, score_name="confidence")
+    draw_heatmap(fig, axes[0], nu, T, R, title="original scoring")
+    overlay_features_heatmap(axes[0], linecuts, score_name="confidence")
 
-    # draw_heatmap(fig, axes[1], nu, T, R, title="3 passes x 5 iterations")
-    # overlay_features_heatmap(axes[1], linecuts, feature_name="features_new", score_name="score_15")
-    # overlay_behaviors_heatmap(axes[1], linecuts, drawn_behaviors=[])
+    draw_heatmap(fig, axes[1], nu, T, R, title="3 passes x 5 iterations")
+    overlay_features_heatmap(axes[1], linecuts, feature_name="features_new", score_name="score_15")
+    overlay_behaviors_heatmap(axes[1], linecuts)
 
-    # path = OUT / Path("heatmaps_comparison")
-    # path.mkdir(exist_ok=True, parents=True)
-    # fig.savefig(path / Path(name + ".png"))
+    path = OUT / Path("heatmaps_comparison")
+    path.mkdir(exist_ok=True, parents=True)
+    fig.savefig(path / Path(name + ".png"))
