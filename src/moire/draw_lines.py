@@ -131,7 +131,7 @@ def overlay_behaviors(ax, linecut, drawn_behaviors = ["linear", "sublinear", "su
 
     for behavior in behaviors:
 
-        if behavior not in drawn_behaviors:
+        if behavior["type"] not in drawn_behaviors:
             continue 
 
         T_lower = behavior.get("T_lower")

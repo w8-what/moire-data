@@ -97,10 +97,10 @@ for field in SELECT_FIELDS:
 
             plot_general_line(axes[0], T, rho, title="Raw Data", **linecut_axis_kwargs)
             plot_general_line(axes[1], T, rho_smoothed, title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
-            # plot_general_line(axes[2], T, dpdT, title="First Derivative", shaded=True, fill_alpha=0.5)
+            # plot_general_line(axes[2], T, dpdT, title="Raw Rhoo N", shaded=True, fill_alpha=0.5)
 
 
-            plot_general_line(axes[3], T, n, error = n_sigma, title="Fitted n", shaded=True, fill_alpha=0.5, 
+            plot_general_line(axes[3], T, n, error = n_sigma, title="Rho Smoothed Fitted n", shaded=True, fill_alpha=0.5, 
                               xlim = (0, np.max(T)), ylim = (0, 4))
             for y in [0, 0.8, 1.2]:
                 axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")

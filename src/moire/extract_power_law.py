@@ -64,14 +64,10 @@ def _window(T, center, left_bound, right_bound, min_pts, min_T):
     return left, right
 
 
-def extract_local_fits(T, linecut, min_pts=10, min_T=1.0, n_bounds=(0.1, 4.0)):
-    """Add a local power-law fit at each point inside ``extraction_range``.
+def extract_local_fits(T, linecut, rho = "rho", min_pts=10, min_T=1.0, n_bounds=(0.1, 4.0)):
 
-    ``linecut["local_fit"]`` contains temperature-aligned lists for ``rho0``,
-    ``A``, ``n``, and ``n_sigma``. Unfitted entries are ``np.nan``.
-    """
     T = np.asarray(T, float)
-    rho = np.asarray(linecut["rho_smoothed"], float)
+    rho = np.asarray(linecut[rho], float)
     sigma = np.asarray(linecut["local_noise"], float)
 
     if T.ndim != 1 or rho.shape != T.shape or sigma.shape != T.shape:
@@ -114,5 +110,4 @@ def extract_local_fits(T, linecut, min_pts=10, min_T=1.0, n_bounds=(0.1, 4.0)):
                 for name, value in fit.items():
                     output[name][center] = value
 
-    linecut["local_power_fit"] = output
-    return linecut
+    return output

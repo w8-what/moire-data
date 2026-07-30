@@ -8,16 +8,23 @@ import math
 # Moving average based on temperaure window
 def moving_average(rho, T, window=None):
 
+    rho = np.asarray(rho, dtype=float)
+    T = np.asarray(T, dtype=float)
+
     window = (np.max(T) - np.min(T)) * 0.2 if window is None else window
     half = window / 2
 
     left = np.searchsorted(T, T - half, side="left")
     right = np.searchsorted(T, T + half, side="right")
 
-    crho = np.r_[0, np.cumsum(rho)]
-    n = right - left
+    finite = np.isfinite(rho)
+    crho = np.r_[0.0, np.cumsum(np.where(finite, rho, 0.0))]
+    finite_count = np.r_[0, np.cumsum(finite)]
 
-    rho_sm = (crho[right] - crho[left]) / n
+    total = crho[right] - crho[left]
+    count = finite_count[right] - finite_count[left]
+    rho_sm = np.full(T.shape, np.nan, dtype=float)
+    np.divide(total, count, out=rho_sm, where=count > 0)
 
     return rho_sm
 

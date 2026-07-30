@@ -92,7 +92,7 @@ def overlay_features_heatmap(
             handle.set_alpha(1.0)
 
 
-def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors=["linear", "sublinear", "superlinear"], alpha=0.5):
+def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors=["linear", "sublinear", "superlinear"], alpha=0.8):
     # for each linecut, draw the interval and shade it with alpha = something like 0.2
     # do this for each drawn behavior
 

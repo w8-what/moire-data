@@ -247,6 +247,13 @@
     .heatmap-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
     .heatmap-head h2 { margin: 0; font: 680 1.05rem/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     .heatmap-eyebrow { color: #2359c4; font-size: .72rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .phase-mode { display: inline-flex; align-items: center; gap: 7px; color: #52627b; cursor: pointer; font-size: .74rem; font-weight: 650; white-space: nowrap; }
+    .phase-mode input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .phase-mode-track { position: relative; width: 34px; height: 20px; border: 1px solid #aeb6c3; border-radius: 999px; background: #d9dde4; transition: background .15s ease, border-color .15s ease; }
+    .phase-mode-track::after { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.24); content: ""; transition: transform .15s ease; }
+    .phase-mode input:checked + .phase-mode-track { border-color: #2359c4; background: #2359c4; }
+    .phase-mode input:checked + .phase-mode-track::after { transform: translateX(14px); }
+    .phase-mode input:focus-visible + .phase-mode-track { outline: 2px solid #2359c4; outline-offset: 2px; }
     .heatmap-subtitle { min-height: 2.7em; margin: 4px 0 0; color: #6a6d72; font-size: .78rem; }
     .map-wrap { position: relative; width: 100%; min-height: 420px; aspect-ratio: 1.16 / 1; }
     .phase-grid canvas { width: 100%; height: 100%; }
@@ -438,7 +445,11 @@
           <article class="phase-card">
             <div class="heatmap-head">
               <h2>Phase labels</h2>
-              <span class="heatmap-eyebrow">Rough screen</span>
+              <label class="phase-mode" for="linear-compatible">
+                <input id="linear-compatible" type="checkbox" checked>
+                <span class="phase-mode-track" aria-hidden="true"></span>
+                <span>Linear-compatible</span>
+              </label>
             </div>
             <p id="phase-rule" class="heatmap-subtitle"></p>
             <div class="map-wrap">
@@ -446,7 +457,7 @@
             </div>
             <div class="legend" aria-label="Phase legend">
               <span class="legend-item"><i class="swatch" style="background:var(--superlinear)"></i>superlinear</span>
-              <span class="legend-item"><i class="swatch" style="background:var(--linear)"></i>linear-compatible</span>
+              <span class="legend-item"><i class="swatch" style="background:var(--linear)"></i><span id="phase-linear-label">linear-compatible</span></span>
               <span class="legend-item"><i class="swatch" style="background:var(--sublinear)"></i>sublinear</span>
               <span class="legend-item"><i class="swatch unlabeled"></i>unlabeled</span>
               <span>unfilled = not in get_fit_range</span>
@@ -503,6 +514,8 @@
       phasePanel: document.getElementById('phase-panel'),
       phaseStatus: document.getElementById('phase-status'),
       phaseRule: document.getElementById('phase-rule'),
+      linearCompatible: document.getElementById('linear-compatible'),
+      phaseLinearLabel: document.getElementById('phase-linear-label'),
       rawMap: document.getElementById('raw-map'),
       phaseMap: document.getElementById('phase-map')
     };
@@ -559,22 +572,37 @@
       return number.toFixed(digits).replace(/\.?0+$/, '');
     }
 
-    function classifyFit(n, sigma) {
-      if (n === null || n === undefined || sigma === null || sigma === undefined) {
-        return 'unlabeled';
-      }
+    function classifyFit(n, sigma, requireCompatibility = true) {
+      if (n === null || n === undefined) return 'unlabeled';
       n = Number(n);
+      if (!Number.isFinite(n)) return 'unlabeled';
+      const upper = 1 + Number(elements.upper.value);
+      const lower = 1 + Number(elements.lower.value);
+      if (!requireCompatibility) {
+        if (n > upper) return 'superlinear';
+        if (n < lower) return 'sublinear';
+        return 'linear';
+      }
+      if (sigma === null || sigma === undefined) return 'unlabeled';
       sigma = Number(sigma);
-      if (!Number.isFinite(n) || !Number.isFinite(sigma)) return 'unlabeled';
-      if (n - sigma > 1 + Number(elements.upper.value)) return 'superlinear';
-      if (n + sigma < 1 + Number(elements.lower.value)) return 'sublinear';
+      if (!Number.isFinite(sigma)) return 'unlabeled';
+      if (n - sigma > upper) return 'superlinear';
+      if (n + sigma < lower) return 'sublinear';
       return 'linear';
     }
 
     function updatePhaseRule() {
-      elements.phaseRule.textContent =
-        `n − σₙ > ${fmt(1 + Number(elements.upper.value), 2)} is superlinear; ` +
-        `n + σₙ < ${fmt(1 + Number(elements.lower.value), 2)} is sublinear.`;
+      const upper = fmt(1 + Number(elements.upper.value), 2);
+      const lower = fmt(1 + Number(elements.lower.value), 2);
+      if (elements.linearCompatible.checked) {
+        elements.phaseRule.textContent =
+          `n − σₙ > ${upper} is superlinear; n + σₙ < ${lower} is sublinear; otherwise linear-compatible.`;
+        elements.phaseLinearLabel.textContent = 'linear-compatible';
+      } else {
+        elements.phaseRule.textContent =
+          `n > ${upper} is superlinear; n < ${lower} is sublinear; otherwise linear. σₙ is ignored.`;
+        elements.phaseLinearLabel.textContent = 'linear';
+      }
     }
 
     function currentFieldMeta() {
@@ -1174,7 +1202,11 @@
         const upper = nearestIndex(data.temperatures, range.upper);
         for (let row = lower; row <= upper; row++) {
           const fit = data.phaseColumns[column];
-          const phase = classifyFit(fit.n[row], fit.nSigma[row]);
+          const phase = classifyFit(
+            fit.n[row],
+            fit.nSigma[row],
+            elements.linearCompatible.checked
+          );
           fillMapCell(
             context,
             layout,
@@ -1305,6 +1337,13 @@
     });
     elements.phasePanel.addEventListener('toggle', () => {
       if (elements.phasePanel.open) fetchPhase();
+    });
+    elements.linearCompatible.addEventListener('change', () => {
+      updatePhaseRule();
+      if (state.phase) {
+        drawPhaseMap();
+        elements.phaseStatus.textContent = 'Classification mode updated locally';
+      }
     });
     elements.rawMap.addEventListener('click', mapSelection);
     elements.phaseMap.addEventListener('click', mapSelection);
