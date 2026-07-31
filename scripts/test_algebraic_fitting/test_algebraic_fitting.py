@@ -43,7 +43,7 @@ for field in SELECT_FIELDS:
 
         rho = linecut.get("rho")
         rho_hampel = hampel(rho).filtered_data
-        rho_smoothed = adaptive_multiscale_smooth(T, rho, z_threshold=10)
+        rho_smoothed = adaptive_multiscale_smooth(T, rho, z_threshold=3)
         linecut.update({"rho_smoothed": rho_smoothed})
 
         # Noise estimates
