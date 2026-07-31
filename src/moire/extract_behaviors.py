@@ -2,7 +2,7 @@ import numpy as np
 from moire.extract_power_law import extract_local_fits
 from moire.signal_helpers import moving_average
 
-def get_fit_range(T, linecut, pos_frac=0.8) -> list[dict]:
+def extract_fit_range(T, linecut, pos_frac=0.8) -> list[dict]:
 
     T_lower = T[0]
     T_upper = T[-1]
@@ -36,16 +36,15 @@ def get_fit_range(T, linecut, pos_frac=0.8) -> list[dict]:
     dpdT = np.gradient(rho_smoothed, T)
     total_pts = T_upper_idx - T_lower_idx
 
+    behavior = []
     # Checking that > 80% of the range is positive
     if np.count_nonzero(dpdT[T_lower_idx : T_upper_idx + 1] > 0) / total_pts > pos_frac:
-        behaviors = linecut.get("behaviors")
-        behavior = {"type": "extraction_range", "T_lower": T_lower, "T_upper": T_upper}
-        behaviors.append(behavior)
+        behavior.append({"type": "extraction_range", "T_lower": T_lower, "T_upper": T_upper})
 
-    return linecut
+    return behavior
 
 
-def extract_beheavior_fits(T, linecut, sub_threshold = 0.8, super_threshold = 1.2):
+def extract_behavior_fits(T, linecut, sub_threshold = 0.8, super_threshold = 1.2):
 
     # find regions of linear, superlinear, and sublinear
     # takes into account of uncertainity somehow 
@@ -68,13 +67,20 @@ def extract_beheavior_fits(T, linecut, sub_threshold = 0.8, super_threshold = 1.
 
         behaviors = []
 
-        n = extract_local_fits(T, linecut)["n"]
-        n_avg = moving_average(n, T, 1)
+        n = np.asarray(extract_local_fits(T, linecut)["n"])
+
+        # Taking the moving average within fit_range
+        for behavior in linecut["behaviors"]:
+            if behavior["type"] == "extraction_range":
+                left_idx = np.argmin(np.abs(T - behavior["T_lower"]))
+                right_idx = np.argmin(np.abs(T - behavior["T_upper"]))
+                s = slice(left_idx,right_idx+1)
+                n[s] = moving_average(n[s], T[s], 1)
 
         masks = {
-            "sublinear": n_avg < sub_threshold,
-            "linear": (sub_threshold <= n_avg) & (n_avg <= super_threshold),
-            "superlinear": n_avg > super_threshold,
+            "sublinear": n < sub_threshold,
+            "linear": (sub_threshold <= n) & (n <= super_threshold),
+            "superlinear": n > super_threshold,
         }
 
         for behavior_type, mask in masks.items():
@@ -102,3 +108,31 @@ def extract_beheavior_fits(T, linecut, sub_threshold = 0.8, super_threshold = 1.
                 })
 
         return behaviors
+
+
+def refine_behaviors(T, linecut, min_points=1, min_T=None):
+    # first pass: remove tiny islands (either 1 point, or T range less than some threshold)
+    # second pass: ???
+
+
+    behaviors = linecut["behaviors"]
+
+    # so what we do?
+    # find the behaviors that are less than T range or 1 point large 
+    # and then update them based on surrounding linecuts 
+    # if there is disagreement, then use whichone is largest in confidence? yeah uh i dont really have a confidence score thats the thing uh
+    # hmm well lets assume we have that
+    # OK and so we do that to refine it
+
+    min_T = 0.05 * np.ptp(T) if min_T is None else min_T
+
+    for behavior in behaviors:
+        T_upper = behavior["T_upper"]
+        T_lower = behavior["T_lower"]
+
+
+
+
+
+
+    return []

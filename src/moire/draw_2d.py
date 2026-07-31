@@ -5,9 +5,8 @@ from matplotlib.ticker import LogFormatterMathtext
 from pathlib import Path
 import numpy as np
 
-from moire.plot_styles import (
+from moire.PLOTS_CONFIG import (
     BEHAVIOR_COLORS,
-    DEFAULT_BEHAVIOR_COLOR,
     FEATURE_LEGEND_STYLE,
     get_feature_style,
 )
@@ -92,7 +91,8 @@ def overlay_features_heatmap(
             handle.set_alpha(1.0)
 
 
-def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors=["linear", "sublinear", "superlinear"], alpha=0.8):
+def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors="behaviors",
+                              drawn_types = ["linear", "sublinear", "superlinear", "unlabeled"], alpha=1):
     # for each linecut, draw the interval and shade it with alpha = something like 0.2
     # do this for each drawn behavior
 
@@ -104,26 +104,45 @@ def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors=["linear", "sublinea
     edges[0] = nus[0] - (nus[1] - nus[0]) / 2
     edges[-1] = nus[-1] + (nus[-1] - nus[-2]) / 2
 
+    used_labels = set()
+
     for i, linecut in enumerate(linecuts):
-        behaviors = linecut.get("behaviors", {})
+        behaviors = linecut.get(drawn_behaviors)
 
         for behavior in behaviors:
 
-            if behavior.get("type") not in drawn_behaviors:
+            if behavior.get("type") not in drawn_types:
                 continue
 
             T_lower, T_upper = behavior.get("T_upper"), behavior.get("T_lower")
+            behavior_type = behavior.get("type")
+            label = behavior_type if behavior_type not in used_labels else None
+            used_labels.add(behavior_type)
 
             ax.fill_betweenx(
                 [T_lower, T_upper],
                 edges[i],
                 edges[i + 1],
-                color=BEHAVIOR_COLORS.get(behavior.get("type"), DEFAULT_BEHAVIOR_COLOR),
+                color=BEHAVIOR_COLORS.get(behavior_type),
                 alpha=alpha,
                 linewidth=0,
+                label=label,
             )
 
+    if used_labels:
+        legend = ax.legend(**FEATURE_LEGEND_STYLE)
+        for handle, text in zip(legend.legend_handles, legend.get_texts()):
+            handle.set_alpha(1.0)
+            if text.get_text() in used_labels:
+                handle.set_edgecolor("black")
+                handle.set_linewidth(0.5)
+
     return ax
+
+
+
+
+
 
 
 # def draw_mosaic_diagrams(col, row, data, OUT=None, name="mosaic_phase_diagram", save=False):

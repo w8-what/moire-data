@@ -200,3 +200,11 @@ def extract_Tc(T, linecut, threshold=20, max_candidates=3) -> list[dict]:
     candidate_Tcs.sort(key=lambda feature: feature["confidence"], reverse=True)
 
     return candidate_Tcs[:max_candidates]
+
+def extract_Tcoh(T, linecut, max_candidates=3) -> list[dict]:
+
+    candidate_Tcoh = []
+
+
+
+    return candidate_Tcoh

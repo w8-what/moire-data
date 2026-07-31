@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from moire.plot_styles import (
+from moire.PLOTS_CONFIG import (
     BEHAVIOR_COLORS,
-    DEFAULT_BEHAVIOR_COLOR,
     DEFAULT_LINE_PLOT_KWARGS,
     FEATURE_LEGEND_STYLE,
     get_feature_style,
@@ -120,7 +119,7 @@ def overlay_features(ax, linecut, feature_name = "features", score_name = "confi
     return ax
 
 
-def overlay_behaviors(ax, linecut, drawn_behaviors = ["linear", "sublinear", "superlinear"]):
+def overlay_behaviors(ax, linecut, drawn_behaviors = "behaviors", drawn_types = ["linear", "sublinear", "superlinear"]):
     """Shade each extracted behavior's temperature range on a line plot.
 
     A behavior's confidence is used directly as its opacity, up to a maximum
@@ -128,13 +127,15 @@ def overlay_behaviors(ax, linecut, drawn_behaviors = ["linear", "sublinear", "su
     """
 
     T = linecut.get("T")
-    behaviors = linecut.get("behaviors") or []
+    behaviors = linecut.get(drawn_behaviors) or []
 
     if T is None or len(T) == 0:
         return ax
 
+    used_labels = set()
+
     for behavior in behaviors:
-        if behavior["type"] not in drawn_behaviors:
+        if behavior["type"] not in drawn_types:
             continue 
 
         T_lower = behavior.get("T_lower")
@@ -154,8 +155,25 @@ def overlay_behaviors(ax, linecut, drawn_behaviors = ["linear", "sublinear", "su
         alpha = np.clip(alpha, 0.0, 0.5)
 
         behavior_type = behavior.get("type")
-        color = BEHAVIOR_COLORS.get(behavior_type, DEFAULT_BEHAVIOR_COLOR)
-        ax.axvspan(T_lower, T_upper, color=color, alpha=alpha, linewidth=0)
+        color = BEHAVIOR_COLORS.get(behavior_type)
+        label = behavior_type if behavior_type not in used_labels else None
+        used_labels.add(behavior_type)
+        ax.axvspan(
+            T_lower,
+            T_upper,
+            color=color,
+            alpha=alpha,
+            linewidth=0,
+            label=label,
+        )
+
+    if used_labels:
+        legend = ax.legend(**FEATURE_LEGEND_STYLE)
+        for handle, text in zip(legend.legend_handles, legend.get_texts()):
+            handle.set_alpha(1.0)
+            if text.get_text() in used_labels:
+                handle.set_edgecolor("black")
+                handle.set_linewidth(0.5)
 
     return ax
 
@@ -195,4 +213,3 @@ def plot_linecut(T: list, linecut, OUT):
     plt.close(fig)
 
     return fig, axes
-

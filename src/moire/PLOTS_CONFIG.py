@@ -5,9 +5,8 @@ BEHAVIOR_COLORS = {
     "linear": "white",
     "superlinear": "skyblue",
     "sublinear": "grey",
+    "unlabeled" : "orange"
 }
-
-DEFAULT_BEHAVIOR_COLOR = "purple"
 
 DEFAULT_LINE_PLOT_KWARGS = {
     "color": "blue",
@@ -27,6 +26,8 @@ FEATURE_STYLES = {
 FEATURE_SCATTER_STYLE = {"s": 35, "edgecolor": "black", "linewidth": 0.4, "zorder": 5}
 
 FEATURE_LEGEND_STYLE = {"frameon": True, "framealpha": 1.0, "facecolor": "white", "fontsize": 8}
+
+BEHAVIOR_LEGEND_STYLE = {""}
 
 
 def get_feature_style(feature_type):

@@ -24,7 +24,7 @@ def moving_average(rho, T, window=None):
     total = crho[right] - crho[left]
     count = finite_count[right] - finite_count[left]
     rho_sm = np.full(T.shape, np.nan, dtype=float)
-    np.divide(total, count, out=rho_sm, where=count > 0)
+    np.divide(total, count, out=rho_sm, where=(count > 0))
 
     return rho_sm
 
