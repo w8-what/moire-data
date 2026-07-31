@@ -64,7 +64,7 @@ def plot_general_line(
     return ax
 
 
-def overlay_features(ax, linecut, feature_name = "features", score_name = "confidence"):
+def overlay_features(ax, linecut, feature_name = "features", score_name = "confidence", filter = 0):
 
     T = linecut.get("T")
     rho_smoothed = linecut.get("rho_smoothed")
@@ -88,12 +88,16 @@ def overlay_features(ax, linecut, feature_name = "features", score_name = "confi
         conf = feature.get(score_name)
         conf_label = f"conf={float(conf):.4g}"
 
+        if conf < filter:
+            continue
+
         ax.scatter(T_feature, rho_at_T, alpha=conf, **style)
         ax.axvline(T_feature, linewidth=1, linestyle="--", color="grey", zorder=3)
 
-        max_rho = np.max(rho_smoothed)
-        top_half = rho_at_T > (max_rho / 2)
-        y_text = 0.8 * max_rho if top_half else 0.2 * max_rho
+        ymin, ymax = ax.get_ylim()
+        top_half = rho_at_T > ((ymax + ymin) / 2)
+        y_text = 0.8 * (ymax-ymin) if top_half else 0.2 * (ymax-ymin)
+        y_text += ymin
         ax.annotate(
             conf_label,
             xy=(T_feature, rho_at_T),

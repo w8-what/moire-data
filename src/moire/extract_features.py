@@ -67,8 +67,9 @@ def extract_upturns(T, linecut, min_pts=5, min_width=0.5, sigma=5, coeff=2) -> l
         C_width = min_width**coeff * (1 - target) / target
         C_pts = min_pts**coeff * (1 - target) / target
 
-        prom_score = prom_z**coeff / (prom_z**coeff + C_prom)
+        prom_score = _hill_sigmoid(prom_z, sigma, target, 2)
         pts_score = pts**coeff / (pts**coeff + C_pts)
+        pts_score = _hill_sigmoid(pts, min_pts, )
         width_score = width**coeff / (width**coeff + C_width)
 
         comb_score = prom_score**0.5 * pts_score**0.3 * width_score**0.2
