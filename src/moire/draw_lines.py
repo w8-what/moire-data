@@ -1,26 +1,24 @@
-
-import numpy as np 
+import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from moire.signal_helpers import adaptive_smooth
+from moire.plot_styles import (
+    BEHAVIOR_COLORS,
+    DEFAULT_BEHAVIOR_COLOR,
+    DEFAULT_LINE_PLOT_KWARGS,
+    FEATURE_LEGEND_STYLE,
+    get_feature_style,
+)
 from moire.io import fmt4
 
 
-def generate_layout(numAxes, title = "title"):
+def generate_layout(numAxes, title="title"):
 
-    layouts = {
-        1: (1, 1),
-        2: (1, 2),
-        3: (1, 3),
-        4: (2, 2),
-        5: (2, 3),
-        6: (2, 3),
-    }
+    layouts = {1: (1, 1), 2: (1, 2), 3: (1, 3), 4: (2, 2), 5: (2, 3), 6: (2, 3)}
 
     nrows, ncols = layouts[numAxes]
 
-    fig, axes = plt.subplots(nrows, ncols, squeeze=False, figsize=(7.5 * ncols, 6 * nrows), dpi = 250)
+    fig, axes = plt.subplots(nrows, ncols, squeeze=False, figsize=(7.5 * ncols, 6 * nrows), dpi=250)
     axes = axes.flatten()
 
     # Removes the bottom-right subplot for five plots
@@ -33,185 +31,168 @@ def generate_layout(numAxes, title = "title"):
     return fig, axes
 
 
+def plot_general_line(
+    ax,
+    x,
+    y,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    xlim=None,
+    ylim=None,
+    shaded=False,
+    error=None,
+    fill_alpha=0.2,
+    **plot_kwargs,
+):
+    """Draw and configure a line on an existing axis."""
 
-def plot_line(x, y, xlabel=None, ylabel=None, title=None, xlim=None, ylim=None, shaded=False, error=None, **plot_kwargs):
-    _, ax = plt.subplots()
+    x = np.asarray(x)
+    y = np.asarray(y)
 
-    ax.plot(x, y, **plot_kwargs)
+    style = {**DEFAULT_LINE_PLOT_KWARGS, **plot_kwargs}
+    ax.plot(x, y, **style)
 
-    ax.set(
-        xlabel=xlabel,
-        ylabel=ylabel,
-        title=title,
-        xlim=xlim,
-        ylim=ylim,
-    )
+    ax.set(xlabel=xlabel, ylabel=ylabel, title=title, xlim=xlim, ylim=ylim)
 
     if shaded:
-        ax.fill_between(x, 0, y, alpha=0.2)
+        ax.fill_between(x, 0, y, alpha=fill_alpha)
 
     if error is not None:
-        ax.fill_between(x, y - error, y + error, alpha=0.2)
+        ax.fill_between(x, y - error, y + error, alpha=fill_alpha)
 
     return ax
 
 
-def overlay_features(ax, linecut):
+def overlay_features(ax, linecut, feature_name = "features", score_name = "confidence", filter = 0):
 
     T = linecut.get("T")
     rho_smoothed = linecut.get("rho_smoothed")
-    features = linecut.get("features")
+    features = linecut.get(feature_name) or []
+    used_labels = set()
 
     for feature in features:
-        
+        style = get_feature_style(feature.get("type"))
+        if style is None:
+            continue
+
+        label = style["label"]
+        if label in used_labels:
+            style["label"] = None
+        else:
+            used_labels.add(label)
+
         T_feature = feature.get("T")
         rho_at_T = rho_smoothed[np.argmin(np.abs(T - T_feature))]
 
-        conf = feature.get("confidence")
-        color = "blue" if feature.get("type") == "downturn" else "red"
+        conf = feature.get(score_name)
+        conf_label = f"conf={float(conf):.4g}"
 
-        ax.scatter(T_feature, rho_at_T, alpha = conf, color = color)
-        ax.axvline(T_feature, linewidth = 1, linestyle='--', color = "grey", zorder=3)
+        if conf < filter:
+            continue
 
-        max_rho = np.max(rho_smoothed)
-        top_half = rho_at_T > (max_rho/2)
-        y_text = 0.8 * max_rho if top_half else 0.2 * max_rho
-        ax.annotate(f"{conf=}", xy=(T_feature, rho_at_T), xytext=(T_feature, y_text),
-            bbox=dict(boxstyle="round", fc="0.8", alpha = 0.8),
-            arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=10, connectionstyle="angle,angleA=0,angleB=90,rad=10", alpha = 0.8))
+        ax.scatter(T_feature, rho_at_T, alpha=conf, **style)
+        ax.axvline(T_feature, linewidth=1, linestyle="--", color="grey", zorder=3)
+
+        ymin, ymax = ax.get_ylim()
+        top_half = rho_at_T > ((ymax + ymin) / 2)
+        y_text = 0.8 * (ymax-ymin) if top_half else 0.2 * (ymax-ymin)
+        y_text += ymin
+        ax.annotate(
+            conf_label,
+            xy=(T_feature, rho_at_T),
+            xytext=(T_feature, y_text),
+            bbox=dict(boxstyle="round", fc="0.8", alpha=0.8),
+            arrowprops=dict(
+                arrowstyle="->",
+                shrinkA=0,
+                shrinkB=10,
+                connectionstyle="angle,angleA=0,angleB=90,rad=10",
+                alpha=0.8,
+            ),
+        )
+
+    if used_labels:
+        legend = ax.legend(**FEATURE_LEGEND_STYLE)
+        for handle in legend.legend_handles:
+            handle.set_alpha(1.0)
 
     return ax
 
 
+def overlay_behaviors(ax, linecut, drawn_behaviors = ["linear", "sublinear", "superlinear"]):
+    """Shade each extracted behavior's temperature range on a line plot.
 
-# Plot candidate transition temperatures, along with candidate phases (if suggested)
+    A behavior's confidence is used directly as its opacity, up to a maximum
+    alpha of 0.5. Behaviors without a usable confidence use an alpha of 0.2.
+    """
+
+    T = linecut.get("T")
+    behaviors = linecut.get("behaviors") or []
+
+    if T is None or len(T) == 0:
+        return ax
+
+    for behavior in behaviors:
+        if behavior["type"] not in drawn_behaviors:
+            continue 
+
+        T_lower = behavior.get("T_lower")
+        T_upper = behavior.get("T_upper")
+
+        if T_lower is None or T_upper is None:
+            continue
+
+        confidence = behavior.get("confidence")
+        try:
+            alpha = float(confidence) if confidence is not None else 0.2
+        except (TypeError, ValueError):
+            alpha = 0.2
+
+        if not np.isfinite(alpha):
+            alpha = 0.2
+        alpha = np.clip(alpha, 0.0, 0.5)
+
+        behavior_type = behavior.get("type")
+        color = BEHAVIOR_COLORS.get(behavior_type, DEFAULT_BEHAVIOR_COLOR)
+        ax.axvspan(T_lower, T_upper, color=color, alpha=alpha, linewidth=0)
+
+    return ax
+
+
 def plot_linecut(T: list, linecut, OUT):
+    """Plot the raw linecut, smoothed data, and first two derivatives."""
 
-    param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
+    param_string = "  ".join(
+        f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu"
+    )
 
-    # Getting data to plot
     rho = linecut.get("rho")
     rho_smoothed = linecut.get("rho_smoothed")
     dpdT = np.gradient(rho_smoothed, T)
     d2pdT2 = np.gradient(dpdT, T)
-    # dlnpdlnT = np.gradient(np.log(np.clip(rho_smoothed, 0, np.inf)), np.log(np.clip(T, 0, np.inf)))
 
- 
-    # Plotting 2x2 grid
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12), dpi=150, constrained_layout=True)
-    fig.suptitle(param_string)
-    axes = axes.flatten()
- 
-    axes[0].set_title("Raw Data")
-    axes[0].plot(T, rho, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
- 
-    axes[1].set_title("Smoothed Data + Candidate Transitions")
-    axes[1].plot(T, rho_smoothed, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
+    fig, axes = generate_layout(4, title=param_string)
+    linecut_axis_kwargs = {
+        "xlabel": "Temperature (K)",
+        "ylabel": "Resistivity (Ω*cm)",
+        "xlim": (0, None),
+        "ylim": (0, None),
+    }
 
-    for ax in axes[:2]:
-        ax.set_xlabel("Temperature (K)")
-        ax.set_ylabel("Resistivity (Ω*cm)")
-        ax.set_xlim(0)
-        ax.set_ylim(0)
+    plot_general_line(axes[0], T, rho, title="Raw Data", **linecut_axis_kwargs)
+    plot_general_line(axes[1], T, rho_smoothed, title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
+    plot_general_line(axes[2], T, dpdT, title="First Derivative", shaded=True, fill_alpha=0.5)
+    plot_general_line(axes[3], T, d2pdT2, title="Second Derivative", shaded=True, fill_alpha=0.5)
 
-    axes[3].set_title("Second Deriveratives")
-    axes[3].plot(T, d2pdT2, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[3].fill_between(T, d2pdT2, alpha = 0.5)
+    overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
+    overlay_behaviors(axes[1], linecut)
+    fig.tight_layout()
 
-    axes[2].set_title("First Deriveratives")
-    axes[2].plot(T, dpdT, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-    axes[2].fill_between(T, dpdT, alpha = 0.5)
-
-
-    # Plotting transition points and fitted lines 
-    for feat in linecut.get("features"):
-
-        T_t = feat.get("T")
-        conf = feat.get("confidence")
-        type = feat.get("type")
-        t_color = "blue" if (type == "downturn") else "red"
-
-        rho_at_T_t = rho_smoothed[np.argmin(np.abs(T - T_t))]
-        axes[1].scatter(T_t, rho_at_T_t, color = t_color, alpha = 0.8)
-        axes[1].axvline(T_t, linewidth = 1, linestyle='--', color = "grey", zorder=3)
-
-        max_rho = np.max(rho_smoothed)
-        top_half = rho_at_T_t > (max_rho/2)
-        y_text = 0.8 * max_rho if top_half else 0.2 * max_rho
-        axes[1].annotate(f"{conf=}", xy=(T_t, rho_at_T_t), xytext=(T_t, y_text),
-            bbox=dict(boxstyle="round", fc="0.8", alpha = 0.8),
-            arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=10, connectionstyle="angle,angleA=0,angleB=90,rad=10", alpha = 0.8))
-
-    # Save to path
-    OUT.mkdir(parents = True, exist_ok = True)
+    OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / Path(param_string + ".png")
-    fig.savefig(path, dpi=250, bbox_inches='tight')
+    fig.savefig(path, dpi=250, bbox_inches="tight")
     plt.close(fig)
 
     return fig, axes
 
-
-
-# Plot candidate transition temperatures, along with candidate phases (if suggested)
-def plot_linecut_noise(T: list, linecut, save = False, OUT = None):
-
-    param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
- 
-    # Derived curves
-    rho = linecut.get("rho")
-    rho_smoothed = linecut.get("rho_smoothed")
-    local_noise = linecut.get("local_noise")
-    # dlnpdlnT = np.gradient(np.log(np.clip(rho_smoothed, 0, np.inf)), np.log(np.clip(T, 0, np.inf)))
- 
-    # Plotting 2x2 grid
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12), dpi=150, constrained_layout=True)
-    fig.suptitle(param_string)
-
-    axes = axes.flatten()
- 
-    axes[0].set_title("Raw Data")
-    axes[0].plot(T, rho, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
- 
-    axes[1].set_title("Smoothed Data with Noise")
-    axes[1].plot(T, rho_smoothed, marker='o', markersize=3, markerfacecolor='none', markeredgecolor='navy',linewidth=1.0, color='blue')
-
-    axes[2].set_title("Candidates with Noise")
-    axes[2].plot(T, rho_smoothed, marker='o', markersize = 3, markerfacecolor = 'none', markeredgecolor = 'navy', linewidth = 1.0, color = 'blue')
-
-    axes[2].fill_between(T, rho_smoothed - local_noise, rho_smoothed + local_noise, alpha = 0.5)
-    axes[0].fill_between(T, rho - local_noise, rho + local_noise, alpha = 0.5)
-
-    for ax in axes[:3]:
-        ax.set_xlabel("Temperature (K)")
-        ax.set_ylabel("Resistivity (Ω*cm)")
-        ax.set_xlim(0)
-        ax.set_ylim(0)
-
-
-    # Plotting transition points and fitted lines 
-    for feat in linecut.get("features"):
-
-        T_t = feat.get("T")
-        conf = feat.get("confidence")
-        type = feat.get("type")
-        t_color = "blue" if (type == "downturn") else "red"
-
-        rho_at_T_t = rho_smoothed[np.argmin(np.abs(T - T_t))]
-        axes[2].scatter(T_t, rho_at_T_t, color = t_color, alpha = 0.8)
-        axes[2].axvline(T_t, linewidth = 1, linestyle='--', color = "grey", zorder=3)
-
-        max_rho = np.max(rho_smoothed)
-        top_half = rho_at_T_t > (max_rho/2)
-        y_text = 0.8 * max_rho if top_half else 0.2 * max_rho
-        axes[2].annotate(f"{conf=}", xy=(T_t, rho_at_T_t), xytext=(T_t, y_text),
-            bbox=dict(boxstyle="round", fc="0.8", alpha = 0.8),
-            arrowprops=dict(arrowstyle="->", shrinkA=0, shrinkB=10, connectionstyle="angle,angleA=0,angleB=90,rad=10", alpha = 0.8))
-
-
-    # Save to path
-    OUT.mkdir(parents = True, exist_ok = True)
-    path = OUT / Path(param_string + ".png")
-    fig.savefig(path, dpi=250, bbox_inches='tight')
-    plt.close(fig)
-
-    return fig, axes
