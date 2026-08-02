@@ -1,5 +1,8 @@
 import numpy as np
 from scipy.signal import find_peaks
+from scipy.stats import norm
+
+from moire.extract_power_law import _fit as fit_power_law
 
 
 def _hill_sigmoid(x, reference_value, reference_score=0.8, coeff=2):
@@ -69,7 +72,7 @@ def extract_upturns(T, linecut, min_pts=5, min_width=0.5, sigma=5, coeff=2) -> l
 
         prom_score = _hill_sigmoid(prom_z, sigma, target, 2)
         pts_score = pts**coeff / (pts**coeff + C_pts)
-        pts_score = _hill_sigmoid(pts, min_pts, )
+        pts_score = _hill_sigmoid(pts, min_pts)
         width_score = width**coeff / (width**coeff + C_width)
 
         comb_score = prom_score**0.5 * pts_score**0.3 * width_score**0.2
@@ -201,10 +204,97 @@ def extract_Tc(T, linecut, threshold=20, max_candidates=3) -> list[dict]:
 
     return candidate_Tcs[:max_candidates]
 
-def extract_Tcoh(T, linecut, max_candidates=3) -> list[dict]:
 
-    candidate_Tcoh = []
+def extract_Tcoh(
+    T,
+    linecut,
+    max_candidates=3,
+    deviation=0.10,
+    min_n_probability=0.8,
+    fit_windows=10,
+    min_fit_points=6,
+    min_fit_span=0.5,
+    persistence=0.5,
+) -> list[dict]:
+    """Find stable 10%-departure points from a low-T quadratic fit."""
 
+    T = np.asarray(T, float)
+    rho = np.asarray(linecut["rho"], float)
+    smooth = np.asarray(linecut.get("rho_smoothed", rho), float)
+    sigma = np.asarray(linecut.get("local_noise", np.ones_like(T)), float)
+    valid_sigma = np.isfinite(sigma) & (sigma > 0)
+    sigma[~valid_sigma] = np.median(sigma[valid_sigma]) if np.any(valid_sigma) else 1.0
 
+    lower, upper = T[0], T[-1]
+    for behavior in linecut.get("behaviors", []):
+        if behavior.get("type") == "extraction_range":
+            lower, upper = sorted((behavior["T_lower"], behavior["T_upper"]))
+            break
 
-    return candidate_Tcoh
+    allowed = np.flatnonzero((T >= lower) & (T <= upper))
+    if len(allowed) < min_fit_points + 2:
+        return []
+
+    first, last = allowed[0], allowed[-1]
+    fit_end_temperatures = np.linspace(T[first] + min_fit_span, T[last] - persistence, fit_windows)
+    fit_ends = np.unique([np.argmin(abs(T - value)) for value in fit_end_temperatures])
+    fit_ends = [
+        end
+        for end in fit_ends
+        if end - first + 1 >= min_fit_points and T[end] - T[first] >= min_fit_span
+    ]
+
+    votes = {}
+    valid_windows = 0
+    for end in fit_ends:
+        selection = slice(first, end + 1)
+        rough_fit = fit_power_law(T[selection], rho[selection], sigma[selection], (0.2, 4.0))
+        if rough_fit is None or not np.isfinite(rough_fit["n_sigma"]):
+            continue
+
+        if rough_fit["n_sigma"] == 0:
+            n_probability = float(1.5 <= rough_fit["n"] <= 2.5)
+        else:
+            n_probability = norm.cdf((2.5 - rough_fit["n"]) / rough_fit["n_sigma"]) - norm.cdf(
+                (1.5 - rough_fit["n"]) / rough_fit["n_sigma"]
+            )
+        if n_probability < min_n_probability:
+            continue
+
+        design = np.column_stack((np.ones(end - first + 1), T[selection] ** 2))
+        weighted_design = design / sigma[selection, None]
+        rho0, coefficient = np.linalg.lstsq(
+            weighted_design, rho[selection] / sigma[selection], rcond=None
+        )[0]
+        if coefficient <= 0:
+            continue
+        valid_windows += 1
+
+        predicted = rho0 + coefficient * T**2
+        difference = abs(smooth - predicted)
+        exceeds = (difference / np.maximum(abs(predicted), 1e-12) >= deviation) & (
+            difference / sigma >= 1.5
+        )
+
+        for idx in range(end + 1, last + 1):
+            stop = np.searchsorted(T, T[idx] + persistence)
+            if stop <= last and np.mean(exceeds[idx : stop + 1]) >= 0.8:
+                votes[idx] = votes.get(idx, 0.0) + n_probability
+                break
+
+    if not votes or not valid_windows:
+        return []
+
+    window_score = min(1.0, valid_windows / 3)
+    candidates = [
+        {
+            "T": float(T[idx]),
+            "nu": linecut.get("nu"),
+            "type": "Tcoh",
+            "confidence": float(f"{window_score * vote / valid_windows:.3g}"),
+        }
+        for idx, vote in votes.items()
+    ]
+
+    candidates.sort(key=lambda candidate: candidate["confidence"], reverse=True)
+    return candidates[:max_candidates]

@@ -21,6 +21,7 @@ FEATURE_STYLES = {
     "upturn": {"color": "yellow", "marker": "^", "label": "upturn"},
     "downturn": {"color": "green", "marker": "v", "label": "downturn"},
     "Tc": {"color": "navy", "marker": "o", "label": "Tc"},
+    "Tcoh": {"color": "blue", "marker": "o", "label": "Tcoh"}
 }
 
 FEATURE_SCATTER_STYLE = {"s": 35, "edgecolor": "black", "linewidth": 0.4, "zorder": 5}

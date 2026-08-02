@@ -70,8 +70,20 @@ for field in SELECT_FIELDS:
         behaviors += extract_behavior_fits(T, linecut)
 
         linecut.update({
-            "refined_behaviors" : refine_behaviors(T, linecut)
+            "refined_behaviors" : refine_behaviors(T, linecut, min_points=3)
         })
+
+        linecut["features"] += extract_Tcoh(T, linecut)
+
+
+
+        # print("\noriginal_behavior")
+        # for behavior in sorted(linecut["behaviors"], key = lambda b : b["T_lower"]):
+        #     print(behavior)
+        # print("refined_behavior")
+        # for behavior in sorted(linecut["refined_behaviors"], key = lambda b : b["T_lower"]):
+        #     print(behavior)
+
 
         # and then we want to find the T_coh from a function that gets features!
         # linecut["features_2"] += extract_Tcoh(T, linecut)
@@ -80,46 +92,46 @@ for field in SELECT_FIELDS:
 
     # ----- Plotting and creating figures -----
 
-    numLinecuts = 30
-    selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype="int")
-    for i, linecut in enumerate(linecuts):
-        if i in selectedLinecuts:
+    # numLinecuts = 30
+    # selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype="int")
+    # for i, linecut in enumerate(linecuts):
+    #     if i in selectedLinecuts:
 
-            param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
+    #         param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
 
-            fig, axes = generate_layout(4, title=param_string)
-            linecut_axis_kwargs = {
-                "xlabel": "Temperature (K)",
-                "ylabel": "Resistivity (Ω*cm)",
-                "xlim": (0, None),
-                "ylim": (0, None),
-            }
+    #         fig, axes = generate_layout(4, title=param_string)
+    #         linecut_axis_kwargs = {
+    #             "xlabel": "Temperature (K)",
+    #             "ylabel": "Resistivity (Ω*cm)",
+    #             "xlim": (0, None),
+    #             "ylim": (0, None),
+    #         }
 
-            plot_general_line(axes[0], T, linecut.get("rho"), title="Raw Data", **linecut_axis_kwargs)
-            plot_general_line(axes[1], T, linecut.get("rho_smoothed"), error = linecut["local_noise"], title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
+    #         plot_general_line(axes[0], T, linecut.get("rho"), title="Raw Data", **linecut_axis_kwargs)
+    #         plot_general_line(axes[1], T, linecut.get("rho_smoothed"), error = linecut["local_noise"], title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
 
-            fit_rho = extract_local_fits(T, linecut)
-            n = fit_rho["n"]
-            n_sigma = fit_rho["n_sigma"]
+    #         fit_rho = extract_local_fits(T, linecut)
+    #         n = fit_rho["n"]
+    #         n_sigma = fit_rho["n_sigma"]
 
-            n_avg = moving_average(n, T, 1)
+    #         n_avg = moving_average(n, T, 1)
 
-            plot_general_line(axes[2], T, n, error = n_sigma, title="Raw Rho N", xlim = (0, np.max(T)), ylim = (0, 4))
-            plot_general_line(axes[3], T, n_avg, title="Moving Average of N", xlim = (0, np.max(T)), ylim = (0, 4))
+    #         plot_general_line(axes[2], T, n, error = n_sigma, title="Raw Rho N", xlim = (0, np.max(T)), ylim = (0, 4))
+    #         plot_general_line(axes[3], T, n_avg, title="Moving Average of N", xlim = (0, np.max(T)), ylim = (0, 4))
             
-            for y in [1, 0.8, 1.2]:
-                axes[2].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
-                axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
+    #         for y in [1, 0.8, 1.2]:
+    #             axes[2].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
+    #             axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
 
-            overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
-            overlay_behaviors(axes[1], linecut, drawn_types=["linear", "superlinear", "sublinear", "extraction_range"])
-            fig.tight_layout()
+    #         overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
+    #         overlay_behaviors(axes[1], linecut, drawn_types=["linear", "superlinear", "sublinear", "extraction_range"])
+    #         fig.tight_layout()
 
-            linecut_dir = OUT / Path("linecuts") / Path("moving_average")
-            linecut_dir.mkdir(parents=True, exist_ok=True)
-            path = linecut_dir / f"{param_string}.png"
-            fig.savefig(path, dpi=250, bbox_inches="tight")
-            plt.close(fig)
+    #         linecut_dir = OUT / Path("linecuts") / Path("moving_average")
+    #         linecut_dir.mkdir(parents=True, exist_ok=True)
+    #         path = linecut_dir / f"{param_string}.png"
+    #         fig.savefig(path, dpi=250, bbox_inches="tight")
+    #         plt.close(fig)
 
     # ----- 2d Figures -----
 
@@ -127,11 +139,11 @@ for field in SELECT_FIELDS:
     fig, axes = generate_layout(2, title=name)
 
     draw_heatmap(fig, axes[0], nu, T, R, title="original behaviors")
-    overlay_features_heatmap(axes[0], linecuts, feature_name="features_new", score_name="score_15")
+    overlay_features_heatmap(axes[0], linecuts, feature_name="features")
     overlay_behaviors_heatmap(axes[0],linecuts)
 
-    draw_heatmap(fig, axes[1], nu, T, R, title="3 passes x 5 iterations")
-    overlay_features_heatmap(axes[1], linecuts, feature_name="features_new", score_name="score_15")
+    draw_heatmap(fig, axes[1], nu, T, R, title="refined behaviors")
+    overlay_features_heatmap(axes[1], linecuts, feature_name="features")
     overlay_behaviors_heatmap(axes[1], linecuts, drawn_behaviors="refined_behaviors")
 
     path = OUT / Path("heatmaps_comparison")

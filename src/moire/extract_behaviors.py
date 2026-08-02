@@ -1,6 +1,12 @@
 import numpy as np 
 from moire.extract_power_law import extract_local_fits
 from moire.signal_helpers import moving_average
+from copy import deepcopy
+
+def _hill_sigmoid(x, reference_value, reference_score=0.8, coeff=2):
+
+    C = reference_value**coeff * (1 - reference_score) / reference_score
+    return x**coeff / (x**coeff + C)
 
 def extract_fit_range(T, linecut, pos_frac=0.8) -> list[dict]:
 
@@ -110,12 +116,16 @@ def extract_behavior_fits(T, linecut, sub_threshold = 0.8, super_threshold = 1.2
         return behaviors
 
 
-def refine_behaviors(T, linecut, min_points=1, min_T=None):
+def refine_behaviors(T, linecut, min_points=1, min_T=0):
     # first pass: remove tiny islands (either 1 point, or T range less than some threshold)
     # second pass: ???
 
 
     behaviors = linecut["behaviors"]
+    refined_behaviors = sorted(
+        [behavior.copy() for behavior in behaviors if behavior["type"] != "extraction_range"],
+        key = lambda b:b["T_lower"]
+    )
 
     # so what we do?
     # find the behaviors that are less than T range or 1 point large 
@@ -124,15 +134,34 @@ def refine_behaviors(T, linecut, min_points=1, min_T=None):
     # hmm well lets assume we have that
     # OK and so we do that to refine it
 
-    min_T = 0.05 * np.ptp(T) if min_T is None else min_T
+    def get_T_idx(temp):
+        return np.argmin(np.abs(T - temp))
+    
+    for i, behavior in enumerate(refined_behaviors):
 
-    for behavior in behaviors:
         T_upper = behavior["T_upper"]
         T_lower = behavior["T_lower"]
+        T_range = T_upper - T_lower
+    
+        num_pts = get_T_idx(T_upper) - get_T_idx(T_lower) + 1
+
+        if num_pts <= min_points or T_range <= min_T:
+
+            # perform the thing 
+            # look at top and bottom and see if can reconcile
+            # if not then uh label as unclassified lol
+
+            if i == 0:
+                behavior["type"] = refined_behaviors[i+1]["type"]
+            elif i == len(refined_behaviors) - 1:
+                behavior["type"] = refined_behaviors[i-1]["type"]
+            else: 
+                behavior_upper = refined_behaviors[i+1]["type"]
+                behavior_lower = refined_behaviors[i-1]["type"]
+                if behavior_upper == behavior_lower:
+                    behavior["type"] = behavior_upper 
+                else: 
+                    behavior["type"] = "unlabeled"
 
 
-
-
-
-
-    return []
+    return refined_behaviors
