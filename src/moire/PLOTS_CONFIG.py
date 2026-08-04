@@ -5,7 +5,8 @@ BEHAVIOR_COLORS = {
     "linear": "white",
     "superlinear": "skyblue",
     "sublinear": "grey",
-    "unlabeled" : "orange"
+    "unlabeled" : "orange",
+    "extraction_Tcoh" : "black",
 }
 
 DEFAULT_LINE_PLOT_KWARGS = {

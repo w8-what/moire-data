@@ -64,7 +64,7 @@ def _window(T, center, left_bound, right_bound, min_pts, min_T):
     return left, right
 
 
-def extract_local_fits(T, linecut, rho = "rho", min_pts=10, min_T=1.0, n_bounds=(0.1, 4.0)):
+def extract_local_fits(T, linecut, rho="rho", min_pts=10, min_T=1.0, n_bounds=(0.1, 8.0)):
 
     T = np.asarray(T, float)
     rho = np.asarray(linecut[rho], float)

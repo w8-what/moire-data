@@ -12,7 +12,8 @@ sys.path.insert(0, str(ROOT / Path("src")))
 from moire.io import load_field, clean_sort_data, fmt4
 from moire.signal_helpers import local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
-from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, get_fit_range
+from moire.extract_features import extract_upturns, extract_downturns, extract_Tc
+from moire.extract_behaviors import extract_fit_range
 from moire.extract_power_law import extract_local_fits
 
 from moire.draw_lines import plot_linecut, generate_layout, plot_general_line, overlay_behaviors, overlay_features
@@ -62,10 +63,10 @@ for field in SELECT_FIELDS:
 
     # getting fit range
     for linecut in linecuts:
-        get_fit_range(T, linecut)
+        linecut["behaviors"] += extract_fit_range(T, linecut)
 
         # extracting algebraic behaviors
-        extract_local_fits(T, linecut)
+        linecut["local_power_fit"] = extract_local_fits(T, linecut)
 
 
 
@@ -101,7 +102,7 @@ for field in SELECT_FIELDS:
 
 
             plot_general_line(axes[3], T, n, error = n_sigma, title="Rho Smoothed Fitted n", shaded=True, fill_alpha=0.5, 
-                              xlim = (0, np.max(T)), ylim = (0, 4))
+                              xlim = (0, np.max(T)), ylim = (0, 8))
             for y in [0, 0.8, 1.2]:
                 axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
 
