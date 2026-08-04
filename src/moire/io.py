@@ -6,7 +6,8 @@ import pandas as pd
 
 
 def load_field(E, IN):
-    df = pd.read_csv(IN / f"Rxx_matrix_E-{E}mV_nm.csv")
+    field_token = int(E) if float(E).is_integer() else E
+    df = pd.read_csv(IN / f"Rxx_matrix_E-{field_token}mV_nm.csv")
 
     T = df.iloc[:, 0].astype(float).to_numpy()
     nu = np.array([float(c) for c in df.columns[1:]])
