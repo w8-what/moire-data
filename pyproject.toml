@@ -1,3 +1,30 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moire-data"
+version = "0.1.0"
+description = "Analysis tools for moire resistivity measurements"
+requires-python = ">=3.10"
+dependencies = [
+    "hampel>=1.0,<2",
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24",
+    "pytest>=8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.black]
 line-length = 100
 skip-magic-trailing-comma = true
+target-version = ["py310"]

@@ -1,134 +1,158 @@
+import argparse
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 from hampel import hampel
 
-
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / Path("src")))
+sys.path.insert(0, str(ROOT / "src"))
 
 
-from moire.io import load_field, clean_sort_data, fmt4
-from moire.signal_helpers import local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
-from moire.extract_features import extract_upturns, extract_downturns, extract_Tc
+from moire.draw_lines import generate_layout, overlay_behaviors, overlay_features, plot_general_line
 from moire.extract_behaviors import extract_fit_range
+from moire.extract_features import extract_downturns, extract_Tc, extract_upturns
 from moire.extract_power_law import extract_local_fits
-
-from moire.draw_lines import plot_linecut, generate_layout, plot_general_line, overlay_behaviors, overlay_features
-from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
+from moire.io import clean_sort_data, fmt4, load_field
+from moire.signal_helpers import local_noise
 from moire.update_scoring import update_score
 
-OUT = ROOT / Path("output")
-IN = ROOT / Path("source_data")
-FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
-SELECT_FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
+DEFAULT_FIELDS = (87, 96, 99, 103, 74, 96.2, 151, 176)
 
-for field in SELECT_FIELDS:
 
-    # ----- Data Preprocessing -----
-    T, nu, R = load_field(field, IN)  # loads initial dataset
-    T, nu, R = clean_sort_data(T, nu, R)  # sorts data and removes nans
+def _field_value(value):
+    """Keep integral field names compatible with files such as ``E-96mV``."""
+    number = float(value)
+    return int(number) if number.is_integer() else number
 
-    linecuts = []
-    for i, v in enumerate(nu):
-        linecuts.append({"E": field, "nu": v, "T": T, "rho": R[:, i]})
 
-    # ----- Data Processing -----
+def process_field(field, input_dir, output_dir, num_linecuts=30):
+    """Process one electric field and write a representative set of linecut plots."""
+    T, nu, R = load_field(field, input_dir)
+    T, nu, R = clean_sort_data(T, nu, R)
+
+    linecuts = [
+        {"E": field, "nu": filling, "T": T, "rho": R[:, index]} for index, filling in enumerate(nu)
+    ]
+
     for linecut in linecuts:
+        rho = linecut["rho"]
+        rho_hampel = np.asarray(hampel(rho).filtered_data, dtype=float)
+        rho_smoothed = adaptive_multiscale_smooth(T, rho_hampel, z_threshold=3)
+        linecut["rho_smoothed"] = rho_smoothed
+        linecut["local_noise"] = local_noise(T, rho, rho_smoothed)
 
-        # Smoothing
-
-        rho = linecut.get("rho")
-        rho_hampel = hampel(rho).filtered_data
-        rho_smoothed = adaptive_multiscale_smooth(T, rho, z_threshold=3)
-        linecut.update({"rho_smoothed": rho_smoothed})
-
-        # Noise estimates
-        noise = local_noise(T, rho, rho_smoothed)
-        linecut.update({"local_noise": noise})
-
-        # Upturn & downturn feature extraction
         features = []
-        features += extract_upturns(T, linecut)
-        features += extract_downturns(T, linecut)
-        features += extract_Tc(T, linecut)
-        linecut.update({"features": features})
-        linecut.update({"behaviors": []})
+        features.extend(extract_upturns(T, linecut))
+        features.extend(extract_downturns(T, linecut))
+        features.extend(extract_Tc(T, linecut))
+        linecut["features"] = features
+        linecut["behaviors"] = []
 
-    # ----- New Scoring Updates -----
+    update_score(linecuts)
 
-    linecuts = update_score(linecuts)
-
-    # getting fit range
     for linecut in linecuts:
-        linecut["behaviors"] += extract_fit_range(T, linecut)
-
-        # extracting algebraic behaviors
+        linecut["behaviors"].extend(extract_fit_range(T, linecut))
         linecut["local_power_fit"] = extract_local_fits(T, linecut)
 
+    count = min(max(num_linecuts, 0), len(linecuts))
+    selected_indices = np.linspace(0, len(linecuts) - 1, count, dtype=int) if count else []
+    linecut_dir = output_dir / "linecuts"
+    linecut_dir.mkdir(parents=True, exist_ok=True)
+
+    for index in selected_indices:
+        linecut = linecuts[index]
+        param_string = "  ".join(
+            f"{key} = {fmt4(value)}" for key, value in linecut.items() if key in {"E", "nu"}
+        )
+
+        rho = linecut["rho"]
+        rho_smoothed = linecut["rho_smoothed"]
+        derivative = np.gradient(rho_smoothed, T)
+        fit = linecut["local_power_fit"]
+
+        fig, axes = generate_layout(4, title=param_string)
+        linecut_axis_kwargs = {
+            "xlabel": "Temperature (K)",
+            "ylabel": "Resistivity (Ω*cm)",
+            "xlim": (0, None),
+            "ylim": (0, None),
+        }
+
+        plot_general_line(axes[0], T, rho, title="Raw Data", **linecut_axis_kwargs)
+        plot_general_line(
+            axes[1],
+            T,
+            rho_smoothed,
+            title="Smoothed Data, Features, Behaviors",
+            **linecut_axis_kwargs,
+        )
+        plot_general_line(
+            axes[2],
+            T,
+            derivative,
+            title="Smoothed First Derivative",
+            xlabel="Temperature (K)",
+            ylabel="dρ/dT",
+            xlim=(0, np.max(T)),
+            shaded=True,
+            fill_alpha=0.5,
+        )
+        plot_general_line(
+            axes[3],
+            T,
+            fit["n"],
+            error=np.asarray(fit["n_sigma"], dtype=float),
+            title="Local Power-Law Exponent",
+            xlabel="Temperature (K)",
+            ylabel="n",
+            xlim=(0, np.max(T)),
+            ylim=(0, 8),
+            shaded=True,
+            fill_alpha=0.5,
+        )
+        for value in (0, 0.8, 1.2):
+            axes[3].axhline(y=value, alpha=0.5, linestyle="-", color="grey")
+
+        overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
+        overlay_behaviors(axes[1], linecut)
+        fig.tight_layout()
+        fig.savefig(linecut_dir / f"{param_string}.png", dpi=250, bbox_inches="tight")
+        plt.close(fig)
+
+    return linecuts
 
 
-    # ----- Plotting and creating figures -----
-
-    numLinecuts = 30
-    selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype="int")
-    for i, linecut in enumerate(linecuts):
-        if i in selectedLinecuts:
-
-            param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
-
-            rho = linecut.get("rho")
-            rho_smoothed = linecut.get("rho_smoothed")
-            dpdT = np.gradient(rho_smoothed, T)
-            d2pdT2 = np.gradient(dpdT, T)
-
-            fit = linecut.get("local_power_fit")
-            n = fit.get("n")
-            n_sigma = fit.get("n_sigma")
-
-            fig, axes = generate_layout(4, title=param_string)
-            linecut_axis_kwargs = {
-                "xlabel": "Temperature (K)",
-                "ylabel": "Resistivity (Ω*cm)",
-                "xlim": (0, None),
-                "ylim": (0, None),
-            }
-
-            plot_general_line(axes[0], T, rho, title="Raw Data", **linecut_axis_kwargs)
-            plot_general_line(axes[1], T, rho_smoothed, title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
-            # plot_general_line(axes[2], T, dpdT, title="Raw Rhoo N", shaded=True, fill_alpha=0.5)
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Run the moire resistivity analysis pipeline")
+    parser.add_argument(
+        "--fields",
+        nargs="+",
+        type=_field_value,
+        default=list(DEFAULT_FIELDS),
+        help="electric fields to process (default: all source fields)",
+    )
+    parser.add_argument(
+        "--linecuts",
+        type=int,
+        default=30,
+        help="maximum number of representative linecuts to plot per field",
+    )
+    parser.add_argument("--input-dir", type=Path, default=ROOT / "source_data")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "output")
+    args = parser.parse_args(argv)
+    if args.linecuts < 0:
+        parser.error("--linecuts must be non-negative")
+    return args
 
 
-            plot_general_line(axes[3], T, n, error = n_sigma, title="Rho Smoothed Fitted n", shaded=True, fill_alpha=0.5, 
-                              xlim = (0, np.max(T)), ylim = (0, 8))
-            for y in [0, 0.8, 1.2]:
-                axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
+def main(argv=None):
+    args = parse_args(argv)
+    for field in args.fields:
+        process_field(field, args.input_dir, args.output_dir, args.linecuts)
 
 
-            overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
-            overlay_behaviors(axes[1], linecut)
-            fig.tight_layout()
-
-            linecut_dir = OUT / "linecuts"
-            linecut_dir.mkdir(parents=True, exist_ok=True)
-            path = linecut_dir / f"{param_string}.png"
-            fig.savefig(path, dpi=250, bbox_inches="tight")
-            plt.close(fig)
-
-    # ----- 2d Figures -----
-
-    # name = f"{field}_Score_Comparison"
-    # fig, axes = generate_layout(2, title=name)
-
-    # draw_heatmap(fig, axes[0], nu, T, R, title="original scoring")
-    # overlay_features_heatmap(axes[0], linecuts, score_name="confidence")
-
-    # draw_heatmap(fig, axes[1], nu, T, R, title="3 passes x 5 iterations")
-    # overlay_features_heatmap(axes[1], linecuts, feature_name="features_new", score_name="score_15")
-    # overlay_behaviors_heatmap(axes[1], linecuts, drawn_behaviors=[])
-
-    # path = OUT / Path("heatmaps_comparison")
-    # path.mkdir(exist_ok=True, parents=True)
-    # fig.savefig(path / Path(name + ".png"))
+if __name__ == "__main__":
+    main()

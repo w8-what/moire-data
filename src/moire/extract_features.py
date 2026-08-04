@@ -315,7 +315,7 @@ def extract_Tcoh(
     ]
 
     candidates.sort(key=lambda candidate: candidate["confidence"], reverse=True)
-    return candidates
+    return candidates[:max_candidates]
 
 
 def extract_Tcoh_new(T, linecut, min_pts = 5, min_T = 1):
@@ -387,5 +387,4 @@ def extract_Tcoh_new(T, linecut, min_pts = 5, min_T = 1):
 
 
     return [behavior]
-
 

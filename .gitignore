@@ -1,0 +1,19 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+
+# Generated analysis artifacts
+/output/
+/notebooks/output/
+/scripts/**/output*/
+/scripts/**/linecuts/
+/scripts/**/heatmaps*/
+
+# Build and test artifacts
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/

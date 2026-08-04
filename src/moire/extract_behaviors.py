@@ -12,7 +12,7 @@ def extract_fit_range(T, linecut, pos_frac=0.8) -> list[dict]:
 
     T_lower = T[0]
     T_upper = T[-1]
-    features = linecut.get("features_new")
+    features = linecut.get("features_new") or []
     rho_smoothed = linecut.get("rho_smoothed")
 
     # Updating the lower bound to be the highest upturn
@@ -40,11 +40,13 @@ def extract_fit_range(T, linecut, pos_frac=0.8) -> list[dict]:
     T_lower_idx = np.argmin(np.abs(T - T_lower))
     T_upper_idx = np.argmin(np.abs(T - T_upper))
     dpdT = np.gradient(rho_smoothed, T)
-    total_pts = T_upper_idx - T_lower_idx
+    total_pts = T_upper_idx - T_lower_idx + 1
 
     behavior = []
     # Checking that > 80% of the range is positive
-    if np.count_nonzero(dpdT[T_lower_idx : T_upper_idx + 1] > 0) / total_pts > pos_frac:
+    if total_pts > 0 and np.count_nonzero(
+        dpdT[T_lower_idx : T_upper_idx + 1] > 0
+    ) / total_pts > pos_frac:
         behavior.append({"type": "extraction_range", "T_lower": T_lower, "T_upper": T_upper})
 
     return behavior
