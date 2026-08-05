@@ -8,10 +8,10 @@ sys.path.insert(0, str(ROOT / Path("src")))
 from moire.draw_lines import plot_linecut
 from moire.io import load_field, clean_data
 from moire.signal_helpers import adaptive_smooth, local_noise
-from moire.updated_scoring import extract_upturns, extract_downturns
 from moire.draw_2d import draw_heatmap_candidates
 from hampel import hampel
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
+from moire.draw_lines import plot_line_general
 
 OUT = Path(__file__).resolve().parent / Path("output")
 IN = ROOT / Path("source_data")
@@ -41,11 +41,6 @@ for field in FIELDS:
         noise = local_noise(T, rho, rho_smoothed)
         linecut.update({"local_noise": noise})
 
-        # Upturn & downturn feature extraction
-        features = []
-        features += extract_upturns(T, linecut)
-        features += extract_downturns(T, linecut)
-        linecut.update({"features": features})
 
     # ----- Plotting and creating figures -----
     numLinecuts = 50

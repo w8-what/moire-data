@@ -30,7 +30,7 @@ def generate_layout(numAxes, title="title"):
     return fig, axes
 
 
-def plot_general_line(
+def plot_line_general(
     ax,
     x,
     y,
@@ -63,14 +63,21 @@ def plot_general_line(
     return ax
 
 
-def overlay_features(ax, linecut, feature_name = "features", score_name = "confidence", filter = 0):
+def overlay_features(ax, linecut, drawn_features = "features", 
+                     drawn_types =["upturn", "downturn", "Tcoh", "T\'"], 
+                     score_name = "confidence", filter = 0):
 
     T = linecut.get("T")
     rho_smoothed = linecut.get("rho_smoothed")
-    features = linecut.get(feature_name) or []
+    features = linecut.get(drawn_features) or []
     used_labels = set()
 
+    # Draw each feature on the linecut
     for feature in features:
+
+        if feature["type"] not in drawn_types:
+            continue
+
         style = get_feature_style(feature.get("type"))
         if style is None:
             continue
@@ -178,17 +185,18 @@ def overlay_behaviors(ax, linecut, drawn_behaviors = "behaviors", drawn_types = 
     return ax
 
 
-def plot_linecut(T: list, linecut, OUT):
+def plot_line_default(T, linecut):
     """Plot the raw linecut, smoothed data, and first two derivatives."""
 
     param_string = "  ".join(
         f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu"
     )
 
-    rho = linecut.get("rho")
-    rho_smoothed = linecut.get("rho_smoothed")
+    rho = linecut["rho"]
+    rho_smoothed = linecut["rho_smoothed"]
+    fit = linecut["exponent_fit"]
     dpdT = np.gradient(rho_smoothed, T)
-    d2pdT2 = np.gradient(dpdT, T)
+    noise = linecut["local_noise"]
 
     fig, axes = generate_layout(4, title=param_string)
     linecut_axis_kwargs = {
@@ -198,18 +206,16 @@ def plot_linecut(T: list, linecut, OUT):
         "ylim": (0, None),
     }
 
-    plot_general_line(axes[0], T, rho, title="Raw Data", **linecut_axis_kwargs)
-    plot_general_line(axes[1], T, rho_smoothed, title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
-    plot_general_line(axes[2], T, dpdT, title="First Derivative", shaded=True, fill_alpha=0.5)
-    plot_general_line(axes[3], T, d2pdT2, title="Second Derivative", shaded=True, fill_alpha=0.5)
+    plot_line_general(axes[0], T, rho, error=noise, title="Raw Data", **linecut_axis_kwargs)
+    plot_line_general(axes[1], T, rho_smoothed, error=noise, title=
+                      "Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
+    plot_line_general(axes[2], T, dpdT, title="First Derivative", shaded=True, fill_alpha=0.5)
+    plot_line_general(axes[3], T, fit, title="Second Derivative", shaded=True, fill_alpha=0.5)
 
-    overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
+    overlay_features(axes[1], linecut, score_name="score_15", drawn_features="features_rescored")
+    overlay_features(axes[1], linecut, drawn_features="features", drawn_types= ["Tcoh, T\'"])
     overlay_behaviors(axes[1], linecut)
-    fig.tight_layout()
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / Path(param_string + ".png")
-    fig.savefig(path, dpi=250, bbox_inches="tight")
-    plt.close(fig)
+    fig.tight_layout()
 
     return fig, axes

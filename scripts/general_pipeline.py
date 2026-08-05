@@ -8,17 +8,23 @@ from hampel import hampel
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / Path("src")))
 
-
+# Data Preprocessing Imports
 from moire.io import load_field, clean_sort_data, fmt4
 from moire.signal_helpers import local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
-from moire.extract_features import extract_upturns, extract_downturns, extract_Tc
+
+# Extracting Features and Behavior Imports
+from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_Tcoh
 from moire.extract_behaviors import extract_fit_range
 from moire.extract_power_law import extract_local_fits
 
-from moire.draw_lines import plot_linecut, generate_layout, plot_general_line, overlay_behaviors, overlay_features
+# Plotting Imports
+from moire.draw_lines import generate_layout, plot_line_default, plot_line_general, overlay_behaviors, overlay_features
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
+
+# Score Updating
 from moire.update_scoring import update_score
+
 
 OUT = ROOT / Path("output")
 IN = ROOT / Path("source_data")
@@ -39,10 +45,9 @@ for field in SELECT_FIELDS:
     for linecut in linecuts:
 
         # Smoothing
-
         rho = linecut.get("rho")
         rho_hampel = hampel(rho).filtered_data
-        rho_smoothed = adaptive_multiscale_smooth(T, rho, z_threshold=3)
+        rho_smoothed = adaptive_multiscale_smooth(T, rho_hampel, z_threshold=3)
         linecut.update({"rho_smoothed": rho_smoothed})
 
         # Noise estimates
@@ -55,7 +60,6 @@ for field in SELECT_FIELDS:
         features += extract_downturns(T, linecut)
         features += extract_Tc(T, linecut)
         linecut.update({"features": features})
-        linecut.update({"behaviors": []})
 
     # ----- New Scoring Updates -----
 
@@ -63,10 +67,10 @@ for field in SELECT_FIELDS:
 
     # getting fit range
     for linecut in linecuts:
-        linecut["behaviors"] += extract_fit_range(T, linecut)
+        linecut["behaviors"] = extract_fit_range(T, linecut)
+        linecut["exponent_fit"] = extract_local_fits(T, linecut)
 
-        # extracting algebraic behaviors
-        linecut["local_power_fit"] = extract_local_fits(T, linecut)
+        linecut["features"] += extract_Tcoh(T, linecut)
 
 
 
@@ -77,43 +81,15 @@ for field in SELECT_FIELDS:
     for i, linecut in enumerate(linecuts):
         if i in selectedLinecuts:
 
-            param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
+            param_string = "     ".join([f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k =="nu"])
+            fig, axes = plot_line_default(T, linecut)
 
-            rho = linecut.get("rho")
-            rho_smoothed = linecut.get("rho_smoothed")
-            dpdT = np.gradient(rho_smoothed, T)
-            d2pdT2 = np.gradient(dpdT, T)
-
-            fit = linecut.get("local_power_fit")
-            n = fit.get("n")
-            n_sigma = fit.get("n_sigma")
-
-            fig, axes = generate_layout(4, title=param_string)
-            linecut_axis_kwargs = {
-                "xlabel": "Temperature (K)",
-                "ylabel": "Resistivity (Ω*cm)",
-                "xlim": (0, None),
-                "ylim": (0, None),
-            }
-
-            plot_general_line(axes[0], T, rho, title="Raw Data", **linecut_axis_kwargs)
-            plot_general_line(axes[1], T, rho_smoothed, title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
-            # plot_general_line(axes[2], T, dpdT, title="Raw Rhoo N", shaded=True, fill_alpha=0.5)
-
-
-            plot_general_line(axes[3], T, n, error = n_sigma, title="Rho Smoothed Fitted n", shaded=True, fill_alpha=0.5, 
-                              xlim = (0, np.max(T)), ylim = (0, 8))
-            for y in [0, 0.8, 1.2]:
-                axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
-
-
-            overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
-            overlay_behaviors(axes[1], linecut)
-            fig.tight_layout()
-
-            linecut_dir = OUT / "linecuts"
+            # Creating directory
+            linecut_dir = OUT / Path("linecuts")
             linecut_dir.mkdir(parents=True, exist_ok=True)
-            path = linecut_dir / f"{param_string}.png"
+            path = str(linecut_dir / Path(f"{param_string}.png"))
+
+            # Saving and closing figure
             fig.savefig(path, dpi=250, bbox_inches="tight")
             plt.close(fig)
 
