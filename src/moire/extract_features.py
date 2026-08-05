@@ -318,74 +318,325 @@ def extract_Tcoh(
     return candidates
 
 
-def extract_Tcoh_new(T, linecut, min_pts = 5, min_T = 1):
+def extract_Tcoh_best_fits(
+    T,
+    linecut,
+    max_candidates=5,
+    deviation=0.10,
+    min_n_probability=0.8,
+    min_fit_points=6,
+    min_fit_span=0.5,
+    persistence=0.5,
+    persistence_fraction=0.8,
+) -> list[dict]:
+    """Return Tcoh candidates from the best independently ranked T² fits."""
+    T = np.asarray(T, float)
+    rho = np.asarray(linecut["rho"], float)
+    smooth = np.asarray(linecut.get("rho_smoothed", rho), float)
+    sigma = np.asarray(linecut.get("local_noise", np.ones_like(T)), float).copy()
 
-    candidate_Tcohs = []
+    # Replace unusable noise estimates before doing either weighted fit.
+    valid_sigma = np.isfinite(sigma) & (sigma > 0)
+    sigma[~valid_sigma] = np.median(sigma[valid_sigma]) if np.any(valid_sigma) else 1.0
 
-    # find intervals where it is more than 80% n~2
+    # Anchor every candidate window to the bottom of the extraction range.
+    lower, upper = T[0], T[-1]
+    for behavior in linecut.get("behaviors", []):
+        if behavior.get("type") == "extraction_range":
+            lower, upper = sorted((behavior["T_lower"], behavior["T_upper"]))
+            break
 
-        # start with 5 points and see if it is more than 80%
-        # if it is not then skip 
+    allowed = np.flatnonzero((T >= lower) & (T <= upper))
+    if len(allowed) < min_fit_points + 1:
+        return []
+
+    first, last = allowed[0], allowed[-1]
+    quadratic_fits = []
+
+    # Screen each expanding window with a free exponent, then refit accepted
+    # windows using the physical rho = rho0 + A*T² model.
+    for end in allowed[min_fit_points - 1 :]:
+        if T[end] - T[first] < min_fit_span:
+            continue
+        if np.searchsorted(T, T[end] + persistence, side="left") > last:
+            break
+
+        selection = slice(first, end + 1)
+        rough_fit = fit_power_law(
+            T[selection], rho[selection], sigma[selection], (0.2, 4.0)
+        )
+        if rough_fit is None or not np.isfinite(rough_fit["n_sigma"]):
+            continue
+
+        if rough_fit["n_sigma"] == 0:
+            n_probability = float(1.5 <= rough_fit["n"] <= 2.5)
+        else:
+            n_probability = norm.cdf(
+                (2.5 - rough_fit["n"]) / rough_fit["n_sigma"]
+            ) - norm.cdf((1.5 - rough_fit["n"]) / rough_fit["n_sigma"])
+        if n_probability < min_n_probability:
+            continue
+
+        design = np.column_stack((np.ones(end - first + 1), T[selection] ** 2))
+        weighted_design = design / sigma[selection, None]
+        rho0, coefficient = np.linalg.lstsq(
+            weighted_design, rho[selection] / sigma[selection], rcond=None
+        )[0]
+        if coefficient <= 0:
+            continue
+
+        fitted = rho0 + coefficient * T[selection] ** 2
+        residuals = (rho[selection] - fitted) / sigma[selection]
+        degrees_of_freedom = len(residuals) - 2
+        reduced_chi2 = np.sum(residuals**2) / degrees_of_freedom
+        if not np.isfinite(reduced_chi2):
+            continue
+
+        quadratic_fits.append(
+            {
+                "end": end,
+                "rho0": float(rho0),
+                "A": float(coefficient),
+                "n": rough_fit["n"],
+                "n_sigma": rough_fit["n_sigma"],
+                "n_probability": float(n_probability),
+                "reduced_chi2": float(reduced_chi2),
+            }
+        )
+
+    # Lower reduced chi-squared is better; prefer the longer fit on exact ties.
+    quadratic_fits.sort(
+        key=lambda fit: (fit["reduced_chi2"], -(T[fit["end"]] - T[first]))
+    )
+
+    candidates = []
+    for fit in quadratic_fits:
+        predicted = fit["rho0"] + fit["A"] * T**2
+        difference = abs(smooth - predicted)
+        exceeds = (difference / np.maximum(abs(predicted), 1e-12) >= deviation) & (
+            difference / sigma >= 1.5
+        )
+
+        # Find the first 10% departure that persists over the requested
+        # temperature span. The fraction is integrated over temperature so the
+        # result is not biased by uneven sampling density.
+        transition_idx = None
+        for idx in range(fit["end"] + 1, last + 1):
+            stop = np.searchsorted(T, T[idx] + persistence, side="left")
+            if stop > last:
+                break
+
+            local_T = T[idx : stop + 1]
+            local_exceeds = exceeds[idx : stop + 1].astype(float)
+            persistent_fraction = np.trapezoid(local_exceeds, local_T) / np.ptp(
+                local_T
+            )
+            if persistent_fraction >= persistence_fraction:
+                transition_idx = idx
+                break
+
+        if transition_idx is None:
+            continue
+
+        candidates.append(
+            {
+                "T": float(T[transition_idx]),
+                "nu": linecut.get("nu"),
+                "type": "Tcoh",
+                "confidence": float(1.0 / (1.0 + fit["reduced_chi2"])),
+                "fit_T_lower": float(T[first]),
+                "fit_T_upper": float(T[fit["end"]]),
+                "n": float(fit["n"]),
+                "n_sigma": float(fit["n_sigma"]),
+                "n_probability": fit["n_probability"],
+                "reduced_chi2": fit["reduced_chi2"],
+            }
+        )
+        if len(candidates) == max_candidates:
+            break
+
+    return candidates
+
+
+def extract_Tcoh_direct_fits(
+    T,
+    linecut,
+    max_candidates=5,
+    deviation=0.10,
+    min_fit_points=6,
+    min_fit_span=0.5,
+    max_reduced_chi2=3.0,
+) -> list[dict]:
+    """Return direct 10%-departure candidates from the best T² fits."""
+    T = np.asarray(T, float)
+    rho = np.asarray(linecut["rho"], float)
+    smooth = np.asarray(linecut.get("rho_smoothed", rho), float)
+    sigma = np.asarray(linecut.get("local_noise", np.ones_like(T)), float).copy()
+
+    # Replace invalid noise estimates before the weighted T² fits.
+    valid_sigma = np.isfinite(sigma) & (sigma > 0)
+    sigma[~valid_sigma] = np.median(sigma[valid_sigma]) if np.any(valid_sigma) else 1.0
+
+    # Anchor every fit to the bottom of the existing extraction range.
+    lower, upper = T[0], T[-1]
+    for behavior in linecut.get("behaviors", []):
+        if behavior.get("type") == "extraction_range":
+            lower, upper = sorted((behavior["T_lower"], behavior["T_upper"]))
+            break
+
+    allowed = np.flatnonzero((T >= lower) & (T <= upper))
+    if len(allowed) < min_fit_points + 1:
+        return []
+
+    first, last = allowed[0], allowed[-1]
+    quadratic_fits = []
+
+    # Fit every expanding low-temperature window directly to rho0 + A*T².
+    # This avoids rejecting short windows whose free exponent is uncertain.
+    for end in allowed[min_fit_points - 1 : -1]:
+        if T[end] - T[first] < min_fit_span:
+            continue
+
+        selection = slice(first, end + 1)
+        design = np.column_stack((np.ones(end - first + 1), T[selection] ** 2))
+        weighted_design = design / sigma[selection, None]
+        rho0, coefficient = np.linalg.lstsq(
+            weighted_design, rho[selection] / sigma[selection], rcond=None
+        )[0]
+        if coefficient <= 0:
+            continue
+
+        fitted = rho0 + coefficient * T[selection] ** 2
+        residuals = (rho[selection] - fitted) / sigma[selection]
+        reduced_chi2 = np.sum(residuals**2) / (len(residuals) - 2)
+        if not np.isfinite(reduced_chi2) or reduced_chi2 > max_reduced_chi2:
+            continue
+
+        quadratic_fits.append(
+            {
+                "end": end,
+                "rho0": float(rho0),
+                "A": float(coefficient),
+                "reduced_chi2": float(reduced_chi2),
+            }
+        )
+
+    # Select the requested best fits before looking for a departure. This
+    # prevents lower-quality short fits from creating false candidates.
+    quadratic_fits.sort(
+        key=lambda fit: (
+            fit["reduced_chi2"],
+            -(T[fit["end"]] - T[first]),
+        )
+    )
+
+    candidates = []
+    for fit in quadratic_fits[:max_candidates]:
+        # Apply the paper's 10% criterion directly to the smoothed linecut.
+        predicted = fit["rho0"] + fit["A"] * T**2
+        relative_difference = abs(smooth - predicted) / np.maximum(
+            abs(predicted), 1e-12
+        )
+        departures = np.flatnonzero(
+            relative_difference[fit["end"] + 1 : last + 1] >= deviation
+        )
+        if not len(departures):
+            continue
+        transition_idx = fit["end"] + 1 + departures[0]
+
+        candidates.append(
+            {
+                "T": float(T[transition_idx]),
+                "nu": linecut.get("nu"),
+                "type": "Tcoh",
+                "confidence": float(1.0 / (1.0 + fit["reduced_chi2"])),
+                "fit_T_lower": float(T[first]),
+                "fit_T_upper": float(T[fit["end"]]),
+                "rho0": fit["rho0"],
+                "A": fit["A"],
+                "reduced_chi2": fit["reduced_chi2"],
+            }
+        )
+
+    return candidates
+
+
+def extract_Tcoh_new(T, linecut, min_pts=5, min_T=1):
+    """Find the largest extraction interval with at least 50% T² support."""
+    T = np.asarray(T, float)
+    min_T = np.ptp(T) * 0.2 if min_T is None else min_T
+
+    # Reuse the local power-law fits so each temperature has an estimated
+    # exponent n and its uncertainty.
     fit = extract_local_fits(T, linecut)
     n, n_sigma = np.asarray(fit["n"]), np.asarray(fit["n_sigma"])
 
-
     def get_T_idx(temp):
-        return np.argmin(np.abs(T-temp))
+        return int(np.argmin(np.abs(T - temp)))
 
-    # Returns the probablity that the average n in the index range lies between n_lower and n_upper
     def get_n_frac(idx_lower, idx_upper, n_lower, n_upper):
-        # for each n calculate the following
-            # the probbality that n lies within n_lower and n_upper
-            # append that to the n_sum
+        # Convert each valid local fit into the probability that n lies within
+        # the requested bounds.
+        local_T = T[idx_lower:idx_upper]
+        local_n = n[idx_lower:idx_upper]
+        local_sigma = n_sigma[idx_lower:idx_upper]
+        valid = np.isfinite(local_n) & np.isfinite(local_sigma) & (local_sigma > 0)
+        if not np.any(valid):
+            return 0.0
 
-        sum_n = 0
-        num_n = idx_upper - idx_lower + 1
-        for idx in range(idx_lower, idx_upper):
-            # calculate prob that n lies within n_lower and n_upper
-            if n_sigma[idx] is None or not(np.isfinite(n_sigma[idx])):
-                continue 
-            else:
-                prob = norm.cdf(n_upper, loc = n[idx], scale = n_sigma[idx]) - norm.cdf(
-                    n_lower, loc = n[idx], scale = n_sigma[idx])
-                sum_n += prob
-                num_n += 1
+        local_T = local_T[valid]
+        probabilities = norm.cdf(
+            n_upper, loc=local_n[valid], scale=local_sigma[valid]
+        ) - norm.cdf(n_lower, loc=local_n[valid], scale=local_sigma[valid])
+        if len(local_T) == 1:
+            return float(probabilities[0])
 
-        return sum_n / num_n
+        # Weight by temperature span so dense low-T sampling does not dominate
+        # wider, sparsely sampled high-T intervals.
+        return float(np.trapezoid(probabilities, local_T) / np.ptp(local_T))
 
-    # Getting range whereby on average 
-    idx_lower, idx_upper = 0, max(min_pts-1, get_T_idx(T[0] + min_T))
-    for behavior in linecut["behaviors"]:
-        if behavior["type"] == "extraction_range":
-            idx_lower = get_T_idx(behavior["T_lower"])
+    # Use the existing extraction range, or the full measured range by default.
+    extraction_range = next(
+        (
+            behavior
+            for behavior in linecut.get("behaviors", [])
+            if behavior.get("type") == "extraction_range"
+        ),
+        {"T_lower": T[0], "T_upper": T[-1]},
+    )
+    range_lower, range_upper = sorted(
+        (extraction_range["T_lower"], extraction_range["T_upper"])
+    )
+    idx_lower = get_T_idx(range_lower)
+    range_upper_idx = get_T_idx(range_upper)
 
-    if get_n_frac(idx_lower, idx_upper, 1.5, 2.5, ) < 0.8:
-        return [] 
+    # Start with the smallest interval satisfying both minimum constraints.
+    # idx_upper is exclusive throughout this function.
+    idx_upper = max(
+        idx_lower + min_pts,
+        int(np.searchsorted(T, T[idx_lower] + min_T, side="left")) + 1,
+    )
 
-    while get_n_frac(idx_lower, idx_upper, 1.5, 2.5) >= 0.8 and idx_upper < len(T)-1:
+    if idx_upper > range_upper_idx + 1:
+        return []
+    if get_n_frac(idx_lower, idx_upper, 1.2, 8) < 0.5:
+        return []
+
+    # Grow the interval while its temperature-weighted quadratic support stays
+    # above the acceptance threshold and within the extraction range.
+    last_good_upper = None
+    while idx_upper <= range_upper_idx + 1:
+        if get_n_frac(idx_lower, idx_upper, 1.5, 2.5) < 0.5:
+            break
+        last_good_upper = idx_upper
         idx_upper += 1
 
-    behavior = {
-        "type" : "extraction_Tcoh",
-        "T_lower" : T[idx_lower],
-        "T_upper" : T[idx_upper]
-    }
-
-    
-
-    
-
-
-
-    # for each interval fit T^2 and keep ones that are validated by goodness of fit
-
-    # keep largest 5 intervals
-
-    # for each interval make a point with a score 
-
-    # layer the point with scores on top of each other 
-
-
-    return [behavior]
-
-
+    if last_good_upper is None:
+        return []
+    return [
+        {
+            "type": "extraction_Tcoh",
+            "T_lower": T[idx_lower],
+            "T_upper": T[last_good_upper - 1],
+        }
+    ]

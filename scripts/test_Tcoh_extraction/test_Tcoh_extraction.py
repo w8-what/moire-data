@@ -13,7 +13,7 @@ from moire.io import load_field, clean_sort_data, fmt4
 from moire.signal_helpers import local_noise, moving_average
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
 
-from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_Tcoh, extract_Tcoh_new
+from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_Tcoh, extract_Tcoh_new, extract_Tcoh_best_fits, extract_Tcoh_direct_fits
 from moire.extract_power_law import extract_local_fits
 from moire.extract_behaviors import extract_fit_range, extract_behavior_fits, refine_behaviors
 from moire.update_scoring import update_score
@@ -73,7 +73,7 @@ for field in SELECT_FIELDS:
             "refined_behaviors" : refine_behaviors(T, linecut, min_points=3)
         })
 
-        linecut["behaviors"] += extract_Tcoh_new(T, linecut)
+        linecut["features"] += extract_Tcoh_best_fits(T, linecut)
 
 
 
@@ -144,8 +144,7 @@ for field in SELECT_FIELDS:
 
     draw_heatmap(fig, axes[1], nu, T, R, title="T_coh extraction")
     overlay_features_heatmap(axes[1], linecuts, feature_name="features")
-    overlay_behaviors_heatmap(axes[1], linecuts, drawn_types=["extraction_Tcoh"])
 
-    path = OUT / Path("heatmaps_Tcoh_range")
+    path = OUT / Path("heatmaps_Tcoh_direct")
     path.mkdir(exist_ok=True, parents=True)
     fig.savefig(path / Path(name + ".png"))
