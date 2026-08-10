@@ -123,7 +123,7 @@ def draw_heatmaps():
         draw_heatmap(fig, axes[0], dataset["nu"], dataset["T"], dataset["rho"], title="Original Features")
         overlay_features_heatmap(axes[0], dataset["linecuts"], score_name="confidence")
 
-        draw_heatmap(fig, axes[1], dataset["nu"], dataset["T"], dataset["rho"], title="Refined Features")
+        draw_heatmap(fig, axes[1], dataset["nu"], dataset["T"], dataset["rho"], title=" Features")
         overlay_features_heatmap(axes[1], dataset["linecuts"], feature_name="features_new", score_name="score_15")
 
         path = OUT / Path("heatmaps_comparison")
@@ -131,4 +131,4 @@ def draw_heatmaps():
         fig.savefig(path / Path(str(dataset["E"]) + ".png"))
 
 if __name__ == "__main__":
-    draw_linecuts()
+    draw_heatmaps()
