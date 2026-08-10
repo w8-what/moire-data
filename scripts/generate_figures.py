@@ -23,13 +23,15 @@ from moire.draw_lines import generate_layout, plot_line_default, plot_line_gener
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
 
 # Score Updating
-from moire.update_scoring import update_score
+from moire.update_scoring import update_extrema
 
 
 OUT = ROOT / Path("output") / Path("figures")
 IN = ROOT / Path("source_data")
 FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
 SELECT_FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
+
+datasets = []
 
 for field in SELECT_FIELDS:
 
@@ -39,7 +41,10 @@ for field in SELECT_FIELDS:
 
     linecuts = []
     for i, v in enumerate(nu):
-        linecuts.append({"E": field, "nu": v, "T": T, "rho": R[:, i]})
+        linecuts.append({"nu": v, "rho": R[:, i]})
+
+    # Creating and appending dataset dictionaries
+    datasets.append({"E": field, "T": T, "nu": nu, "rho": R, "linecuts": linecuts})
 
     # ----- Data Processing -----
     for linecut in linecuts:
@@ -54,16 +59,17 @@ for field in SELECT_FIELDS:
         noise = local_noise(T, rho, rho_smoothed)
         linecut.update({"local_noise": noise})
 
-        # # Upturn & downturn feature extraction
-        # features = []
-        # features += extract_upturns(T, linecut)
-        # features += extract_downturns(T, linecut)
-        # features += extract_Tc(T, linecut)
-        # linecut.update({"features": features})
+        # Upturn & downturn feature extraction
+        features = []
+        features += extract_upturns(T, linecut)
+        features += extract_downturns(T, linecut)
+        features += extract_Tc(T, linecut)
+        linecut.update({"features": features})
 
     # ----- New Scoring Updates -----
 
-    # linecuts = update_score(linecuts)
+    extrema = update_extrema(T, linecuts)
+    datasets[-1]["extrema"] = extrema
 
     # # getting fit range
     # for linecut in linecuts:
@@ -73,52 +79,56 @@ for field in SELECT_FIELDS:
     #     linecut["features"] += extract_Tcoh(T, linecut)
 
 
-    # ----- Plotting and creating figures -----
+def draw_linecuts():
 
-    numLinecuts = 30
-    selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype="int")
-    for i, linecut in enumerate(linecuts):
-        if i in selectedLinecuts:
+    for dataset in datasets:
 
-            param_string = "     ".join([f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k =="nu"])
+        numLinecuts = 30
+        selectedLinecuts = np.linspace(0, len(dataset["linecuts"]), numLinecuts, dtype="int")
+        for i, linecut in enumerate(dataset["linecuts"]):
+            if i in selectedLinecuts:
 
-            linecut_axis_kwargs = {
-                "xlabel": "Temperature (K)",
-                "ylabel": "Resistivity (Ω*cm)",
-                "xlim": (0, None),
-                "ylim": (0, None),
-            }
+                param_string = f"E = {dataset["E"]}" + "     " + f"nu = {linecut["nu"]}"
 
-            fig, axes = generate_layout(2, title=f"{param_string}")
-            plot_line_general(axes[0], T, linecut["rho"], title="Raw Data", **linecut_axis_kwargs)
-            plot_line_general(axes[1], T, linecut["rho_smoothed"], error=linecut["local_noise"], title="Smoothed Data", **linecut_axis_kwargs)
+                linecut_axis_kwargs = {
+                    "xlabel": "Temperature (K)",
+                    "ylabel": "Resistivity (Ω*cm)",
+                    "xlim": (0, None),
+                    "ylim": (0, None),
+                }
 
-            # Creating directory
-            linecut_dir = OUT / Path("noise_compairson")
-            linecut_dir.mkdir(parents=True, exist_ok=True)
-            path = str(linecut_dir / Path(f"{param_string}.png"))
+                fig, axes = generate_layout(2, title=f"{param_string}")
+                plot_line_general(axes[0], dataset["T"], linecut["rho"], title="Raw Data", **linecut_axis_kwargs)
+                plot_line_general(axes[1], dataset["T"], linecut["rho_smoothed"], error=linecut["local_noise"], title="Smoothed Data", **linecut_axis_kwargs)
 
-            # Saving and closing figure
-            fig.savefig(path, dpi=250, bbox_inches="tight")
-            plt.close(fig)
+                overlay_features(axes[1], dataset["T"], linecut, drawn_types=["upturn", "downturn"])
 
-    # ----- 2d Figures -----
+                # Creating directory
+                linecut_dir = OUT / Path("scoring_extremas")
+                linecut_dir.mkdir(parents=True, exist_ok=True)
+                path = str(linecut_dir / Path(f"{param_string}.png"))
 
-    # name = f"{field}_Score_Comparison"
-    # fig, axes = generate_layout(2, title=name)
+                # Saving and closing figure
+                fig.savefig(path, dpi=250, bbox_inches="tight")
+                plt.close(fig)
 
-    # draw_heatmap(fig, axes[0], nu, T, R, title="original scoring")
-    # overlay_features_heatmap(axes[0], linecuts, score_name="confidence")
 
-    # draw_heatmap(fig, axes[1], nu, T, R, title="3 passes x 5 iterations")
-    # overlay_features_heatmap(axes[1], linecuts, feature_name="features_new", score_name="score_15")
-    # overlay_behaviors_heatmap(axes[1], linecuts, drawn_behaviors=[])
+def draw_heatmaps():
 
-    # path = OUT / Path("heatmaps_comparison")
-    # path.mkdir(exist_ok=True, parents=True)
-    # fig.savefig(path / Path(name + ".png"))
+    for dataset in datasets:
+
+        name = f"{dataset["E"]}_mV/nm_Score_Comparison"
+        fig, axes = generate_layout(2, title=name)
+
+        draw_heatmap(fig, axes[0], dataset["nu"], dataset["T"], dataset["rho"], title="Original Features")
+        overlay_features_heatmap(axes[0], dataset["linecuts"], score_name="confidence")
+
+        draw_heatmap(fig, axes[1], dataset["nu"], dataset["T"], dataset["rho"], title="Refined Features")
+        overlay_features_heatmap(axes[1], dataset["linecuts"], feature_name="features_new", score_name="score_15")
+
+        path = OUT / Path("heatmaps_comparison")
+        path.mkdir(exist_ok=True, parents=True)
+        fig.savefig(path / Path(str(dataset["E"]) + ".png"))
 
 if __name__ == "__main__":
-    
-
-    print("hellow world")
+    draw_linecuts()

@@ -24,7 +24,7 @@ from moire.extract_features import (  # noqa: E402
 )
 from moire.io import clean_sort_data, load_field  # noqa: E402
 from moire.signal_helpers import local_noise  # noqa: E402
-from moire.update_scoring import update_score  # noqa: E402
+from moire.update_scoring import update_extrema  # noqa: E402
 
 DEFAULT_FIELDS = [74, 87, 96, 96.2, 99, 103, 151, 176]
 LOSSES = {"linear", "soft_l1", "cauchy"}
@@ -66,7 +66,7 @@ def build_field(field):
         )
         linecuts.append(linecut)
 
-    update_score(linecuts)
+    update_extrema(T, linecuts)
     for linecut in linecuts:
         get_fit_range(T, linecut)
 

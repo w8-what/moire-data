@@ -63,11 +63,10 @@ def plot_line_general(
     return ax
 
 
-def overlay_features(ax, linecut, drawn_features = "features", 
+def overlay_features(ax, T, linecut, drawn_features = "features", 
                      drawn_types =["upturn", "downturn", "Tcoh", "T\'"], 
                      score_name = "confidence", filter = 0):
 
-    T = linecut.get("T")
     rho_smoothed = linecut.get("rho_smoothed")
     features = linecut.get(drawn_features) or []
     used_labels = set()

@@ -16,7 +16,7 @@ from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
 from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_Tcoh, extract_Tcoh_new, extract_Tcoh_best_fits, extract_Tcoh_direct_fits
 from moire.extract_power_law import extract_local_fits
 from moire.extract_behaviors import extract_fit_range, extract_behavior_fits, refine_behaviors
-from moire.update_scoring import update_score
+from moire.update_scoring import update_extrema
 
 from moire.draw_lines import generate_layout, plot_general_line, overlay_behaviors, overlay_features
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
@@ -59,7 +59,7 @@ for field in SELECT_FIELDS:
 
     # ----- New Scoring Updates -----
 
-    linecuts = update_score(linecuts)
+    update_extrema(T, linecuts)
 
     # getting fit range
     for linecut in linecuts:

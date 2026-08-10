@@ -23,7 +23,7 @@ from moire.draw_lines import generate_layout, plot_line_default, plot_line_gener
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
 
 # Score Updating
-from moire.update_scoring import update_score
+from moire.update_scoring import update_extrema
 
 
 OUT = ROOT / Path("output")
@@ -63,7 +63,7 @@ for field in SELECT_FIELDS:
 
     # ----- New Scoring Updates -----
 
-    linecuts = update_score(linecuts)
+    update_extrema(T, linecuts)
 
     # getting fit range
     for linecut in linecuts:

@@ -13,7 +13,7 @@ from moire.extract_features import extract_upturns, extract_downturns, extract_T
 
 from moire.draw_lines import plot_general_line, generate_layout, overlay_features, overlay_behaviors
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
-from moire.update_scoring import update_score
+from moire.update_scoring import update_extrema
 import matplotlib.pyplot as plt
 
 OUT = Path(__file__).resolve().parent / Path("output_hampel_movingavg")
@@ -55,7 +55,7 @@ for field in [103, 99]:
 
     # ----- New Scoring Updates -----
 
-    linecuts = update_score(linecuts)
+    update_extrema(T, linecuts)
 
     # getting fit range
     for linecut in linecuts:

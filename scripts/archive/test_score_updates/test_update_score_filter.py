@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from moire.update_scoring import update_score
+from moire.update_scoring import update_extrema
 
 
 def example_linecuts():
@@ -24,9 +24,10 @@ class FilteredScoreTests(unittest.TestCase):
     def test_defaults_create_fifteen_scores_on_surviving_features(self):
         linecuts = example_linecuts()
 
-        result = update_score(linecuts)
+        result = update_extrema(linecuts[0]["T"], linecuts)
 
-        self.assertIs(result, linecuts)
+        self.assertEqual(result, linecuts[0]["features_new"])
+        self.assertIs(result[0], linecuts[0]["features_new"][0])
         self.assertEqual(len(linecuts[0]["features_new"]), 1)
         survivor = linecuts[0]["features_new"][0]
         self.assertEqual(survivor["confidence"], 0.8)
@@ -36,7 +37,7 @@ class FilteredScoreTests(unittest.TestCase):
         linecuts = example_linecuts()
         original_low_feature = linecuts[0]["features"][1]
 
-        update_score(linecuts, num_iter=1, num_passes=1, filter=0.01)
+        update_extrema(linecuts[0]["T"], linecuts, num_iter=1, num_passes=1, filter=0.01)
 
         self.assertEqual(len(linecuts[0]["features"]), 2)
         self.assertNotIn("score_1", original_low_feature)
@@ -47,7 +48,8 @@ class FilteredScoreTests(unittest.TestCase):
         for arguments in ({"num_iter": 0}, {"num_passes": 0}, {"filter": -0.01}, {"filter": 1.01}):
             with self.subTest(arguments=arguments):
                 with self.assertRaises(ValueError):
-                    update_score(example_linecuts(), **arguments)
+                    linecuts = example_linecuts()
+                    update_extrema(linecuts[0]["T"], linecuts, **arguments)
 
 
 if __name__ == "__main__":

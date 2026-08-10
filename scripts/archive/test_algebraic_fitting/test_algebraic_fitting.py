@@ -19,7 +19,7 @@ from moire.extract_behaviors import get_fit_range, extract_beheavior_fits
 
 from moire.draw_lines import generate_layout, plot_general_line, overlay_behaviors, overlay_features
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
-from moire.update_scoring import update_score
+from moire.update_scoring import update_extrema
 
 OUT = Path(__file__).resolve().parent
 IN = ROOT / Path("source_data")
@@ -60,7 +60,7 @@ for field in SELECT_FIELDS:
 
     # ----- New Scoring Updates -----
 
-    linecuts = update_score(linecuts)
+    update_extrema(T, linecuts)
 
     # getting fit range
     for linecut in linecuts:

@@ -14,7 +14,7 @@ from moire.extract_features import extract_upturns, extract_downturns
 
 from moire.draw_lines import plot_linecut, plot_linecut_noise, generate_layout
 from moire.draw_2d import draw_heatmap, overlay_features_heatmap
-from moire.update_scoring import update_scores
+from moire.update_scoring import update_extrema
 
 OUT = Path(__file__).resolve().parent / Path("output")
 IN = ROOT / Path("source_data")
@@ -53,7 +53,7 @@ for field in SELECT_FIELDS:
 
     # ----- New Scoring Updates -----
 
-    update_scores(linecuts)
+    update_extrema(T, linecuts)
 
     # ----- Plotting and creating figures -----
     numLinecuts = 60

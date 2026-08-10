@@ -13,7 +13,10 @@ The original confidence is always the anchor:
 
 import copy
 import math
+
 import numpy as np
+
+__all__ = ["update_extrema"]
 
 
 def _temperature_index(temperatures, value):
@@ -30,19 +33,16 @@ def _sigmoid(value):
     return growth / (1.0 + growth)
 
 
-def _strongest_match(
-    target_index, feature_type, neighbors, score_name, tau, feature_key="features"
-):
+def _strongest_match(T, target_index, feature_type, neighbors, score_name, tau):
     """Find the strongest same-type feature in a group of linecuts."""
     strongest = 0.0
 
     for linecut in neighbors:
-        temperatures = linecut["T"]
-        for neighbor in linecut.get(feature_key, []):
+        for neighbor in linecut.get("features_new", []):
             if neighbor.get("type") != feature_type:
                 continue
 
-            neighbor_index = _temperature_index(temperatures, neighbor["T"])
+            neighbor_index = _temperature_index(T, neighbor["T"])
             separation = target_index - neighbor_index
 
             # Gaussian-like attenuation in temperature-index space.
@@ -54,6 +54,7 @@ def _strongest_match(
 
 
 def _calculate_support(
+    T,
     linecuts,
     score_name,
     n_hood=12,
@@ -61,7 +62,6 @@ def _calculate_support(
     sigmoid_support=True,
     sigmoid_center=0,
     sigmoid_width=0.1,
-    feature_key="features",
 ):
     """Calculate one synchronous support round for every feature."""
     support_values = []
@@ -70,15 +70,13 @@ def _calculate_support(
         left_neighbors = linecuts[max(0, linecut_index - n_hood) : linecut_index]
         right_neighbors = linecuts[linecut_index + 1 : linecut_index + n_hood + 1]
 
-        for feature in linecut.get(feature_key, []):
-            target_index = _temperature_index(linecut["T"], feature["T"])
+        for feature in linecut.get("features_new", []):
+            target_index = _temperature_index(T, feature["T"])
             feature_type = feature.get("type")
 
-            left = _strongest_match(
-                target_index, feature_type, left_neighbors, score_name, tau, feature_key
-            )
+            left = _strongest_match(T, target_index, feature_type, left_neighbors, score_name, tau)
             right = _strongest_match(
-                target_index, feature_type, right_neighbors, score_name, tau, feature_key
+                T, target_index, feature_type, right_neighbors, score_name, tau
             )
 
             # At a dataset edge, mirror the available side instead of treating
@@ -100,10 +98,10 @@ def _calculate_support(
 
 
 def _update_score_range(
+    T,
     linecuts,
     first_iteration,
     last_iteration,
-    feature_key,
     n_hood,
     tau,
     support_weight,
@@ -119,6 +117,7 @@ def _update_score_range(
 
         # Calculate the complete support round before mutating any feature.
         support_round = _calculate_support(
+            T,
             linecuts=linecuts,
             score_name=previous_score,
             n_hood=n_hood,
@@ -126,7 +125,6 @@ def _update_score_range(
             sigmoid_support=sigmoid_support,
             sigmoid_center=sigmoid_center,
             sigmoid_width=sigmoid_width,
-            feature_key=feature_key,
         )
 
         for feature, support in support_round:
@@ -137,61 +135,8 @@ def _update_score_range(
             ) * original_confidence + support_weight * support
 
 
-def update_scores_iter(
-    linecuts,
-    num_iter,
-    n_hood=12,
-    tau=20,
-    support_weight=0.8,
-    sigmoid_support=True,
-    sigmoid_center=0,
-    sigmoid_width=0.1,
-):
-    """Store ``support_i`` and ``score_i`` for each requested iteration.
-
-    Parameters
-    ----------
-    linecuts:
-        Linecut dictionaries containing ``T`` and ``features``. Each feature
-        must contain ``T``, ``type``, and ``confidence``.
-    num_iter:
-        Number of synchronous update rounds.
-    n_hood:
-        Number of linecuts inspected on each side of the current linecut.
-    tau:
-        Temperature-index spread in
-        ``exp(-0.5 * temperature_separation**2 / tau)``.
-    support_weight:
-        Support blend weight λ. Zero keeps original confidence; one uses only
-        support.
-    sigmoid_support:
-        Apply ``support *= sigmoid((support - center) / width)`` when true.
-
-    Notes
-    -----
-    Support for round ``i`` is calculated from neighbors' ``score_(i-1)``.
-    The blend itself always uses the original confidence as its anchor.
-    Updates are synchronous, so traversal order cannot change the result.
-    """
-
-    _update_score_range(
-        linecuts=linecuts,
-        first_iteration=1,
-        last_iteration=num_iter,
-        feature_key="features",
-        n_hood=n_hood,
-        tau=tau,
-        support_weight=support_weight,
-        sigmoid_support=sigmoid_support,
-        sigmoid_center=sigmoid_center,
-        sigmoid_width=sigmoid_width,
-    )
-
-    return linecuts
-
-
-def update_score(linecuts, num_iter=5, num_passes=3, filter=0.10):
-    """Iteratively score copied features and prune noise between passes.
+def update_extrema(T, linecuts, num_iter=5, num_passes=3, filter=0.10) -> list[dict]:
+    """Iteratively score extrema and return the surviving feature signatures.
 
     ``features_new`` starts as a deep copy of each linecut's ``features``.
     Every pass performs ``num_iter`` score updates and then permanently removes
@@ -200,8 +145,12 @@ def update_score(linecuts, num_iter=5, num_passes=3, filter=0.10):
     ``score_15`` on every surviving feature.
 
     The original ``features`` lists and their feature dictionaries are not
-    modified.
+    modified. The returned list is a flat list of the dictionaries retained in
+    every linecut's ``features_new`` list, in linecut and feature order.
     """
+    temperatures = np.asarray(T)
+    if temperatures.ndim != 1 or temperatures.size == 0:
+        raise ValueError("T must be a non-empty one-dimensional temperature grid")
     if num_iter < 1:
         raise ValueError("num_iter must be at least 1")
     if num_passes < 1:
@@ -216,10 +165,10 @@ def update_score(linecuts, num_iter=5, num_passes=3, filter=0.10):
         first_iteration = pass_index * num_iter + 1
         last_iteration = first_iteration + num_iter - 1
         _update_score_range(
+            temperatures,
             linecuts=linecuts,
             first_iteration=first_iteration,
             last_iteration=last_iteration,
-            feature_key="features_new",
             n_hood=12,
             tau=20,
             support_weight=0.8,
@@ -234,4 +183,4 @@ def update_score(linecuts, num_iter=5, num_passes=3, filter=0.10):
                 feature for feature in linecut["features_new"] if feature[score_name] >= filter
             ]
 
-    return linecuts
+    return [feature for linecut in linecuts for feature in linecut["features_new"]]
