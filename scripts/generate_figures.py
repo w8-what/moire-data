@@ -52,7 +52,7 @@ for field in SELECT_FIELDS:
         # Smoothing
         rho = linecut.get("rho")
         rho_hampel = hampel(rho).filtered_data
-        rho_smoothed = adaptive_multiscale_smooth(T, rho_hampel, z_threshold=3)
+        rho_smoothed = adaptive_multiscale_smooth(T, rho, z_threshold=3)
         linecut.update({"rho_smoothed": rho_smoothed})
 
         # Noise estimates
@@ -68,8 +68,8 @@ for field in SELECT_FIELDS:
 
     # ----- New Scoring Updates -----
 
-    extrema = update_extrema(T, linecuts)
-    datasets[-1]["extrema"] = extrema
+    # extrema = update_extrema(T, linecuts)
+    # datasets[-1]["extrema"] = extrema
 
     # # getting fit range
     # for linecut in linecuts:
@@ -99,7 +99,8 @@ def draw_linecuts():
 
                 fig, axes = generate_layout(2, title=f"{param_string}")
                 plot_line_general(axes[0], dataset["T"], linecut["rho"], title="Raw Data", **linecut_axis_kwargs)
-                plot_line_general(axes[1], dataset["T"], linecut["rho_smoothed"], error=linecut["local_noise"], title="Smoothed Data", **linecut_axis_kwargs)
+                plot_line_general(axes[1], dataset["T"], linecut["rho_smoothed"], error=linecut["local_noise"], 
+                                  title="Smoothed Data", **linecut_axis_kwargs)
 
                 overlay_features(axes[1], dataset["T"], linecut, drawn_types=["upturn", "downturn"])
 
@@ -124,7 +125,7 @@ def draw_heatmaps():
         overlay_features_heatmap(axes[0], dataset["linecuts"], score_name="confidence")
 
         draw_heatmap(fig, axes[1], dataset["nu"], dataset["T"], dataset["rho"], title=" Features")
-        overlay_features_heatmap(axes[1], dataset["linecuts"], feature_name="features_new", score_name="score_15")
+        # overlay_features_heatmap(axes[1], dataset["linecuts"], feature_name="features_new", score_name="score_15")
 
         path = OUT / Path("heatmaps_comparison")
         path.mkdir(exist_ok=True, parents=True)
@@ -132,3 +133,4 @@ def draw_heatmaps():
 
 if __name__ == "__main__":
     draw_heatmaps()
+    # draw_linecuts()
