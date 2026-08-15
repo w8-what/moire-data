@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moire-data"
+version = "0.1.0"
+description = "Tools for extracting and visualizing transport features in moire material data."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "hampel>=1.0",
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.0",
+    "pytest>=8.0",
+]
+notebook = [
+    "ipykernel>=6.0",
+    "jupyterlab>=4.0",
+]
+
+[project.urls]
+Repository = "https://github.com/w8-what/moire-data"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["moire*"]
+namespaces = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.black]
+line-length = 100
+skip-magic-trailing-comma = true
+target-version = ["py312"]

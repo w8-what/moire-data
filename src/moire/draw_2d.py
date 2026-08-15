@@ -3,10 +3,26 @@ from matplotlib.colors import LogNorm
 from matplotlib.ticker import LogFormatterMathtext
 
 from pathlib import Path
-import numpy as np 
+import numpy as np
+
+from moire.PLOTS_CONFIG import (
+    BEHAVIOR_COLORS,
+    FEATURE_LEGEND_STYLE,
+    get_feature_style,
+)
 
 
-def draw_heatmap(fig, ax, col, row, data, title="heatmap", xlabel="Filling v", ylabel="Temperature T (K)", cbar_label="Resistivity"):
+def draw_heatmap(
+    fig,
+    ax,
+    col,
+    row,
+    data,
+    title="heatmap",
+    xlabel="Filling v",
+    ylabel="Temperature T (K)",
+    cbar_label="Resistivity",
+):
 
     # Log rounded vmin & vmax
     vmin_raw, vmax_raw = np.nanpercentile(data[data > 0], [1, 99])
@@ -17,20 +33,22 @@ def draw_heatmap(fig, ax, col, row, data, title="heatmap", xlabel="Filling v", y
     vmin = 10**emin
     vmax = 10**emax
 
-    im = ax.pcolormesh(col, row, data, cmap="bwr", shading="nearest", norm = LogNorm(vmin = vmin, vmax = vmax))
+    im = ax.pcolormesh(
+        col, row, data, cmap="bwr", shading="nearest", norm=LogNorm(vmin=vmin, vmax=vmax)
+    )
 
     tick_exps = np.arange(emin, emax + 1)
     ticks = 10**tick_exps
 
     # Drawing colorbar
     cbar = fig.colorbar(im, ax=ax, orientation="vertical", location="right", pad=0.03)
-    cbar.ax.yaxis.set_major_formatter(LogFormatterMathtext())    
-    
+    cbar.ax.yaxis.set_major_formatter(LogFormatterMathtext())
+
     cbar.set_label(cbar_label, rotation=90)
     cbar.set_ticks(ticks)
     cbar.set_label(r"$\rho_{xx}$ ($\Omega$)")
 
-    # Axis titles and labels 
+    # Axis titles and labels
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
@@ -38,31 +56,26 @@ def draw_heatmap(fig, ax, col, row, data, title="heatmap", xlabel="Filling v", y
     fig.tight_layout()
 
 
-def overlay_features_heatmap(ax, linecuts, feature_name = "features", score_name = "confidence", filter = 0):
-
-    styles = {
-        "upturn":   dict(color="yellow",    marker="^", label = "upturn"),
-        "downturn": dict(color = "green", marker ="v", label = "downturn"),
-        "Tc" :      dict(color = "navy", marker = "o", label = "Tc")
-    }
+def overlay_features_heatmap(
+    ax, linecuts, feature_name="features", score_name="confidence", filter=0
+):
 
     used_labels = set()
 
-
     for linecut in linecuts:
-        features = linecut.get(feature_name) 
+        features = linecut.get(feature_name)
         nu = linecut.get("nu")
 
         for feat in features:
 
-            type = feat.get("type")
+            feature_type = feat.get("type")
             T_transition = feat.get("T")
             score = feat.get(score_name)
+            style = get_feature_style(feature_type)
 
-            if type not in styles or score < filter:
+            if style is None or score < filter:
                 continue
 
-            style = styles[type].copy()
             label = style["label"]
 
             if label in used_labels:
@@ -70,18 +83,65 @@ def overlay_features_heatmap(ax, linecuts, feature_name = "features", score_name
             else:
                 used_labels.add(label)
 
-            ax.scatter(
-                nu,
-                T_transition,
-                s=35,
-                edgecolor="black",
-                linewidth=0.4,
-                zorder=5,
-                alpha = score,
-                **style
+            ax.scatter(nu, T_transition, alpha=score, **style)
+
+    if used_labels:
+        legend = ax.legend(**FEATURE_LEGEND_STYLE)
+        for handle in legend.legend_handles:
+            handle.set_alpha(1.0)
+
+
+def overlay_behaviors_heatmap(ax, linecuts, drawn_behaviors="behaviors",
+                              drawn_types = ["linear", "sublinear", "superlinear", "unlabeled"], alpha=1):
+    # for each linecut, draw the interval and shade it with alpha = something like 0.2
+    # do this for each drawn behavior
+
+    nus = np.array([linecut["nu"] for linecut in linecuts])
+
+    # Boundaries halfway between neighboring filling values
+    edges = np.empty(len(nus) + 1)
+    edges[1:-1] = (nus[:-1] + nus[1:]) / 2
+    edges[0] = nus[0] - (nus[1] - nus[0]) / 2
+    edges[-1] = nus[-1] + (nus[-1] - nus[-2]) / 2
+
+    used_labels = set()
+
+    for i, linecut in enumerate(linecuts):
+        behaviors = linecut.get(drawn_behaviors)
+
+        for behavior in behaviors:
+
+            if behavior.get("type") not in drawn_types:
+                continue
+
+            T_lower, T_upper = behavior.get("T_upper"), behavior.get("T_lower")
+            behavior_type = behavior.get("type")
+            label = behavior_type if behavior_type not in used_labels else None
+            used_labels.add(behavior_type)
+
+            ax.fill_betweenx(
+                [T_lower, T_upper],
+                edges[i],
+                edges[i + 1],
+                color=BEHAVIOR_COLORS.get(behavior_type),
+                alpha=alpha,
+                linewidth=0,
+                label=label,
             )
 
-    ax.legend(frameon=True, fontsize=8)
+    if used_labels:
+        legend = ax.legend(**FEATURE_LEGEND_STYLE)
+        for handle, text in zip(legend.legend_handles, legend.get_texts()):
+            handle.set_alpha(1.0)
+            if text.get_text() in used_labels:
+                handle.set_edgecolor("black")
+                handle.set_linewidth(0.5)
+
+    return ax
+
+
+
+
 
 
 
