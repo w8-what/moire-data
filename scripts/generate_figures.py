@@ -26,7 +26,7 @@ from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behavi
 from moire.update_scoring import update_extrema
 
 
-OUT = ROOT / Path("output") / Path("figures")
+OUT = ROOT / Path("output")
 IN = ROOT / Path("source_data")
 FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
 SELECT_FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
@@ -68,15 +68,15 @@ for field in SELECT_FIELDS:
 
     # ----- New Scoring Updates -----
 
-    # extrema = update_extrema(T, linecuts)
-    # datasets[-1]["extrema"] = extrema
+    extrema = update_extrema(T, linecuts)
+    datasets[-1]["extrema"] = extrema
 
-    # # getting fit range
-    # for linecut in linecuts:
-    #     linecut["behaviors"] = extract_fit_range(T, linecut)
-    #     linecut["exponent_fit"] = extract_local_fits(T, linecut)
+    # getting fit range
+    for linecut in linecuts:
+        linecut["behaviors"] = extract_fit_range(T, linecut)
+        linecut["exponent_fit"] = extract_local_fits(T, linecut)
 
-    #     linecut["features"] += extract_Tcoh(T, linecut)
+        linecut["features"] += extract_Tcoh(T, linecut)
 
 
 def draw_linecuts():
@@ -118,14 +118,14 @@ def draw_heatmaps():
 
     for dataset in datasets:
 
-        name = f"{dataset["E"]}_mV/nm_Score_Comparison"
-        fig, axes = generate_layout(2, title=name)
+        name = f"{dataset["E"]}_mV/nm_Features"
+        fig, axes = generate_layout(1, title=name)
 
         draw_heatmap(fig, axes[0], dataset["nu"], dataset["T"], dataset["rho"], title="Original Features")
         overlay_features_heatmap(axes[0], dataset["linecuts"], score_name="confidence")
 
-        draw_heatmap(fig, axes[1], dataset["nu"], dataset["T"], dataset["rho"], title=" Features")
-        # overlay_features_heatmap(axes[1], dataset["linecuts"], feature_name="features_new", score_name="score_15")
+        draw_heatmap(fig, axes[1], dataset["nu"], dataset["T"], dataset["rho"], title="Refined Features")
+        overlay_features_heatmap(axes[1], dataset["linecuts"], feature_name="features_new", score_name="score_15")
 
         path = OUT / Path("heatmaps_comparison")
         path.mkdir(exist_ok=True, parents=True)
