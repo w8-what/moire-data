@@ -4,27 +4,34 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from hampel import hampel
 
-
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / Path("src")))
 
 
+# Data Preprocessing Imports
 from moire.io import load_field, clean_sort_data, fmt4
-from moire.signal_helpers import local_noise, moving_average
+from moire.signal_helpers import local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
 
-from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_Tcoh, extract_Tcoh_new, extract_Tcoh_best_fits, extract_Tcoh_direct_fits
+# Extracting Features and Behavior Imports
+from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_Tcoh
+from moire.extract_behaviors import extract_fit_range, extract_behavior_fits
 from moire.extract_power_law import extract_local_fits
-from moire.extract_behaviors import extract_fit_range, extract_behavior_fits, refine_behaviors
+
+# Plotting Imports
+from moire.draw_lines import generate_layout, plot_line_default, plot_line_general, overlay_behaviors, overlay_features
+from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
+
+# Score Updating
 from moire.update_scoring import update_extrema
 
-from moire.draw_lines import generate_layout, plot_general_line, overlay_behaviors, overlay_features
-from moire.draw_2d import draw_heatmap, overlay_features_heatmap, overlay_behaviors_heatmap
 
 OUT = Path(__file__).resolve().parent
 IN = ROOT / Path("source_data")
 FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
 SELECT_FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
+
+datasets = []
 
 for field in SELECT_FIELDS:
 
@@ -34,13 +41,15 @@ for field in SELECT_FIELDS:
 
     linecuts = []
     for i, v in enumerate(nu):
-        linecuts.append({"E": field, "nu": v, "T": T, "rho": R[:, i]})
+        linecuts.append({"nu": v, "rho": R[:, i]})
+
+    # Creating and appending dataset dictionaries
+    datasets.append({"E": field, "T": T, "nu": nu, "rho": R, "linecuts": linecuts})
 
     # ----- Data Processing -----
     for linecut in linecuts:
 
         # Smoothing
-
         rho = linecut.get("rho")
         rho_hampel = hampel(rho).filtered_data
         rho_smoothed = adaptive_multiscale_smooth(T, rho, z_threshold=3)
@@ -51,100 +60,84 @@ for field in SELECT_FIELDS:
         linecut.update({"local_noise": noise})
 
         # Upturn & downturn feature extraction
-        linecut.update({"features": []})
-        features = linecut["features"]
+        features = []
         features += extract_upturns(T, linecut)
         features += extract_downturns(T, linecut)
         features += extract_Tc(T, linecut)
+        linecut.update({"features": features})
 
     # ----- New Scoring Updates -----
 
-    update_extrema(T, linecuts)
+    extrema = update_extrema(T, linecuts)
+    datasets[-1]["extrema"] = extrema
 
     # getting fit range
     for linecut in linecuts:
+        linecut["behaviors"] = extract_fit_range(T, linecut)
+        linecut["exponent_fit"] = extract_local_fits(T, linecut)
+        linecut["behaviors"] += extract_behavior_fits(T, linecut)
 
-        linecut.update({"behaviors" : []})
-        behaviors = linecut["behaviors"]
-        behaviors += extract_fit_range(T, linecut)
-        behaviors += extract_behavior_fits(T, linecut)
-
-        linecut.update({
-            "refined_behaviors" : refine_behaviors(T, linecut, min_points=3)
-        })
-
-        linecut["features"] += extract_Tcoh_best_fits(T, linecut)
+        linecut["features"] += extract_Tcoh(T, linecut)
 
 
+def draw_linecuts():
 
-        # print("\noriginal_behavior")
-        # for behavior in sorted(linecut["behaviors"], key = lambda b : b["T_lower"]):
-        #     print(behavior)
-        # print("refined_behavior")
-        # for behavior in sorted(linecut["refined_behaviors"], key = lambda b : b["T_lower"]):
-        #     print(behavior)
+    for dataset in datasets:
+
+        numLinecuts = 30
+        selectedLinecuts = np.linspace(0, len(dataset["linecuts"]), numLinecuts, dtype="int")
+        for i, linecut in enumerate(dataset["linecuts"]):
+            if i in selectedLinecuts:
+
+                param_string = f"E = {dataset["E"]}" + "     " + f"nu = {linecut["nu"]}"
+
+                linecut_axis_kwargs = {
+                    "xlabel": "Temperature (K)",
+                    "ylabel": "Resistivity (Ω*cm)",
+                    "xlim": (0, None),
+                    "ylim": (0, None),
+                }
+
+                fig, axes = generate_layout(2, title=f"{param_string}")
+                plot_line_general(axes[0], dataset["T"], linecut["rho"], title="Raw Data", **linecut_axis_kwargs)
+                plot_line_general(axes[1], dataset["T"], linecut["rho_smoothed"], error=linecut["local_noise"], 
+                                  title="Smoothed Data", **linecut_axis_kwargs)
+
+                overlay_features(axes[1], dataset["T"], linecut, drawn_types=["upturn", "downturn"])
+
+                # Creating directory
+                linecut_dir = OUT / Path("linecuts")
+                linecut_dir.mkdir(parents=True, exist_ok=True)
+                path = str(linecut_dir / Path(f"{param_string}.png"))
+
+                # Saving and closing figure
+                fig.savefig(path, dpi=250, bbox_inches="tight")
+                plt.close(fig)
 
 
-        # and then we want to find the T_coh from a function that gets features!
-        # linecut["features_2"] += extract_Tcoh(T, linecut)
+def draw_heatmaps():
+
+    for dataset in datasets:
+
+        name = f"{dataset["E"]}_mV_nm"
+        fig, axes = generate_layout(2, title=name)
+
+        draw_heatmap(fig, axes[0], dataset["nu"], dataset["T"], dataset["rho"], title="Features")
+        overlay_features_heatmap(axes[0], dataset["linecuts"])
+
+        draw_heatmap(fig, axes[1], dataset["nu"], dataset["T"], dataset["rho"], title="Features + Powerlaw")
+        overlay_behaviors_heatmap(axes[1], dataset["linecuts"])
+        overlay_features_heatmap(axes[1], dataset["linecuts"])
+
+        path = OUT / Path("heatmaps_Tcoh")
+        path.mkdir(exist_ok=True, parents=True)
+        fig.savefig(path / Path(str(dataset["E"]) + ".png"))
+
+
+if __name__ == "__main__":
+    draw_heatmaps()
+    # draw_linecuts()
 
 
 
-    # ----- Plotting and creating figures -----
 
-    # numLinecuts = 30
-    # selectedLinecuts = np.linspace(0, len(linecuts), numLinecuts, dtype="int")
-    # for i, linecut in enumerate(linecuts):
-    #     if i in selectedLinecuts:
-
-    #         param_string = "  ".join(f"{k} = {fmt4(v)}" for k, v in linecut.items() if k == "E" or k == "nu")
-
-    #         fig, axes = generate_layout(4, title=param_string)
-    #         linecut_axis_kwargs = {
-    #             "xlabel": "Temperature (K)",
-    #             "ylabel": "Resistivity (Ω*cm)",
-    #             "xlim": (0, None),
-    #             "ylim": (0, None),
-    #         }
-
-    #         plot_general_line(axes[0], T, linecut.get("rho"), title="Raw Data", **linecut_axis_kwargs)
-    #         plot_general_line(axes[1], T, linecut.get("rho_smoothed"), error = linecut["local_noise"], title="Smoothed Data, Features, Behaviors", **linecut_axis_kwargs)
-
-    #         fit_rho = extract_local_fits(T, linecut)
-    #         n = fit_rho["n"]
-    #         n_sigma = fit_rho["n_sigma"]
-
-    #         n_avg = moving_average(n, T, 1)
-
-    #         plot_general_line(axes[2], T, n, error = n_sigma, title="Raw Rho N", xlim = (0, np.max(T)), ylim = (0, 4))
-    #         plot_general_line(axes[3], T, n_avg, title="Moving Average of N", xlim = (0, np.max(T)), ylim = (0, 4))
-            
-    #         for y in [1, 0.8, 1.2]:
-    #             axes[2].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
-    #             axes[3].axhline(y=y, alpha=0.5, linestyle="-", color = "grey")
-
-    #         overlay_features(axes[1], linecut, score_name="score_15", feature_name="features_new")
-    #         overlay_behaviors(axes[1], linecut, drawn_types=["linear", "superlinear", "sublinear", "extraction_range"])
-    #         fig.tight_layout()
-
-    #         linecut_dir = OUT / Path("linecuts") / Path("moving_average")
-    #         linecut_dir.mkdir(parents=True, exist_ok=True)
-    #         path = linecut_dir / f"{param_string}.png"
-    #         fig.savefig(path, dpi=250, bbox_inches="tight")
-    #         plt.close(fig)
-
-    # ----- 2d Figures -----
-
-    name = f"{field}_Score_Comparison"
-    fig, axes = generate_layout(2, title=name)
-
-    draw_heatmap(fig, axes[0], nu, T, R, title="original behaviors")
-    overlay_features_heatmap(axes[0], linecuts, feature_name="features")
-    overlay_behaviors_heatmap(axes[0],linecuts)
-
-    draw_heatmap(fig, axes[1], nu, T, R, title="T_coh extraction")
-    overlay_features_heatmap(axes[1], linecuts, feature_name="features")
-
-    path = OUT / Path("heatmaps_Tcoh_direct")
-    path.mkdir(exist_ok=True, parents=True)
-    fig.savefig(path / Path(name + ".png"))
