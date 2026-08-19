@@ -27,6 +27,7 @@ from moire.update_scoring import update_extrema
 
 
 OUT = Path(__file__).resolve().parent
+print(OUT)
 IN = ROOT / Path("source_data")
 FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
 SELECT_FIELDS = [87, 96, 99, 103, 74, 96.2, 151, 176]
@@ -103,7 +104,7 @@ def draw_linecuts():
                 plot_line_general(axes[1], dataset["T"], linecut["rho_smoothed"], error=linecut["local_noise"], 
                                   title="Smoothed Data", **linecut_axis_kwargs)
 
-                overlay_features(axes[1], dataset["T"], linecut, drawn_types=["upturn", "downturn"])
+                overlay_features(axes[1], dataset["T"], linecut)
 
                 # Creating directory
                 linecut_dir = OUT / Path("linecuts")
@@ -135,8 +136,8 @@ def draw_heatmaps():
 
 
 if __name__ == "__main__":
-    draw_heatmaps()
-    # draw_linecuts()
+    # draw_heatmaps()
+    draw_linecuts()
 
 
 
