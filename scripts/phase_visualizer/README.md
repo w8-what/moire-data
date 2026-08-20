@@ -25,6 +25,31 @@ remain in Python instead of being duplicated in browser JavaScript.
 It uses up to eight worker processes for full-field phase calculations; override
 that with `--workers N` when needed.
 
+## Crossover annotation
+
+The same server includes a Mac-friendly annotation tool at
+<http://127.0.0.1:8765/annotate>. It supports two complementary kinds of
+ground truth:
+
+1. Draw the expected `Tcoh` and `T′` boundaries directly on each raw heatmap.
+2. Open representative linecuts from the heatmap and either tap an exact
+   crossover temperature or mark the feature as not identifiable.
+
+Linecut values can be marked certain, approximate, or ambiguous. Untouched
+linecuts remain distinct from reviewed linecuts labeled not identifiable.
+Edits autosave to `annotations/crossover_labels.json`; **Download JSON** makes
+an additional copy whenever desired.
+
+The file is preloaded with the exact published `Tcoh` and `T′` symbols from
+the [Nature Figure 3 source-data workbook](https://www.nature.com/articles/s41586-025-10049-3/figures/3)
+for 87, 96, 99, and 103 mV/nm. Their disconnected electron- and hole-doped
+`Tcoh` branches are stored as separate segments. Manual review is therefore
+needed only for 74, 96.2, 151, and 176 mV/nm unless an additional audit is
+desired.
+
+On a Mac, press `1` or `2` to select `Tcoh` or `T′`, `N` to mark the active
+feature not identifiable, and the left/right arrow keys to change filling.
+
 ## Linecut plots
 
 The primary explorer follows the current `general_pipeline.py` presentation:

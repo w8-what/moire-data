@@ -14,7 +14,7 @@ from moire.signal_helpers import local_noise
 from moire.adaptive_multiscale_smooth import adaptive_multiscale_smooth
 
 # Extracting Features and Behavior Imports
-from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_Tcoh
+from moire.extract_features import extract_upturns, extract_downturns, extract_Tc, extract_Tcoh, extract_Tprime
 from moire.extract_behaviors import extract_fit_range, extract_behavior_fits
 from moire.extract_power_law import extract_local_fits
 
@@ -78,7 +78,8 @@ for field in SELECT_FIELDS:
         linecut["exponent_fit"] = extract_local_fits(T, linecut)
         linecut["behaviors"] += extract_behavior_fits(T, linecut)
 
-        linecut["features"] += extract_Tcoh(T, linecut)
+        linecut["features"] += extract_Tcoh(T, linecut, min_pvalue=0.2)
+        linecut["features"] += extract_Tprime(T, linecut)
 
 
 def draw_linecuts():
@@ -136,8 +137,8 @@ def draw_heatmaps():
 
 
 if __name__ == "__main__":
-    # draw_heatmaps()
-    draw_linecuts()
+    draw_heatmaps()
+    # draw_linecuts()
 
 
 

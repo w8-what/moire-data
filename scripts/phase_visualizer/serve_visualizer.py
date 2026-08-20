@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import signal
+import threading
 from concurrent.futures import ProcessPoolExecutor
 from functools import lru_cache
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -13,15 +14,18 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from visualizer_math import fit_linecut
+from annotation_store import load_annotations, save_annotations
 
 HERE = Path(__file__).resolve().parent
 DATA_PATH = HERE / "phase_visualizer_data.json"
 HTML_PATH = HERE / "phase_visualizer.html"
+ANNOTATION_HTML_PATH = HERE / "annotation.html"
+DEFAULT_ANNOTATION_PATH = HERE.parents[1] / "annotations" / "crossover_labels.json"
 _WORKER_FIELDS = {}
 
 
 def _field_key(value):
-    return str(float(value))
+    return format(float(value), ".15g")
 
 
 def _config(query):
@@ -67,6 +71,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--annotations", type=Path, default=DEFAULT_ANNOTATION_PATH)
     parser.add_argument(
         "--workers",
         type=int,
@@ -76,11 +81,13 @@ def main():
     if args.workers < 1:
         parser.error("--workers must be at least 1")
 
-    if not DATA_PATH.exists() or not HTML_PATH.exists():
+    if not DATA_PATH.exists() or not HTML_PATH.exists() or not ANNOTATION_HTML_PATH.exists():
         parser.error("run build_visualizer.py before starting the server")
 
     dataset = json.loads(DATA_PATH.read_text())
     fields = {_field_key(field["field"]): field for field in dataset["fields"]}
+    annotation_path = args.annotations.resolve()
+    annotation_lock = threading.Lock()
     pool = (
         ProcessPoolExecutor(
             max_workers=args.workers,
@@ -163,6 +170,8 @@ def main():
             if not parsed.path.startswith("/api/"):
                 if parsed.path == "/":
                     self.path = "/phase_visualizer.html"
+                elif parsed.path in {"/annotate", "/annotate/"}:
+                    self.path = "/annotation.html"
                 return super().do_GET()
 
             query = parse_qs(parsed.query)
@@ -182,8 +191,46 @@ def main():
                         }
                     )
 
+                if parsed.path == "/api/annotations":
+                    with annotation_lock:
+                        return self._send_json(load_annotations(annotation_path))
+
                 field_key = _field_key(query["field"][0])
                 field = fields[field_key]
+
+                if parsed.path == "/api/annotation/field":
+                    with annotation_lock:
+                        annotations = load_annotations(annotation_path)
+                    return self._send_json(
+                        {
+                            "field": field["field"],
+                            "temperatures": field["temperatures"],
+                            "fillings": field["fillings"],
+                            "heatFillings": field["heatFillings"],
+                            "heatmap": field["heatmap"],
+                            "logMin": field["logMin"],
+                            "logMax": field["logMax"],
+                            "annotations": annotations["fields"].get(field_key),
+                        }
+                    )
+
+                if parsed.path == "/api/annotation/linecut":
+                    index = int(query.get("index", ["0"])[0])
+                    if not 0 <= index < len(field["linecuts"]):
+                        raise ValueError("linecut index is out of range")
+                    linecut = field["linecuts"][index]
+                    return self._send_json(
+                        {
+                            "field": field["field"],
+                            "index": index,
+                            "filling": field["fillings"][index],
+                            "temperatures": field["temperatures"],
+                            "raw": linecut["raw"],
+                            "smoothed": linecut["smoothed"],
+                            "range": linecut["range"],
+                        }
+                    )
+
                 config = _config(query)
 
                 if parsed.path == "/api/linecut":
@@ -248,12 +295,31 @@ def main():
             except Exception as error:
                 self._error(f"fit failed: {error}", 500)
 
+        def do_POST(self):
+            parsed = urlparse(self.path)
+            if parsed.path != "/api/annotations":
+                return self._error("unknown API endpoint", 404)
+
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 5_000_000:
+                    raise ValueError("annotation payload must be between 1 byte and 5 MB")
+                value = json.loads(self.rfile.read(length))
+                with annotation_lock:
+                    saved = save_annotations(annotation_path, value)
+                self._send_json(saved)
+            except (json.JSONDecodeError, TypeError, ValueError) as error:
+                self._error(error)
+            except Exception as error:
+                self._error(f"could not save annotations: {error}", 500)
+
         def log_message(self, format, *args):
             if not self.path.startswith("/api/"):
                 super().log_message(format, *args)
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Linecut explorer: http://{args.host}:{args.port}")
+    print(f"Annotation tool:  http://{args.host}:{args.port}/annotate")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

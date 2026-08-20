@@ -1,0 +1,484 @@
+{
+  "fields": {
+    "103": {
+      "boundaries": {
+        "Tcoh": [
+          {
+            "T": 1.725,
+            "nu": 0.832,
+            "segment": "electron"
+          },
+          {
+            "T": 1.475,
+            "nu": 0.842,
+            "segment": "electron"
+          },
+          {
+            "T": 1.3,
+            "nu": 0.85,
+            "segment": "electron"
+          },
+          {
+            "T": 1.125,
+            "nu": 0.858,
+            "segment": "electron"
+          },
+          {
+            "T": 0.8,
+            "nu": 0.864,
+            "segment": "electron"
+          },
+          {
+            "T": 0.5,
+            "nu": 0.87,
+            "segment": "electron"
+          },
+          {
+            "T": 0.65,
+            "nu": 1.068,
+            "segment": "hole"
+          },
+          {
+            "T": 1.225,
+            "nu": 1.07,
+            "segment": "hole"
+          },
+          {
+            "T": 1.65,
+            "nu": 1.073,
+            "segment": "hole"
+          },
+          {
+            "T": 2.425,
+            "nu": 1.078,
+            "segment": "hole"
+          },
+          {
+            "T": 3.15,
+            "nu": 1.088,
+            "segment": "hole"
+          },
+          {
+            "T": 3.75,
+            "nu": 1.098,
+            "segment": "hole"
+          }
+        ],
+        "Tprime": [
+          {
+            "T": 0.14,
+            "nu": 0.888,
+            "segment": "electron"
+          },
+          {
+            "T": 0.7,
+            "nu": 0.898,
+            "segment": "electron"
+          },
+          {
+            "T": 1.2,
+            "nu": 0.908,
+            "segment": "electron"
+          },
+          {
+            "T": 1.6,
+            "nu": 0.918,
+            "segment": "electron"
+          },
+          {
+            "T": 1.6,
+            "nu": 0.928,
+            "segment": "electron"
+          },
+          {
+            "T": 1.5,
+            "nu": 0.938,
+            "segment": "electron"
+          },
+          {
+            "T": 1.3,
+            "nu": 0.948,
+            "segment": "electron"
+          }
+        ]
+      },
+      "linecuts": {},
+      "provenance": {
+        "kind": "published",
+        "manualReviewRequired": false,
+        "paperField_mV_nm": -103,
+        "sheet": "panel_e",
+        "source": "natureFigure3"
+      },
+      "reviewed": {
+        "Tcoh": true,
+        "Tprime": true
+      }
+    },
+    "176": {
+      "boundaries": {
+        "Tcoh": [],
+        "Tprime": []
+      },
+      "linecuts": {},
+      "reviewed": {
+        "Tcoh": false,
+        "Tprime": false
+      }
+    },
+    "74": {
+      "boundaries": {
+        "Tcoh": [],
+        "Tprime": []
+      },
+      "linecuts": {
+        "240": {
+          "Tcoh": {
+            "T": 0.23,
+            "certainty": "certain",
+            "status": "value"
+          },
+          "notes": "",
+          "nu": 0.98
+        },
+        "257": {
+          "Tcoh": {
+            "T": 0.11,
+            "certainty": "certain",
+            "status": "value"
+          },
+          "notes": "",
+          "nu": 0.997
+        },
+        "382": {
+          "Tcoh": {
+            "T": 4,
+            "certainty": "certain",
+            "status": "value"
+          },
+          "notes": "",
+          "nu": 1.155
+        }
+      },
+      "reviewed": {
+        "Tcoh": false,
+        "Tprime": false
+      }
+    },
+    "87": {
+      "boundaries": {
+        "Tcoh": [
+          {
+            "T": 1.575,
+            "nu": 0.838,
+            "segment": "electron"
+          },
+          {
+            "T": 1.275,
+            "nu": 0.842,
+            "segment": "electron"
+          },
+          {
+            "T": 1.05,
+            "nu": 0.848,
+            "segment": "electron"
+          },
+          {
+            "T": 0.6,
+            "nu": 0.854,
+            "segment": "electron"
+          },
+          {
+            "T": 0.725,
+            "nu": 1.02,
+            "segment": "hole"
+          },
+          {
+            "T": 1.825,
+            "nu": 1.023,
+            "segment": "hole"
+          },
+          {
+            "T": 2.375,
+            "nu": 1.028,
+            "segment": "hole"
+          },
+          {
+            "T": 2.8,
+            "nu": 1.033,
+            "segment": "hole"
+          },
+          {
+            "T": 3.125,
+            "nu": 1.043,
+            "segment": "hole"
+          },
+          {
+            "T": 3.65,
+            "nu": 1.053,
+            "segment": "hole"
+          }
+        ],
+        "Tprime": []
+      },
+      "linecuts": {},
+      "provenance": {
+        "kind": "published",
+        "manualReviewRequired": false,
+        "paperField_mV_nm": -87,
+        "sheet": "panel_h",
+        "source": "natureFigure3"
+      },
+      "reviewed": {
+        "Tcoh": true,
+        "Tprime": true
+      }
+    },
+    "96": {
+      "boundaries": {
+        "Tcoh": [
+          {
+            "T": 1.6,
+            "nu": 0.838,
+            "segment": "electron"
+          },
+          {
+            "T": 1.425,
+            "nu": 0.848,
+            "segment": "electron"
+          },
+          {
+            "T": 0.975,
+            "nu": 0.866,
+            "segment": "electron"
+          },
+          {
+            "T": 0.775,
+            "nu": 0.87,
+            "segment": "electron"
+          },
+          {
+            "T": 0.575,
+            "nu": 1.063,
+            "segment": "hole"
+          },
+          {
+            "T": 0.875,
+            "nu": 1.065,
+            "segment": "hole"
+          },
+          {
+            "T": 1.375,
+            "nu": 1.068,
+            "segment": "hole"
+          },
+          {
+            "T": 2,
+            "nu": 1.073,
+            "segment": "hole"
+          },
+          {
+            "T": 2.55,
+            "nu": 1.078,
+            "segment": "hole"
+          },
+          {
+            "T": 2.95,
+            "nu": 1.084,
+            "segment": "hole"
+          },
+          {
+            "T": 3.75,
+            "nu": 1.094,
+            "segment": "hole"
+          }
+        ],
+        "Tprime": [
+          {
+            "T": 0.14,
+            "nu": 0.903,
+            "segment": "electron"
+          },
+          {
+            "T": 0.9,
+            "nu": 0.905,
+            "segment": "electron"
+          },
+          {
+            "T": 1.3,
+            "nu": 0.908,
+            "segment": "electron"
+          },
+          {
+            "T": 1.9,
+            "nu": 0.918,
+            "segment": "electron"
+          },
+          {
+            "T": 2.1,
+            "nu": 0.928,
+            "segment": "electron"
+          },
+          {
+            "T": 2,
+            "nu": 0.948,
+            "segment": "electron"
+          },
+          {
+            "T": 2.1,
+            "nu": 0.968,
+            "segment": "electron"
+          }
+        ]
+      },
+      "linecuts": {},
+      "provenance": {
+        "kind": "published",
+        "manualReviewRequired": false,
+        "paperField_mV_nm": -96,
+        "sheet": "panel_g",
+        "source": "natureFigure3"
+      },
+      "reviewed": {
+        "Tcoh": true,
+        "Tprime": true
+      }
+    },
+    "96.2": {
+      "boundaries": {
+        "Tcoh": [],
+        "Tprime": []
+      },
+      "linecuts": {},
+      "reviewed": {
+        "Tcoh": false,
+        "Tprime": false
+      }
+    },
+    "99": {
+      "boundaries": {
+        "Tcoh": [
+          {
+            "T": 1.425,
+            "nu": 0.832,
+            "segment": "electron"
+          },
+          {
+            "T": 1.325,
+            "nu": 0.842,
+            "segment": "electron"
+          },
+          {
+            "T": 1.15,
+            "nu": 0.85,
+            "segment": "electron"
+          },
+          {
+            "T": 1.025,
+            "nu": 0.856,
+            "segment": "electron"
+          },
+          {
+            "T": 0.775,
+            "nu": 0.866,
+            "segment": "electron"
+          },
+          {
+            "T": 0.5,
+            "nu": 0.874,
+            "segment": "electron"
+          },
+          {
+            "T": 0.675,
+            "nu": 1.063,
+            "segment": "hole"
+          },
+          {
+            "T": 1.075,
+            "nu": 1.065,
+            "segment": "hole"
+          },
+          {
+            "T": 1.875,
+            "nu": 1.068,
+            "segment": "hole"
+          },
+          {
+            "T": 2.4,
+            "nu": 1.073,
+            "segment": "hole"
+          },
+          {
+            "T": 3.075,
+            "nu": 1.078,
+            "segment": "hole"
+          },
+          {
+            "T": 3.825,
+            "nu": 1.094,
+            "segment": "hole"
+          }
+        ],
+        "Tprime": [
+          {
+            "T": 0.14,
+            "nu": 0.898,
+            "segment": "electron"
+          },
+          {
+            "T": 1,
+            "nu": 0.908,
+            "segment": "electron"
+          },
+          {
+            "T": 1.5,
+            "nu": 0.913,
+            "segment": "electron"
+          },
+          {
+            "T": 1.7,
+            "nu": 0.918,
+            "segment": "electron"
+          },
+          {
+            "T": 1.7,
+            "nu": 0.928,
+            "segment": "electron"
+          },
+          {
+            "T": 1.8,
+            "nu": 0.938,
+            "segment": "electron"
+          },
+          {
+            "T": 1.9,
+            "nu": 0.948,
+            "segment": "electron"
+          }
+        ]
+      },
+      "linecuts": {},
+      "provenance": {
+        "kind": "published",
+        "manualReviewRequired": false,
+        "paperField_mV_nm": -99,
+        "sheet": "panel_f",
+        "source": "natureFigure3"
+      },
+      "reviewed": {
+        "Tcoh": true,
+        "Tprime": true
+      }
+    }
+  },
+  "schemaVersion": 1,
+  "sources": {
+    "natureFigure3": {
+      "article": "https://www.nature.com/articles/s41586-025-10049-3",
+      "description": "Exact T_coh and T' symbols from the Figure 3 source-data workbook.",
+      "figure": "https://www.nature.com/articles/s41586-025-10049-3/figures/3",
+      "workbook": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-025-10049-3/MediaObjects/41586_2025_10049_MOESM4_ESM.xlsx"
+    }
+  },
+  "updatedAt": "2026-08-20T20:20:44.494057+00:00"
+}

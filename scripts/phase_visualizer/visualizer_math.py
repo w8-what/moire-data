@@ -16,12 +16,8 @@ from moire.adaptive_multiscale_smooth import (  # noqa: E402
     adaptive_multiscale_smooth,
     estimate_noise_matrix,
 )
-from moire.extract_features import (  # noqa: E402
-    extract_Tc,
-    extract_downturns,
-    extract_upturns,
-    get_fit_range,
-)
+from moire.extract_behaviors import extract_fit_range  # noqa: E402
+from moire.extract_features import extract_Tc, extract_downturns, extract_upturns  # noqa: E402
 from moire.io import clean_sort_data, load_field  # noqa: E402
 from moire.signal_helpers import local_noise  # noqa: E402
 from moire.update_scoring import update_extrema  # noqa: E402
@@ -68,7 +64,7 @@ def build_field(field):
 
     update_extrema(T, linecuts)
     for linecut in linecuts:
-        get_fit_range(T, linecut)
+        linecut["behaviors"] = extract_fit_range(T, linecut)
 
     serialized = []
     accepted = 0

@@ -1,6 +1,7 @@
 import numpy as np
+from scipy.optimize import least_squares
 from scipy.signal import find_peaks
-from scipy.stats import chi2
+from scipy.stats import chi2, norm
 
 
 def _hill_sigmoid(x, reference_value, reference_score=0.8, coeff=2):
@@ -314,6 +315,326 @@ def extract_Tcoh(
                 "pvalue": fit["pvalue"],
             }
         )
+        if len(candidates) == max_candidates:
+            break
+
+    return candidates
+
+
+def _fit_power_law_exponent(T, rho, sigma, exponent_bounds):
+    """Robustly fit rho = rho0 + A*T**n and estimate uncertainty in n."""
+    T_reference = float(np.median(T))
+    if not np.isfinite(T_reference) or T_reference <= 0:
+        return None
+
+    scaled_T = T / T_reference
+    design = np.column_stack((np.ones_like(scaled_T), scaled_T))
+    rho0, coefficient = np.linalg.lstsq(design, rho, rcond=None)[0]
+    coefficient = max(float(coefficient), np.finfo(float).eps)
+
+    def residuals(parameters):
+        offset, scale, exponent = parameters
+        return (offset + scale * scaled_T**exponent - rho) / sigma
+
+    result = least_squares(
+        residuals,
+        [rho0, coefficient, 0.8],
+        bounds=([-np.inf, 0.0, exponent_bounds[0]], [np.inf, np.inf, exponent_bounds[1]]),
+        loss="soft_l1",
+        f_scale=1.0,
+        x_scale="jac",
+    )
+    if not result.success or not np.all(np.isfinite(result.x)):
+        return None
+
+    offset, scale, exponent = (float(value) for value in result.x)
+    exponent_sigma = np.nan
+    degrees_of_freedom = len(T) - 3
+    normal_matrix = result.jac.T @ result.jac
+    if degrees_of_freedom > 0 and np.linalg.matrix_rank(normal_matrix) == 3:
+        covariance = np.linalg.inv(normal_matrix) * (2 * result.cost / degrees_of_freedom)
+        exponent_variance = float(covariance[2, 2])
+        if np.isfinite(exponent_variance) and exponent_variance >= 0:
+            exponent_sigma = float(np.sqrt(exponent_variance))
+
+    if np.isclose(exponent, exponent_bounds, rtol=0, atol=1e-4).any():
+        exponent_sigma = np.nan
+
+    return {
+        "rho0": offset,
+        "A": scale / T_reference**exponent,
+        "n": exponent,
+        "n_sigma": exponent_sigma,
+    }
+
+
+def _persistent_lower_departure(
+    T,
+    relative_difference,
+    absolute_difference,
+    sigma,
+    transition_idx,
+    first,
+    deviation,
+    min_points,
+    min_span,
+    min_fraction,
+    noise_threshold,
+):
+    """Check that a downward 10% crossing persists toward lower temperature."""
+    lower_idx = transition_idx
+    while lower_idx >= first:
+        point_count = transition_idx - lower_idx + 1
+        span = T[transition_idx] - T[lower_idx]
+        if point_count >= min_points and span >= min_span:
+            selection = slice(lower_idx, transition_idx + 1)
+            departure_fraction = float(np.mean(relative_difference[selection] >= deviation))
+            noise_fraction = float(
+                np.mean(absolute_difference[selection] >= noise_threshold * sigma[selection])
+            )
+            if departure_fraction >= min_fraction and noise_fraction >= min_fraction:
+                return {
+                    "T_lower": float(T[lower_idx]),
+                    "T_upper": float(T[transition_idx]),
+                    "points": point_count,
+                    "span": float(span),
+                    "departure_fraction": departure_fraction,
+                    "noise_fraction": noise_fraction,
+                }
+            return None
+        lower_idx -= 1
+
+    return None
+
+
+def _fit_lower_power_law(
+    T, rho, sigma, transition_idx, first, min_points, min_span, exponent_bounds
+):
+    """Fit the nearest identifiable power-law window below a departure."""
+    lower_idx = transition_idx
+    while lower_idx >= first:
+        point_count = transition_idx - lower_idx + 1
+        span = T[transition_idx] - T[lower_idx]
+        if point_count >= min_points and span >= min_span:
+            selection = slice(lower_idx, transition_idx + 1)
+            fit = _fit_power_law_exponent(
+                T[selection], rho[selection], sigma[selection], exponent_bounds
+            )
+            if fit is not None and np.isfinite(fit["n_sigma"]) and fit["n_sigma"] >= 0:
+                return fit, lower_idx
+        lower_idx -= 1
+
+    return None
+
+
+def extract_Tprime(
+    T,
+    linecut,
+    max_candidates=100,
+    deviation=0.10,
+    min_fit_points=6,
+    min_fit_span=0.5,
+    min_pvalue=0.05,
+    persistence_points=4,
+    persistence_span=0.3,
+    persistence_fraction=0.8,
+    noise_threshold=1.5,
+    min_sublinear_points=6,
+    min_sublinear_span=0.5,
+    min_sublinear_probability=0.5,
+    exponent_bounds=(0.1, 4.0),
+) -> list[dict]:
+    """Return paper-defined T-prime candidates from high-T linear fits.
+
+    Each fit is anchored to the top of the extraction range. The candidate is
+    the first persistent 10% departure found while scanning downward in
+    temperature. Candidates are retained only when the lower-temperature side
+    is statistically compatible with a sublinear power law (n < 1).
+
+    ``confidence`` is the upper-tail chi-square p-value of the high-temperature
+    linear fit. It is a fit-compatibility score, not the probability that the
+    reported temperature is the true T-prime.
+    """
+    if max_candidates < 1:
+        raise ValueError("max_candidates must be at least 1")
+    if not 0 < deviation < 1:
+        raise ValueError("deviation must be between 0 and 1")
+    if min_fit_points < 3:
+        raise ValueError("min_fit_points must be at least 3")
+    if min_fit_span <= 0:
+        raise ValueError("min_fit_span must be positive")
+    if not 0 <= min_pvalue <= 1:
+        raise ValueError("min_pvalue must be between 0 and 1")
+    if persistence_points < 1:
+        raise ValueError("persistence_points must be at least 1")
+    if persistence_span < 0:
+        raise ValueError("persistence_span cannot be negative")
+    if not 0 < persistence_fraction <= 1:
+        raise ValueError("persistence_fraction must be between 0 and 1")
+    if noise_threshold < 0:
+        raise ValueError("noise_threshold cannot be negative")
+    if min_sublinear_points < 4:
+        raise ValueError("min_sublinear_points must be at least 4")
+    if min_sublinear_span <= 0:
+        raise ValueError("min_sublinear_span must be positive")
+    if not 0 <= min_sublinear_probability <= 1:
+        raise ValueError("min_sublinear_probability must be between 0 and 1")
+    if len(exponent_bounds) != 2 or not 0 < exponent_bounds[0] < 1 < exponent_bounds[1]:
+        raise ValueError("exponent_bounds must straddle 1 and contain positive values")
+
+    T = np.asarray(T, float)
+    rho = np.asarray(linecut["rho"], float)
+    smooth = np.asarray(linecut.get("rho_smoothed", rho), float)
+    sigma = np.asarray(linecut.get("local_noise", np.ones_like(T)), float).copy()
+    if not (T.ndim == rho.ndim == smooth.ndim == sigma.ndim == 1):
+        raise ValueError("T, rho, rho_smoothed, and local_noise must be one-dimensional")
+    if not (len(T) == len(rho) == len(smooth) == len(sigma)):
+        raise ValueError("T and linecut arrays must have equal length")
+    if not len(T):
+        return []
+    if not np.all(np.isfinite(T)) or not np.all(T > 0) or not np.all(np.diff(T) > 0):
+        raise ValueError("T must be finite, positive, and strictly increasing")
+    if not np.all(np.isfinite(rho)) or not np.all(np.isfinite(smooth)):
+        raise ValueError("rho and rho_smoothed must contain only finite values")
+
+    valid_sigma = np.isfinite(sigma) & (sigma > 0)
+    sigma[~valid_sigma] = np.median(sigma[valid_sigma]) if np.any(valid_sigma) else 1.0
+
+    extraction_range = next(
+        (
+            behavior
+            for behavior in linecut.get("behaviors", [])
+            if behavior.get("type") == "extraction_range"
+        ),
+        {"T_lower": T[0], "T_upper": T[-1]},
+    )
+    lower, upper = sorted((extraction_range["T_lower"], extraction_range["T_upper"]))
+    allowed = np.flatnonzero((T >= lower) & (T <= upper))
+    required_points = max(min_fit_points + 1, min_sublinear_points + 1)
+    if len(allowed) < required_points:
+        return []
+
+    first, last = int(allowed[0]), int(allowed[-1])
+    linear_fits = []
+
+    # Fit shrinking high-temperature windows to rho = rho0 + A*T. At least
+    # one lower-temperature point is reserved for finding a departure.
+    for start in allowed[1:]:
+        if last - start + 1 < min_fit_points:
+            break
+        if T[last] - T[start] < min_fit_span:
+            continue
+
+        selection = slice(start, last + 1)
+        design = np.column_stack((np.ones(last - start + 1), T[selection]))
+        weighted_design = design / sigma[selection, None]
+        rho0, coefficient = np.linalg.lstsq(
+            weighted_design, rho[selection] / sigma[selection], rcond=None
+        )[0]
+        if coefficient <= 0:
+            continue
+
+        fitted = rho0 + coefficient * T[selection]
+        residuals = (rho[selection] - fitted) / sigma[selection]
+        chi_square = float(np.sum(residuals**2))
+        degrees_of_freedom = len(residuals) - 2
+        pvalue = float(chi2.sf(chi_square, degrees_of_freedom))
+        if not np.isfinite(pvalue) or pvalue < min_pvalue:
+            continue
+
+        linear_fits.append(
+            {
+                "start": int(start),
+                "rho0": float(rho0),
+                "A": float(coefficient),
+                "chi_square": chi_square,
+                "degrees_of_freedom": degrees_of_freedom,
+                "reduced_chi2": chi_square / degrees_of_freedom,
+                "pvalue": pvalue,
+            }
+        )
+
+    linear_fits.sort(key=lambda fit: (fit["pvalue"], T[last] - T[fit["start"]]), reverse=True)
+
+    candidates = []
+    for fit in linear_fits:
+        predicted = fit["rho0"] + fit["A"] * T
+        absolute_difference = np.abs(smooth - predicted)
+        relative_difference = absolute_difference / np.maximum(np.abs(predicted), 1e-12)
+
+        for transition_idx in range(fit["start"] - 1, first - 1, -1):
+            if relative_difference[transition_idx] < deviation:
+                continue
+
+            persistence = _persistent_lower_departure(
+                T,
+                relative_difference,
+                absolute_difference,
+                sigma,
+                transition_idx,
+                first,
+                deviation,
+                persistence_points,
+                persistence_span,
+                persistence_fraction,
+                noise_threshold,
+            )
+            if persistence is None:
+                continue
+
+            lower_fit = _fit_lower_power_law(
+                T,
+                rho,
+                sigma,
+                transition_idx,
+                first,
+                min_sublinear_points,
+                min_sublinear_span,
+                exponent_bounds,
+            )
+            if lower_fit is None:
+                continue
+            sublinear_fit, sublinear_lower_idx = lower_fit
+            exponent = sublinear_fit["n"]
+            exponent_sigma = sublinear_fit["n_sigma"]
+            if exponent_sigma == 0:
+                sublinear_probability = float(exponent < 1)
+            else:
+                sublinear_probability = float(norm.cdf((1 - exponent) / exponent_sigma))
+            if sublinear_probability < min_sublinear_probability:
+                continue
+
+            candidates.append(
+                {
+                    "T": float(T[transition_idx]),
+                    "nu": linecut.get("nu"),
+                    "type": "Tprime",
+                    "confidence": fit["pvalue"],
+                    "fit_T_lower": float(T[fit["start"]]),
+                    "fit_T_upper": float(T[last]),
+                    "rho0": fit["rho0"],
+                    "A": fit["A"],
+                    "chi_square": fit["chi_square"],
+                    "degrees_of_freedom": fit["degrees_of_freedom"],
+                    "reduced_chi2": fit["reduced_chi2"],
+                    "pvalue": fit["pvalue"],
+                    "persistence_T_lower": persistence["T_lower"],
+                    "persistence_T_upper": persistence["T_upper"],
+                    "persistence_points": persistence["points"],
+                    "persistence_span": persistence["span"],
+                    "persistence_fraction": persistence["departure_fraction"],
+                    "noise_fraction": persistence["noise_fraction"],
+                    "sublinear_fit_T_lower": float(T[sublinear_lower_idx]),
+                    "sublinear_fit_T_upper": float(T[transition_idx]),
+                    "sublinear_rho0": sublinear_fit["rho0"],
+                    "sublinear_A": sublinear_fit["A"],
+                    "sublinear_n": exponent,
+                    "sublinear_n_sigma": exponent_sigma,
+                    "sublinear_probability": sublinear_probability,
+                }
+            )
+            break
+
         if len(candidates) == max_candidates:
             break
 

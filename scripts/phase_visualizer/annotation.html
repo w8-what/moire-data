@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Crossover annotation</title>
+  <style>
+    :root {
+      --ink: #182033;
+      --muted: #667085;
+      --line: #d7dde7;
+      --page: #edf1f6;
+      --panel: #fff;
+      --tcoh: #0759d9;
+      --tprime: #c02678;
+      --active: #172554;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--page);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button, select, input, textarea { font: inherit; }
+    button, select, input[type="range"] { min-height: 44px; }
+    button {
+      border: 1px solid #c9d1dd;
+      border-radius: 9px;
+      padding: 9px 12px;
+      color: #344054;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 650;
+    }
+    button:hover { background: #f7f9fc; }
+    button:disabled { opacity: .45; cursor: default; }
+    button.active { color: #fff; border-color: var(--active); background: var(--active); }
+    button.tcoh.active { border-color: var(--tcoh); background: var(--tcoh); }
+    button.tprime.active { border-color: var(--tprime); background: var(--tprime); }
+    .shell { width: min(1560px, calc(100% - 24px)); margin: 0 auto; padding: 22px 0 42px; }
+    .hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; margin-bottom: 16px; }
+    .eyebrow { margin: 0 0 5px; color: #53627a; font-size: .7rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 0; font: 650 clamp(1.7rem, 3.3vw, 2.75rem)/1.05 Georgia, serif; }
+    .subtitle { max-width: 820px; margin: 8px 0 0; color: var(--muted); line-height: 1.45; }
+    .hero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
+    .save-state { min-width: 92px; color: #52627b; font-size: .8rem; text-align: right; }
+    .save-state.error { color: #b42318; }
+    .panel { border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.97); box-shadow: 0 9px 26px rgba(23,32,51,.055); }
+    .science { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; margin-bottom: 14px; padding: 13px 15px; }
+    .science label { color: #475467; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .science select { min-width: 150px; border: 1px solid #cbd3df; border-radius: 9px; padding: 7px 10px; background: #fff; }
+    .definitions { color: #536074; font-size: .8rem; line-height: 1.45; }
+    .definitions strong:first-child { color: var(--tcoh); }
+    .definitions strong:nth-of-type(2) { color: var(--tprime); }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.16fr) minmax(430px, .84fr); gap: 14px; align-items: start; }
+    .card { min-width: 0; overflow: hidden; }
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 15px 16px 11px; }
+    .card-head h2 { margin: 0; font: 650 1.16rem/1.2 Georgia, serif; }
+    .card-head p { margin: 4px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.35; }
+    .progress { color: #52627b; font-size: .75rem; text-align: right; white-space: nowrap; }
+    .tools { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 16px 12px; }
+    .tool-hint { flex: 1 1 100%; min-height: 18px; color: #52627b; font-size: .76rem; }
+    .canvas-wrap { position: relative; border-top: 1px solid #e1e6ed; border-bottom: 1px solid #e1e6ed; background: #fffefa; }
+    canvas { display: block; width: 100%; touch-action: none; }
+    #heatmap { height: 540px; }
+    #linecut { height: 400px; }
+    .review-row { display: flex; flex-wrap: wrap; gap: 12px 18px; padding: 12px 16px 15px; color: #475467; font-size: .78rem; }
+    .review-row label { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; }
+    input[type="checkbox"] { width: 19px; height: 19px; accent-color: var(--active); }
+    .line-nav { padding: 0 16px 12px; }
+    .nav-buttons { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; }
+    .nav-buttons input { width: 100%; accent-color: var(--active); }
+    .filling-title { margin-top: 7px; color: #344054; font-size: .82rem; font-weight: 700; text-align: center; }
+    .label-grid { display: grid; gap: 9px; padding: 13px 16px; }
+    .label-row { display: grid; grid-template-columns: 68px minmax(92px, .7fr) repeat(3, auto) minmax(112px, .8fr); gap: 7px; align-items: center; }
+    .feature-name { font-weight: 800; }
+    .feature-name.tcoh { color: var(--tcoh); }
+    .feature-name.tprime { color: var(--tprime); }
+    .label-value { color: #344054; font-size: .8rem; }
+    .label-row select { min-height: 44px; border: 1px solid #cbd3df; border-radius: 9px; padding: 7px; background: #fff; }
+    .notes { padding: 0 16px 15px; }
+    .notes label { display: block; margin-bottom: 6px; color: #475467; font-size: .72rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    textarea { width: 100%; min-height: 68px; resize: vertical; border: 1px solid #cbd3df; border-radius: 9px; padding: 9px 10px; color: var(--ink); background: #fff; }
+    .shortcuts { padding: 10px 16px 14px; color: var(--muted); font-size: .72rem; border-top: 1px solid #e6e9ee; }
+    kbd { border: 1px solid #cbd3df; border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; color: #344054; background: #f8fafc; font: 650 .7rem sans-serif; }
+    @media (max-width: 1050px) {
+      .workspace { grid-template-columns: 1fr; }
+      #heatmap { height: 500px; }
+    }
+    @media (max-width: 720px) {
+      .shell { width: min(100% - 14px, 1560px); padding-top: 12px; }
+      .hero { display: block; }
+      .hero-actions { justify-content: flex-start; margin-top: 12px; }
+      .science { grid-template-columns: 1fr; gap: 7px; }
+      .science select { width: 100%; }
+      #heatmap { height: 430px; }
+      #linecut { height: 350px; }
+      .label-row { grid-template-columns: 62px 1fr 1fr; }
+      .label-row .label-value { text-align: right; }
+      .label-row button { padding-inline: 7px; }
+      .label-row select { grid-column: 2 / -1; }
+      .nav-buttons { grid-template-columns: auto 1fr auto; }
+      #next-unreviewed { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Human ground truth</p>
+        <h1>Crossover annotation</h1>
+        <p class="subtitle">Sketch the phase boundaries first, then review representative linecuts. Untouched, ambiguous, and scientifically not identifiable are stored as different states.</p>
+      </div>
+      <div class="hero-actions">
+        <span id="save-state" class="save-state">Loading…</span>
+        <button id="download" type="button">Download JSON</button>
+        <button id="explorer" type="button">Open fit explorer</button>
+      </div>
+    </header>
+
+    <section class="panel science">
+      <div>
+        <label for="field">Dataset</label>
+        <select id="field"></select>
+      </div>
+      <div class="definitions">
+        <strong>Tcoh:</strong> first 10% departure above the low-T ρ₀ + AT² regime.
+        <strong>T′:</strong> first 10% departure below the high-T linear regime; linear above, sublinear below.
+      </div>
+      <div id="field-progress" class="progress"></div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel card">
+        <div class="card-head">
+          <div>
+            <h2>1. Draw the expected heatmap boundaries</h2>
+            <p>Tap anchor points or drag. Missing points outside the drawn domain are not automatically treated as labels.</p>
+          </div>
+          <div id="boundary-count" class="progress"></div>
+        </div>
+        <div class="tools">
+          <button class="tcoh boundary-tool" data-feature="Tcoh" type="button">Draw Tcoh</button>
+          <button class="tprime boundary-tool" data-feature="Tprime" type="button">Draw T′</button>
+          <button id="inspect-tool" class="active" type="button">Inspect linecut</button>
+          <button id="new-segment" type="button">New segment</button>
+          <button id="undo-boundary" type="button">Undo</button>
+          <button id="clear-boundary" type="button">Clear active</button>
+          <div id="boundary-hint" class="tool-hint">Tap the heatmap to open that linecut.</div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="heatmap" aria-label="Raw resistivity heatmap for crossover boundary annotation"></canvas>
+        </div>
+        <div class="review-row">
+          <label><input id="reviewed-Tcoh" type="checkbox"> Tcoh boundary reviewed for this field</label>
+          <label><input id="reviewed-Tprime" type="checkbox"> T′ boundary reviewed for this field</label>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="card-head">
+          <div>
+            <h2>2. Label representative linecuts</h2>
+            <p>Choose a feature, then tap its crossover temperature on the plot.</p>
+          </div>
+          <div id="linecut-progress" class="progress"></div>
+        </div>
+        <div class="line-nav">
+          <div class="nav-buttons">
+            <button id="previous" type="button" aria-label="Previous filling">←</button>
+            <input id="filling" type="range" min="0" max="1" value="0" aria-label="Filling index">
+            <button id="next" type="button" aria-label="Next filling">→</button>
+            <button id="next-unreviewed" type="button">Next unreviewed</button>
+          </div>
+          <div id="filling-title" class="filling-title"></div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="linecut" aria-label="Raw and smoothed resistivity linecut for crossover annotation"></canvas>
+        </div>
+        <div class="label-grid">
+          <div class="label-row" data-feature="Tcoh">
+            <span class="feature-name tcoh">Tcoh</span>
+            <span id="value-Tcoh" class="label-value">Not reviewed</span>
+            <button class="set-label tcoh" data-feature="Tcoh" type="button">Set on plot</button>
+            <button class="set-ni" data-feature="Tcoh" type="button">Not identifiable</button>
+            <button class="clear-label" data-feature="Tcoh" type="button">Clear</button>
+            <select id="certainty-Tcoh" data-feature="Tcoh" aria-label="Tcoh certainty">
+              <option value="certain">Certain</option>
+              <option value="approximate">Approximate</option>
+              <option value="ambiguous">Ambiguous</option>
+            </select>
+          </div>
+          <div class="label-row" data-feature="Tprime">
+            <span class="feature-name tprime">T′</span>
+            <span id="value-Tprime" class="label-value">Not reviewed</span>
+            <button class="set-label tprime" data-feature="Tprime" type="button">Set on plot</button>
+            <button class="set-ni" data-feature="Tprime" type="button">Not identifiable</button>
+            <button class="clear-label" data-feature="Tprime" type="button">Clear</button>
+            <select id="certainty-Tprime" data-feature="Tprime" aria-label="T prime certainty">
+              <option value="certain">Certain</option>
+              <option value="approximate">Approximate</option>
+              <option value="ambiguous">Ambiguous</option>
+            </select>
+          </div>
+        </div>
+        <div class="notes">
+          <label for="notes">Optional note for this linecut</label>
+          <textarea id="notes" placeholder="Why ambiguous, unusual structure, fit-window concern…"></textarea>
+        </div>
+        <div class="shortcuts">Mac shortcuts: <kbd>1</kbd> set Tcoh · <kbd>2</kbd> set T′ · <kbd>N</kbd> active feature not identifiable · <kbd>←</kbd>/<kbd>→</kbd> change filling</div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const FEATURES = ['Tcoh', 'Tprime'];
+    const COLORS = { Tcoh: '#0759d9', Tprime: '#c02678' };
+    const DISPLAY = { Tcoh: 'Tcoh', Tprime: 'T′' };
+    const elements = Object.fromEntries([
+      'save-state', 'download', 'explorer', 'field', 'field-progress', 'boundary-count',
+      'heatmap', 'inspect-tool', 'new-segment', 'undo-boundary', 'clear-boundary', 'boundary-hint',
+      'reviewed-Tcoh', 'reviewed-Tprime', 'linecut-progress', 'previous', 'filling',
+      'next', 'next-unreviewed', 'filling-title', 'linecut', 'notes', 'value-Tcoh',
+      'value-Tprime', 'certainty-Tcoh', 'certainty-Tprime'
+    ].map(id => [id, document.getElementById(id)]));
+
+    const state = {
+      metadata: null,
+      document: null,
+      fieldData: null,
+      linecut: null,
+      boundaryFeature: null,
+      boundarySegment: { Tcoh: 'segment-1', Tprime: 'segment-1' },
+      linecutFeature: 'Tcoh',
+      boundaryHistory: [],
+      layouts: new Map(),
+      revision: 0,
+      savedRevision: 0,
+      saving: false,
+      fieldRequest: 0,
+      linecutRequest: 0,
+      drawing: false
+    };
+
+    const fieldKey = value => String(Number(value));
+    const deepCopy = value => JSON.parse(JSON.stringify(value));
+    const fmt = (value, digits = 3) => Number(value).toFixed(digits).replace(/\.?0+$/, '');
+    const nearestIndex = (values, target) => values.reduce(
+      (best, value, index) => Math.abs(value - target) < Math.abs(values[best] - target) ? index : best,
+      0
+    );
+    const debounce = (callback, delay) => {
+      let timer;
+      return (...args) => { clearTimeout(timer); timer = setTimeout(() => callback(...args), delay); };
+    };
+
+    function currentMeta() {
+      return state.metadata.fields.find(item => fieldKey(item.field) === fieldKey(elements.field.value));
+    }
+
+    function currentFieldLabels() {
+      const key = fieldKey(elements.field.value);
+      if (!state.document.fields[key]) {
+        state.document.fields[key] = {
+          boundaries: { Tcoh: [], Tprime: [] },
+          reviewed: { Tcoh: false, Tprime: false },
+          linecuts: {}
+        };
+      }
+      const field = state.document.fields[key];
+      field.boundaries ||= { Tcoh: [], Tprime: [] };
+      field.reviewed ||= { Tcoh: false, Tprime: false };
+      field.linecuts ||= {};
+      FEATURES.forEach(feature => {
+        field.boundaries[feature] ||= [];
+        if (typeof field.reviewed[feature] !== 'boolean') field.reviewed[feature] = false;
+      });
+      return field;
+    }
+
+    function currentLinecutLabels(create = true) {
+      const field = currentFieldLabels();
+      const index = String(Number(elements.filling.value));
+      if (!field.linecuts[index] && create) {
+        field.linecuts[index] = { nu: currentMeta().fillings[Number(index)], notes: '' };
+      }
+      return field.linecuts[index] || null;
+    }
+
+    async function getJSON(url) {
+      const response = await fetch(url);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+      return data;
+    }
+
+    function setSaveState(text, error = false) {
+      elements['save-state'].textContent = text;
+      elements['save-state'].className = `save-state${error ? ' error' : ''}`;
+    }
+
+    function changed() {
+      state.revision += 1;
+      setSaveState('Unsaved…');
+      scheduleSave();
+    }
+
+    async function saveDocument() {
+      if (state.saving || state.savedRevision >= state.revision) return;
+      state.saving = true;
+      try {
+        while (state.savedRevision < state.revision) {
+          const savingRevision = state.revision;
+          setSaveState('Saving…');
+          const response = await fetch('/api/annotations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(state.document)
+          });
+          const saved = await response.json();
+          if (!response.ok) throw new Error(saved.error || `Save failed (${response.status})`);
+          state.document.updatedAt = saved.updatedAt;
+          state.savedRevision = savingRevision;
+        }
+        setSaveState('Saved');
+      } catch (error) {
+        setSaveState(error.message, true);
+      } finally {
+        state.saving = false;
+        if (state.savedRevision < state.revision) scheduleSave();
+      }
+    }
+    const scheduleSave = debounce(saveDocument, 300);
+
+    function canvasContext(canvas) {
+      const ratio = window.devicePixelRatio || 1;
+      const width = Math.max(canvas.clientWidth, 300);
+      const height = Math.max(canvas.clientHeight, 260);
+      if (canvas.width !== Math.round(width * ratio) || canvas.height !== Math.round(height * ratio)) {
+        canvas.width = Math.round(width * ratio);
+        canvas.height = Math.round(height * ratio);
+      }
+      const context = canvas.getContext('2d');
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, width, height);
+      return { context, width, height };
+    }
+
+    function mapLayout(canvas, xValues, yValues) {
+      const { context, width, height } = canvasContext(canvas);
+      const margin = { left: 57, right: 18, top: 15, bottom: 48 };
+      const plotWidth = width - margin.left - margin.right;
+      const plotHeight = height - margin.top - margin.bottom;
+      const xLow = xValues[0], xHigh = xValues[xValues.length - 1];
+      const yLow = yValues[0], yHigh = yValues[yValues.length - 1];
+      const layout = {
+        margin, width, height, plotWidth, plotHeight, xLow, xHigh, yLow, yHigh,
+        x: value => margin.left + (value - xLow) / (xHigh - xLow) * plotWidth,
+        y: value => margin.top + (yHigh - value) / (yHigh - yLow) * plotHeight
+      };
+      state.layouts.set(canvas, layout);
+      return { context, layout };
+    }
+
+    function mapEdge(values, index, side) {
+      if (side < 0) return index ? (values[index - 1] + values[index]) / 2 : values[0] - (values[1] - values[0]) / 2;
+      return index === values.length - 1 ? values[index] + (values[index] - values[index - 1]) / 2 : (values[index] + values[index + 1]) / 2;
+    }
+
+    function mix(a, b, amount) {
+      const parse = color => [1, 3, 5].map(index => parseInt(color.slice(index, index + 2), 16));
+      const left = parse(a), right = parse(b);
+      return `rgb(${left.map((value, index) => Math.round(value + (right[index] - value) * amount)).join(',')})`;
+    }
+
+    function heatColor(value, data) {
+      if (!(value > 0)) return '#fffefa';
+      const normalized = Math.max(0, Math.min(1, (Math.log10(value) - data.logMin) / (data.logMax - data.logMin)));
+      return normalized < .5 ? mix('#2a3aeb', '#fffefa', normalized * 2) : mix('#fffefa', '#f23541', (normalized - .5) * 2);
+    }
+
+    function drawAxes(context, layout, xLabel, yLabel, xDigits = 2) {
+      context.save();
+      context.strokeStyle = '#202631';
+      context.fillStyle = '#344054';
+      context.lineWidth = 1;
+      context.strokeRect(layout.margin.left, layout.margin.top, layout.plotWidth, layout.plotHeight);
+      context.font = '11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+      for (let index = 0; index <= 4; index++) {
+        const xValue = layout.xLow + (layout.xHigh - layout.xLow) * index / 4;
+        const yValue = layout.yLow + (layout.yHigh - layout.yLow) * index / 4;
+        context.textAlign = 'center';
+        context.textBaseline = 'top';
+        context.fillText(fmt(xValue, xDigits), layout.x(xValue), layout.margin.top + layout.plotHeight + 7);
+        context.textAlign = 'right';
+        context.textBaseline = 'middle';
+        context.fillText(fmt(yValue, yValue < 1 ? 2 : 1), layout.margin.left - 7, layout.y(yValue));
+      }
+      context.textAlign = 'center';
+      context.textBaseline = 'bottom';
+      context.fillText(xLabel, layout.margin.left + layout.plotWidth / 2, layout.height - 4);
+      context.save();
+      context.translate(14, layout.margin.top + layout.plotHeight / 2);
+      context.rotate(-Math.PI / 2);
+      context.fillText(yLabel, 0, 0);
+      context.restore();
+      context.restore();
+    }
+
+    function drawBoundary(context, layout, points, feature) {
+      const segments = new Map();
+      points.forEach(point => {
+        const name = point.segment || 'segment-1';
+        if (!segments.has(name)) segments.set(name, []);
+        segments.get(name).push(point);
+      });
+      context.save();
+      context.strokeStyle = COLORS[feature];
+      context.fillStyle = COLORS[feature];
+      context.lineWidth = 3;
+      context.shadowColor = 'rgba(255,255,255,.9)';
+      context.shadowBlur = 3;
+      segments.forEach(segment => {
+        const sorted = segment.sort((a, b) => a.nu - b.nu);
+        context.beginPath();
+        sorted.forEach((point, index) => {
+          if (index) context.lineTo(layout.x(point.nu), layout.y(point.T));
+          else context.moveTo(layout.x(point.nu), layout.y(point.T));
+        });
+        context.stroke();
+      });
+      context.shadowBlur = 0;
+      points.forEach(point => {
+        context.beginPath();
+        context.arc(layout.x(point.nu), layout.y(point.T), 4.2, 0, Math.PI * 2);
+        context.fill();
+        context.strokeStyle = '#fff';
+        context.lineWidth = 1.2;
+        context.stroke();
+      });
+      context.restore();
+    }
+
+    function drawHeatmap() {
+      if (!state.fieldData) return;
+      const data = state.fieldData;
+      const { context, layout } = mapLayout(elements.heatmap, data.heatFillings, data.temperatures);
+      context.fillStyle = '#fffefa';
+      context.fillRect(0, 0, layout.width, layout.height);
+      context.save();
+      context.beginPath();
+      context.rect(layout.margin.left, layout.margin.top, layout.plotWidth, layout.plotHeight);
+      context.clip();
+      data.temperatures.forEach((temperature, row) => {
+        data.heatFillings.forEach((filling, column) => {
+          const left = layout.x(mapEdge(data.heatFillings, column, -1));
+          const right = layout.x(mapEdge(data.heatFillings, column, 1));
+          const top = layout.y(mapEdge(data.temperatures, row, 1));
+          const bottom = layout.y(mapEdge(data.temperatures, row, -1));
+          context.fillStyle = heatColor(data.heatmap[row][column], data);
+          context.fillRect(Math.floor(left), Math.floor(top), Math.ceil(right - left), Math.ceil(bottom - top));
+        });
+      });
+      context.restore();
+      const labels = currentFieldLabels();
+      FEATURES.forEach(feature => drawBoundary(context, layout, labels.boundaries[feature], feature));
+      const selectedNu = currentMeta().fillings[Number(elements.filling.value)];
+      context.save();
+      context.strokeStyle = 'rgba(17,24,39,.65)';
+      context.setLineDash([5, 4]);
+      context.beginPath();
+      context.moveTo(layout.x(selectedNu), layout.margin.top);
+      context.lineTo(layout.x(selectedNu), layout.margin.top + layout.plotHeight);
+      context.stroke();
+      context.restore();
+      drawAxes(context, layout, 'Filling ν', 'Temperature T (K)');
+      updateProgress();
+    }
+
+    function extent(values) {
+      const finite = values.filter(Number.isFinite);
+      let low = Math.min(...finite), high = Math.max(...finite);
+      const padding = Math.max((high - low) * .08, Math.abs(high) * .01, 1e-9);
+      return [low - padding, high + padding];
+    }
+
+    function interpolateBoundary(feature, nu) {
+      const groups = new Map();
+      currentFieldLabels().boundaries[feature].forEach(point => {
+        const segment = point.segment || 'segment-1';
+        if (!groups.has(segment)) groups.set(segment, []);
+        groups.get(segment).push(point);
+      });
+      for (const points of groups.values()) {
+        points.sort((a, b) => a.nu - b.nu);
+        if (!points.length || nu < points[0].nu || nu > points[points.length - 1].nu) continue;
+        const exact = points.find(point => point.nu === nu);
+        if (exact) return exact.T;
+        const right = points.findIndex(point => point.nu > nu);
+        if (right <= 0) continue;
+        const leftPoint = points[right - 1], rightPoint = points[right];
+        const fraction = (nu - leftPoint.nu) / (rightPoint.nu - leftPoint.nu);
+        return leftPoint.T + fraction * (rightPoint.T - leftPoint.T);
+      }
+      return null;
+    }
+
+    function drawLine(context, layout, xValues, yValues, color, width) {
+      context.save();
+      context.strokeStyle = color;
+      context.lineWidth = width;
+      context.beginPath();
+      yValues.forEach((value, index) => {
+        if (index) context.lineTo(layout.x(xValues[index]), layout.y(value));
+        else context.moveTo(layout.x(xValues[index]), layout.y(value));
+      });
+      context.stroke();
+      context.restore();
+    }
+
+    function drawVerticalLabel(context, layout, temperature, feature, dashed = false) {
+      context.save();
+      context.strokeStyle = COLORS[feature];
+      context.lineWidth = dashed ? 1.5 : 3;
+      if (dashed) context.setLineDash([5, 4]);
+      context.globalAlpha = dashed ? .55 : 1;
+      context.beginPath();
+      context.moveTo(layout.x(temperature), layout.margin.top);
+      context.lineTo(layout.x(temperature), layout.margin.top + layout.plotHeight);
+      context.stroke();
+      context.fillStyle = COLORS[feature];
+      context.font = '700 11px sans-serif';
+      context.textAlign = 'center';
+      context.fillText(dashed ? `${DISPLAY[feature]} guide` : DISPLAY[feature], layout.x(temperature), layout.margin.top + 13);
+      context.restore();
+    }
+
+    function drawLinecut() {
+      if (!state.linecut) return;
+      const data = state.linecut;
+      const { context, width, height } = canvasContext(elements.linecut);
+      const margin = { left: 67, right: 18, top: 18, bottom: 48 };
+      const [yLow, yHigh] = extent([...data.raw, ...data.smoothed]);
+      const xLow = data.temperatures[0], xHigh = data.temperatures[data.temperatures.length - 1];
+      const plotWidth = width - margin.left - margin.right, plotHeight = height - margin.top - margin.bottom;
+      const layout = {
+        margin, width, height, plotWidth, plotHeight, xLow, xHigh, yLow, yHigh,
+        x: value => margin.left + (value - xLow) / (xHigh - xLow) * plotWidth,
+        y: value => margin.top + (yHigh - value) / (yHigh - yLow) * plotHeight
+      };
+      state.layouts.set(elements.linecut, layout);
+      context.fillStyle = '#fff';
+      context.fillRect(0, 0, width, height);
+      if (data.range) {
+        context.fillStyle = 'rgba(124,58,237,.08)';
+        context.fillRect(layout.x(data.range.lower), margin.top, layout.x(data.range.upper) - layout.x(data.range.lower), plotHeight);
+      }
+      drawLine(context, layout, data.temperatures, data.raw, '#aab2bf', 1.2);
+      drawLine(context, layout, data.temperatures, data.smoothed, '#172033', 2.2);
+      const labels = currentLinecutLabels(false) || {};
+      FEATURES.forEach(feature => {
+        const label = labels[feature];
+        if (label?.status === 'value') drawVerticalLabel(context, layout, label.T, feature, false);
+        else {
+          const guide = interpolateBoundary(feature, data.filling);
+          if (guide !== null) drawVerticalLabel(context, layout, guide, feature, true);
+        }
+      });
+      drawAxes(context, layout, 'Temperature (K)', 'Resistivity (Ω·cm)', 1);
+    }
+
+    function pointerValues(event, canvas) {
+      const layout = state.layouts.get(canvas);
+      const rect = canvas.getBoundingClientRect();
+      const px = Math.max(layout.margin.left, Math.min(layout.margin.left + layout.plotWidth, event.clientX - rect.left));
+      const py = Math.max(layout.margin.top, Math.min(layout.margin.top + layout.plotHeight, event.clientY - rect.top));
+      return {
+        x: layout.xLow + (px - layout.margin.left) / layout.plotWidth * (layout.xHigh - layout.xLow),
+        y: layout.yHigh - (py - layout.margin.top) / layout.plotHeight * (layout.yHigh - layout.yLow)
+      };
+    }
+
+    function addBoundaryPoint(event) {
+      if (!state.boundaryFeature || !state.fieldData) return;
+      const values = pointerValues(event, elements.heatmap);
+      const filling = state.fieldData.fillings[nearestIndex(state.fieldData.fillings, values.x)];
+      const temperature = state.fieldData.temperatures[nearestIndex(state.fieldData.temperatures, values.y)];
+      const field = currentFieldLabels();
+      const points = field.boundaries[state.boundaryFeature];
+      const segment = state.boundarySegment[state.boundaryFeature];
+      const existing = points.findIndex(point => point.nu === filling && (point.segment || 'segment-1') === segment);
+      const point = { nu: filling, T: temperature, segment };
+      if (existing >= 0) points[existing] = point;
+      else points.push(point);
+      points.sort((a, b) => a.nu - b.nu);
+      field.reviewed[state.boundaryFeature] = false;
+      elements[`reviewed-${state.boundaryFeature}`].checked = false;
+      changed();
+      drawHeatmap();
+      drawLinecut();
+    }
+
+    function selectBoundaryTool(feature) {
+      state.boundaryFeature = feature;
+      document.querySelectorAll('.boundary-tool').forEach(button => button.classList.toggle('active', button.dataset.feature === feature));
+      elements['inspect-tool'].classList.toggle('active', feature === null);
+      elements['boundary-hint'].textContent = feature
+        ? `Drawing ${DISPLAY[feature]}. Tap anchors or drag; points snap to measured filling and temperature.`
+        : 'Tap the heatmap to open that linecut.';
+      elements['clear-boundary'].disabled = feature === null;
+      elements['new-segment'].disabled = feature === null;
+    }
+
+    function setActiveLinecutFeature(feature) {
+      state.linecutFeature = feature;
+      document.querySelectorAll('.set-label').forEach(button => button.classList.toggle('active', button.dataset.feature === feature));
+    }
+
+    function setLinecutValue(feature, temperature) {
+      const labels = currentLinecutLabels(true);
+      const certainty = elements[`certainty-${feature}`].value;
+      labels[feature] = { status: 'value', T: temperature, certainty };
+      changed();
+      updateLabelControls();
+      drawLinecut();
+    }
+
+    function setNotIdentifiable(feature) {
+      currentLinecutLabels(true)[feature] = { status: 'not_identifiable' };
+      changed();
+      updateLabelControls();
+      drawLinecut();
+    }
+
+    function clearLinecutLabel(feature) {
+      const labels = currentLinecutLabels(false);
+      if (!labels) return;
+      delete labels[feature];
+      if (!labels.Tcoh && !labels.Tprime && !labels.notes) {
+        delete currentFieldLabels().linecuts[String(Number(elements.filling.value))];
+      }
+      changed();
+      updateLabelControls();
+      drawLinecut();
+    }
+
+    function updateLabelControls() {
+      const labels = currentLinecutLabels(false) || {};
+      FEATURES.forEach(feature => {
+        const label = labels[feature];
+        let text = 'Not reviewed';
+        if (label?.status === 'not_identifiable') text = 'Not identifiable';
+        if (label?.status === 'value') text = `${fmt(label.T, 3)} K`;
+        elements[`value-${feature}`].textContent = text;
+        elements[`certainty-${feature}`].disabled = label?.status !== 'value';
+        if (label?.status === 'value') elements[`certainty-${feature}`].value = label.certainty;
+      });
+      elements.notes.value = labels.notes || '';
+      updateProgress();
+    }
+
+    function updateProgress() {
+      if (!state.document || !state.metadata) return;
+      const field = currentFieldLabels();
+      const total = currentMeta().fillings.length;
+      const counts = Object.values(field.linecuts).reduce((result, linecut) => {
+        FEATURES.forEach(feature => { if (linecut[feature]) result[feature] += 1; });
+        return result;
+      }, { Tcoh: 0, Tprime: 0 });
+      const published = field.provenance?.manualReviewRequired === false;
+      elements['field-progress'].textContent = published
+        ? 'Published Figure 3 ground truth'
+        : `${Object.keys(field.linecuts).length} linecuts touched`;
+      elements['boundary-count'].textContent = `Tcoh ${field.boundaries.Tcoh.length} anchors · T′ ${field.boundaries.Tprime.length}`;
+      elements['linecut-progress'].textContent = published
+        ? 'Manual review not required'
+        : `Tcoh ${counts.Tcoh}/${total} · T′ ${counts.Tprime}/${total}`;
+      elements['next-unreviewed'].disabled = published;
+      elements['reviewed-Tcoh'].checked = field.reviewed.Tcoh;
+      elements['reviewed-Tprime'].checked = field.reviewed.Tprime;
+      elements['undo-boundary'].disabled = !state.boundaryHistory.length;
+    }
+
+    async function fetchField(value) {
+      const request = ++state.fieldRequest;
+      elements.field.value = fieldKey(value);
+      const meta = currentMeta();
+      elements.filling.max = Math.max(0, meta.fillings.length - 1);
+      elements.filling.value = Math.floor((meta.fillings.length - 1) / 2);
+      state.boundaryHistory = [];
+      setSaveState(state.savedRevision < state.revision ? 'Unsaved…' : 'Saved');
+      try {
+        const data = await getJSON(`/api/annotation/field?field=${encodeURIComponent(value)}`);
+        if (request !== state.fieldRequest) return;
+        state.fieldData = data;
+        drawHeatmap();
+        await fetchLinecut();
+      } catch (error) {
+        setSaveState(error.message, true);
+      }
+    }
+
+    async function fetchLinecut() {
+      if (!state.fieldData) return;
+      const request = ++state.linecutRequest;
+      const index = Number(elements.filling.value);
+      elements.previous.disabled = index <= 0;
+      elements.next.disabled = index >= currentMeta().fillings.length - 1;
+      elements['filling-title'].textContent = `E = ${fmt(elements.field.value, 2)} mV/nm · ν = ${fmt(currentMeta().fillings[index], 4)} · ${index + 1}/${currentMeta().fillings.length}`;
+      try {
+        const data = await getJSON(`/api/annotation/linecut?field=${encodeURIComponent(elements.field.value)}&index=${index}`);
+        if (request !== state.linecutRequest) return;
+        state.linecut = data;
+        updateLabelControls();
+        drawLinecut();
+        drawHeatmap();
+      } catch (error) {
+        setSaveState(error.message, true);
+      }
+    }
+    const scheduleLinecut = debounce(fetchLinecut, 100);
+
+    function moveLinecut(delta) {
+      elements.filling.value = Math.max(0, Math.min(Number(elements.filling.max), Number(elements.filling.value) + delta));
+      fetchLinecut();
+    }
+
+    function nextUnreviewed() {
+      const field = currentFieldLabels();
+      const total = currentMeta().fillings.length;
+      const start = Number(elements.filling.value);
+      for (let offset = 1; offset <= total; offset++) {
+        const index = (start + offset) % total;
+        const labels = field.linecuts[String(index)];
+        if (!labels?.Tcoh || !labels?.Tprime) {
+          elements.filling.value = index;
+          fetchLinecut();
+          return;
+        }
+      }
+    }
+
+    async function initialize() {
+      try {
+        [state.metadata, state.document] = await Promise.all([
+          getJSON('/api/metadata'),
+          getJSON('/api/annotations')
+        ]);
+        elements.field.innerHTML = state.metadata.fields.map(
+          field => `<option value="${fieldKey(field.field)}">E = ${fmt(field.field, 2)} mV/nm</option>`
+        ).join('');
+        state.savedRevision = state.revision;
+        selectBoundaryTool(null);
+        setActiveLinecutFeature('Tcoh');
+        await fetchField(state.metadata.fields[0].field);
+        setSaveState('Saved');
+      } catch (error) {
+        setSaveState(error.message, true);
+      }
+    }
+
+    document.querySelectorAll('.boundary-tool').forEach(button => button.addEventListener('click', () => selectBoundaryTool(button.dataset.feature)));
+    elements['inspect-tool'].addEventListener('click', () => selectBoundaryTool(null));
+    elements['new-segment'].addEventListener('click', () => {
+      const feature = state.boundaryFeature;
+      if (!feature) return;
+      const existing = currentFieldLabels().boundaries[feature]
+        .map(point => point.segment || 'segment-1');
+      let index = 1;
+      while (existing.includes(`segment-${index}`)) index += 1;
+      state.boundarySegment[feature] = `segment-${index}`;
+      elements['boundary-hint'].textContent = `Started a disconnected ${DISPLAY[feature]} segment. Add its first anchor.`;
+    });
+    elements.heatmap.addEventListener('pointerdown', event => {
+      if (!state.boundaryFeature) {
+        const values = pointerValues(event, elements.heatmap);
+        elements.filling.value = nearestIndex(currentMeta().fillings, values.x);
+        fetchLinecut();
+        return;
+      }
+      state.drawing = true;
+      elements.heatmap.setPointerCapture(event.pointerId);
+      state.boundaryHistory.push({
+        feature: state.boundaryFeature,
+        points: deepCopy(currentFieldLabels().boundaries[state.boundaryFeature])
+      });
+      addBoundaryPoint(event);
+    });
+    elements.heatmap.addEventListener('pointermove', event => { if (state.drawing) addBoundaryPoint(event); });
+    elements.heatmap.addEventListener('pointerup', () => { state.drawing = false; updateProgress(); });
+    elements.heatmap.addEventListener('pointercancel', () => { state.drawing = false; });
+    elements['undo-boundary'].addEventListener('click', () => {
+      const previous = state.boundaryHistory.pop();
+      if (!previous) return;
+      currentFieldLabels().boundaries[previous.feature] = previous.points;
+      currentFieldLabels().reviewed[previous.feature] = false;
+      changed();
+      drawHeatmap();
+      drawLinecut();
+    });
+    elements['clear-boundary'].addEventListener('click', () => {
+      const feature = state.boundaryFeature;
+      if (!feature || !currentFieldLabels().boundaries[feature].length) return;
+      if (!confirm(`Clear the ${DISPLAY[feature]} boundary for this field?`)) return;
+      state.boundaryHistory.push({ feature, points: deepCopy(currentFieldLabels().boundaries[feature]) });
+      currentFieldLabels().boundaries[feature] = [];
+      currentFieldLabels().reviewed[feature] = false;
+      changed();
+      drawHeatmap();
+      drawLinecut();
+    });
+
+    document.querySelectorAll('.set-label').forEach(button => button.addEventListener('click', () => setActiveLinecutFeature(button.dataset.feature)));
+    document.querySelectorAll('.set-ni').forEach(button => button.addEventListener('click', () => setNotIdentifiable(button.dataset.feature)));
+    document.querySelectorAll('.clear-label').forEach(button => button.addEventListener('click', () => clearLinecutLabel(button.dataset.feature)));
+    document.querySelectorAll('[id^="certainty-"]').forEach(select => select.addEventListener('change', () => {
+      const label = currentLinecutLabels(false)?.[select.dataset.feature];
+      if (!label || label.status !== 'value') return;
+      label.certainty = select.value;
+      changed();
+      updateLabelControls();
+    }));
+    elements.linecut.addEventListener('pointerdown', event => {
+      if (!state.linecutFeature || !state.linecut) return;
+      const values = pointerValues(event, elements.linecut);
+      const temperature = state.linecut.temperatures[nearestIndex(state.linecut.temperatures, values.x)];
+      setLinecutValue(state.linecutFeature, temperature);
+    });
+    elements.notes.addEventListener('input', debounce(() => {
+      currentLinecutLabels(true).notes = elements.notes.value;
+      changed();
+      updateProgress();
+    }, 250));
+    elements.field.addEventListener('change', () => fetchField(elements.field.value));
+    elements.filling.addEventListener('input', scheduleLinecut);
+    elements.previous.addEventListener('click', () => moveLinecut(-1));
+    elements.next.addEventListener('click', () => moveLinecut(1));
+    elements['next-unreviewed'].addEventListener('click', nextUnreviewed);
+    FEATURES.forEach(feature => elements[`reviewed-${feature}`].addEventListener('change', event => {
+      currentFieldLabels().reviewed[feature] = event.target.checked;
+      changed();
+      updateProgress();
+    }));
+    elements.download.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(state.document, null, 2) + '\n'], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'crossover_labels.json';
+      anchor.click();
+      URL.revokeObjectURL(url);
+    });
+    elements.explorer.addEventListener('click', () => { window.location.href = '/'; });
+    window.addEventListener('keydown', event => {
+      if (event.target.matches('textarea, input, select')) return;
+      if (event.key === '1') setActiveLinecutFeature('Tcoh');
+      if (event.key === '2') setActiveLinecutFeature('Tprime');
+      if (event.key.toLowerCase() === 'n') setNotIdentifiable(state.linecutFeature);
+      if (event.key === 'ArrowLeft') moveLinecut(-1);
+      if (event.key === 'ArrowRight') moveLinecut(1);
+    });
+    window.addEventListener('resize', debounce(() => { drawHeatmap(); drawLinecut(); }, 120));
+    window.addEventListener('beforeunload', event => {
+      if (state.savedRevision < state.revision) { event.preventDefault(); event.returnValue = ''; }
+    });
+
+    initialize();
+  </script>
+</body>
+</html>
