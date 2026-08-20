@@ -90,7 +90,7 @@ def draw_linecuts():
         for i, linecut in enumerate(dataset["linecuts"]):
             if i in selectedLinecuts:
 
-                param_string = f"E = {dataset["E"]}" + "     " + f"nu = {linecut["nu"]}"
+                param_string = f"E = {dataset["E"]}" + "     " + f"nu = {fmt4(linecut["nu"])}"
 
                 linecut_axis_kwargs = {
                     "xlabel": "Temperature (K)",
@@ -107,7 +107,7 @@ def draw_linecuts():
                 overlay_features(axes[1], dataset["T"], linecut)
 
                 # Creating directory
-                linecut_dir = OUT / Path("linecuts")
+                linecut_dir = OUT / Path("linecuts") / Path("p-value")
                 linecut_dir.mkdir(parents=True, exist_ok=True)
                 path = str(linecut_dir / Path(f"{param_string}.png"))
 

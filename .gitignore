@@ -43,4 +43,4 @@ htmlcov/
 .vscode/
 
 # Remove images from all outputs in scripts 
-/scripts/**/output/**/*.png
+/scripts/**/*.png

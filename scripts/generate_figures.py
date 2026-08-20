@@ -83,12 +83,12 @@ def draw_linecuts():
 
     for dataset in datasets:
 
-        numLinecuts = 30
+        numLinecuts = 200
         selectedLinecuts = np.linspace(0, len(dataset["linecuts"]), numLinecuts, dtype="int")
         for i, linecut in enumerate(dataset["linecuts"]):
             if i in selectedLinecuts:
 
-                param_string = f"E = {dataset["E"]}" + "     " + f"nu = {linecut["nu"]}"
+                param_string = f"E = {dataset["E"]}" + "     " + f"nu = {fmt4(linecut["nu"])}"
 
                 linecut_axis_kwargs = {
                     "xlabel": "Temperature (K)",
@@ -105,7 +105,7 @@ def draw_linecuts():
                 overlay_features(axes[1], dataset["T"], linecut, drawn_types=["upturn", "downturn"])
 
                 # Creating directory
-                linecut_dir = OUT / Path("scoring_extremas")
+                linecut_dir = OUT / Path("dense_linecuts")
                 linecut_dir.mkdir(parents=True, exist_ok=True)
                 path = str(linecut_dir / Path(f"{param_string}.png"))
 
@@ -132,5 +132,5 @@ def draw_heatmaps():
         fig.savefig(path / Path(str(dataset["E"]) + ".png"))
 
 if __name__ == "__main__":
-    draw_heatmaps()
-    # draw_linecuts()
+    # draw_heatmaps()
+    draw_linecuts()
