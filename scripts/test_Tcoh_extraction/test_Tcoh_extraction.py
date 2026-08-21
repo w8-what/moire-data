@@ -78,9 +78,7 @@ for field in SELECT_FIELDS:
         linecut["exponent_fit"] = extract_local_fits(T, linecut)
         linecut["behaviors"] += extract_behavior_fits(T, linecut)
 
-        linecut["features"] += extract_Tcoh(T, linecut, min_pvalue=0.2)
-        linecut["features"] += extract_Tprime(T, linecut)
-
+        linecut["features"] += extract_Tcoh(T, linecut, min_pvalue=0.01)
 
 def draw_linecuts():
 

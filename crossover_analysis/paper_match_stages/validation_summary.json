@@ -1,0 +1,956 @@
+{
+  "method": "strict_two_index_clusters_with_linecut_local_competitive_retention",
+  "selection": {
+    "absolute_plausibility_minimum": 0.65,
+    "maximum_gap_from_linecut_best": 0.1,
+    "maximum_candidates_per_linecut": 4
+  },
+  "stages": {
+    "stage_01_strict_top5": {
+      "103": {
+        "top_mae_K": 0.3845599183580483,
+        "top_median_absolute_error_K": 0.38337551793980673,
+        "nearest_candidate_mae_K": 0.1750447606789223,
+        "anchor_recall_within_tolerance": 0.75,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 3.9721115537848606,
+        "median_candidates_per_linecut": 5.0,
+        "zero_candidate_fraction": 0.17928286852589642,
+        "linecut_count": 251,
+        "anchor_count": 12,
+        "comparisons": [
+          {
+            "nu_published": 0.832,
+            "T_published": 1.725,
+            "segment": "electron",
+            "nu_measured": 0.832,
+            "T_top": 1.7707297693573638,
+            "top_absolute_error": 0.045729769357363725,
+            "oracle_absolute_error": 0.045729769357363725
+          },
+          {
+            "nu_published": 0.842,
+            "T_published": 1.475,
+            "segment": "electron",
+            "nu_measured": 0.842,
+            "T_top": 0.7932004050970946,
+            "top_absolute_error": 0.6817995949029055,
+            "oracle_absolute_error": 0.11437554122053584
+          },
+          {
+            "nu_published": 0.85,
+            "T_published": 1.3,
+            "segment": "electron",
+            "nu_measured": 0.85,
+            "T_top": 1.1292384097553094,
+            "top_absolute_error": 0.17076159024469062,
+            "oracle_absolute_error": 0.09148038570779726
+          },
+          {
+            "nu_published": 0.858,
+            "T_published": 1.125,
+            "segment": "electron",
+            "nu_measured": 0.858,
+            "T_top": 0.805137930512277,
+            "top_absolute_error": 0.319862069487723,
+            "oracle_absolute_error": 0.03432862898143729
+          },
+          {
+            "nu_published": 0.864,
+            "T_published": 0.8,
+            "segment": "electron",
+            "nu_measured": 0.864,
+            "T_top": 1.4561281075091113,
+            "top_absolute_error": 0.6561281075091112,
+            "oracle_absolute_error": 0.14035559342646875
+          },
+          {
+            "nu_published": 0.87,
+            "T_published": 0.5,
+            "segment": "electron",
+            "nu_measured": 0.87,
+            "T_top": 0.47992461110809004,
+            "top_absolute_error": 0.020075388891909962,
+            "oracle_absolute_error": 0.020075388891909962
+          },
+          {
+            "nu_published": 1.068,
+            "T_published": 0.65,
+            "segment": "hole",
+            "nu_measured": 1.068,
+            "T_top": 0.605717988370779,
+            "top_absolute_error": 0.044282011629221074,
+            "oracle_absolute_error": 0.044282011629221074
+          },
+          {
+            "nu_published": 1.07,
+            "T_published": 1.225,
+            "segment": "hole",
+            "nu_measured": 1.07,
+            "T_top": 0.5982900911223202,
+            "top_absolute_error": 0.6267099088776799,
+            "oracle_absolute_error": 0.1017281121518514
+          },
+          {
+            "nu_published": 1.073,
+            "T_published": 1.65,
+            "segment": "hole",
+            "nu_measured": 1.073,
+            "T_top": 2.0968889663918904,
+            "top_absolute_error": 0.44688896639189046,
+            "oracle_absolute_error": 0.21671911653356535
+          },
+          {
+            "nu_published": 1.078,
+            "T_published": 2.425,
+            "segment": "hole",
+            "nu_measured": 1.078,
+            "T_top": 1.7819334379025904,
+            "top_absolute_error": 0.6430665620974094,
+            "oracle_absolute_error": 0.5303267706190631
+          },
+          {
+            "nu_published": 1.088,
+            "T_published": 3.15,
+            "segment": "hole",
+            "nu_measured": 1.088,
+            "T_top": 3.105660638710123,
+            "top_absolute_error": 0.04433936128987703,
+            "oracle_absolute_error": 0.04433936128987703
+          },
+          {
+            "nu_published": 1.098,
+            "T_published": 3.75,
+            "segment": "hole",
+            "nu_measured": 1.098,
+            "T_top": 2.8349243103832023,
+            "top_absolute_error": 0.9150756896167977,
+            "oracle_absolute_error": 0.716796448337977
+          }
+        ]
+      },
+      "99": {
+        "top_mae_K": 0.36941982292993814,
+        "top_median_absolute_error_K": 0.23981673835318307,
+        "nearest_candidate_mae_K": 0.0654722868410725,
+        "anchor_recall_within_tolerance": 1.0,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 3.944223107569721,
+        "median_candidates_per_linecut": 5.0,
+        "zero_candidate_fraction": 0.1593625498007968,
+        "linecut_count": 251,
+        "anchor_count": 12,
+        "comparisons": [
+          {
+            "nu_published": 0.832,
+            "T_published": 1.425,
+            "segment": "electron",
+            "nu_measured": 0.832,
+            "T_top": 1.0750149250671277,
+            "top_absolute_error": 0.34998507493287234,
+            "oracle_absolute_error": 0.09158105556414209
+          },
+          {
+            "nu_published": 0.842,
+            "T_published": 1.325,
+            "segment": "electron",
+            "nu_measured": 0.842,
+            "T_top": 1.0498554656080614,
+            "top_absolute_error": 0.27514453439193853,
+            "oracle_absolute_error": 0.03615882889146427
+          },
+          {
+            "nu_published": 0.85,
+            "T_published": 1.15,
+            "segment": "electron",
+            "nu_measured": 0.85,
+            "T_top": 1.2371360643049334,
+            "top_absolute_error": 0.08713606430493348,
+            "oracle_absolute_error": 0.08713606430493348
+          },
+          {
+            "nu_published": 0.856,
+            "T_published": 1.025,
+            "segment": "electron",
+            "nu_measured": 0.856,
+            "T_top": 0.8780566708725188,
+            "top_absolute_error": 0.1469433291274811,
+            "oracle_absolute_error": 0.03546475952177963
+          },
+          {
+            "nu_published": 0.866,
+            "T_published": 0.775,
+            "segment": "electron",
+            "nu_measured": 0.866,
+            "T_top": 0.7674376022411526,
+            "top_absolute_error": 0.007562397758847372,
+            "oracle_absolute_error": 0.007562397758847372
+          },
+          {
+            "nu_published": 0.874,
+            "T_published": 0.5,
+            "segment": "electron",
+            "nu_measured": 0.874,
+            "T_top": 0.5530414167879032,
+            "top_absolute_error": 0.053041416787903195,
+            "oracle_absolute_error": 0.053041416787903195
+          },
+          {
+            "nu_published": 1.063,
+            "T_published": 0.675,
+            "segment": "hole",
+            "nu_measured": 1.063,
+            "T_top": 0.6250463704449307,
+            "top_absolute_error": 0.04995362955506932,
+            "oracle_absolute_error": 0.04995362955506932
+          },
+          {
+            "nu_published": 1.065,
+            "T_published": 1.075,
+            "segment": "hole",
+            "nu_measured": 1.065,
+            "T_top": 1.2794889423144276,
+            "top_absolute_error": 0.2044889423144276,
+            "oracle_absolute_error": 0.09671232521104312
+          },
+          {
+            "nu_published": 1.068,
+            "T_published": 1.875,
+            "segment": "hole",
+            "nu_measured": 1.068,
+            "T_top": 0.9685727844637727,
+            "top_absolute_error": 0.9064272155362273,
+            "oracle_absolute_error": 0.005998784545393709
+          },
+          {
+            "nu_published": 1.073,
+            "T_published": 2.4,
+            "segment": "hole",
+            "nu_measured": 1.073,
+            "T_top": 0.8578547666095209,
+            "top_absolute_error": 1.542145233390479,
+            "oracle_absolute_error": 0.10400527436755214
+          },
+          {
+            "nu_published": 1.078,
+            "T_published": 3.075,
+            "segment": "hole",
+            "nu_measured": 1.078,
+            "T_top": 2.775819994171469,
+            "top_absolute_error": 0.2991800058285312,
+            "oracle_absolute_error": 0.060473522234886
+          },
+          {
+            "nu_published": 1.094,
+            "T_published": 3.825,
+            "segment": "hole",
+            "nu_measured": 1.094,
+            "T_top": 3.313969968769453,
+            "top_absolute_error": 0.5110300312305474,
+            "oracle_absolute_error": 0.15757938334985555
+          }
+        ]
+      },
+      "96": {
+        "top_mae_K": 0.5166707554770582,
+        "top_median_absolute_error_K": 0.32964683712124,
+        "nearest_candidate_mae_K": 0.1462651683968104,
+        "anchor_recall_within_tolerance": 0.8181818181818182,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 4.47808764940239,
+        "median_candidates_per_linecut": 5.0,
+        "zero_candidate_fraction": 0.05976095617529881,
+        "linecut_count": 251,
+        "anchor_count": 11,
+        "comparisons": [
+          {
+            "nu_published": 0.838,
+            "T_published": 1.6,
+            "segment": "electron",
+            "nu_measured": 0.838,
+            "T_top": 1.27035316287876,
+            "top_absolute_error": 0.32964683712124,
+            "oracle_absolute_error": 0.1198970654362157
+          },
+          {
+            "nu_published": 0.848,
+            "T_published": 1.425,
+            "segment": "electron",
+            "nu_measured": 0.848,
+            "T_top": 0.677312307425057,
+            "top_absolute_error": 0.747687692574943,
+            "oracle_absolute_error": 0.017857603203812467
+          },
+          {
+            "nu_published": 0.866,
+            "T_published": 0.975,
+            "segment": "electron",
+            "nu_measured": 0.866,
+            "T_top": 0.9732802900539338,
+            "top_absolute_error": 0.0017197099460661835,
+            "oracle_absolute_error": 0.0017197099460661835
+          },
+          {
+            "nu_published": 0.87,
+            "T_published": 0.775,
+            "segment": "electron",
+            "nu_measured": 0.87,
+            "T_top": 1.0516349152434659,
+            "top_absolute_error": 0.27663491524346584,
+            "oracle_absolute_error": 0.10217469130815349
+          },
+          {
+            "nu_published": 1.063,
+            "T_published": 0.575,
+            "segment": "hole",
+            "nu_measured": 1.063,
+            "T_top": 2.180642922385836,
+            "top_absolute_error": 1.605642922385836,
+            "oracle_absolute_error": 0.19102160118135458
+          },
+          {
+            "nu_published": 1.065,
+            "T_published": 0.875,
+            "segment": "hole",
+            "nu_measured": 1.065,
+            "T_top": 1.3406910510239516,
+            "top_absolute_error": 0.4656910510239516,
+            "oracle_absolute_error": 0.4656910510239516
+          },
+          {
+            "nu_published": 1.068,
+            "T_published": 1.375,
+            "segment": "hole",
+            "nu_measured": 1.068,
+            "T_top": 1.50938341213819,
+            "top_absolute_error": 0.13438341213818994,
+            "oracle_absolute_error": 0.13438341213818994
+          },
+          {
+            "nu_published": 1.073,
+            "T_published": 2,
+            "segment": "hole",
+            "nu_measured": 1.073,
+            "T_top": 2.2036063616404413,
+            "top_absolute_error": 0.20360636164044132,
+            "oracle_absolute_error": 0.20360636164044132
+          },
+          {
+            "nu_published": 1.078,
+            "T_published": 2.55,
+            "segment": "hole",
+            "nu_measured": 1.078,
+            "T_top": 2.9726361894937328,
+            "top_absolute_error": 0.42263618949373294,
+            "oracle_absolute_error": 0.17298718347103703
+          },
+          {
+            "nu_published": 1.084,
+            "T_published": 2.95,
+            "segment": "hole",
+            "nu_measured": 1.084,
+            "T_top": 3.056685995049275,
+            "top_absolute_error": 0.10668599504927467,
+            "oracle_absolute_error": 0.10668599504927467
+          },
+          {
+            "nu_published": 1.094,
+            "T_published": 3.75,
+            "segment": "hole",
+            "nu_measured": 1.094,
+            "T_top": 2.3609567763695005,
+            "top_absolute_error": 1.3890432236304995,
+            "oracle_absolute_error": 0.09289217796641758
+          }
+        ]
+      },
+      "87": {
+        "top_mae_K": 0.1591668916620244,
+        "top_median_absolute_error_K": 0.08573117073228004,
+        "nearest_candidate_mae_K": 0.08890614391308212,
+        "anchor_recall_within_tolerance": 0.9,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 4.876494023904383,
+        "median_candidates_per_linecut": 5.0,
+        "zero_candidate_fraction": 0.0,
+        "linecut_count": 251,
+        "anchor_count": 10,
+        "comparisons": [
+          {
+            "nu_published": 0.838,
+            "T_published": 1.575,
+            "segment": "electron",
+            "nu_measured": 0.838,
+            "T_top": 1.5478569097717154,
+            "top_absolute_error": 0.02714309022828454,
+            "oracle_absolute_error": 0.02714309022828454
+          },
+          {
+            "nu_published": 0.842,
+            "T_published": 1.275,
+            "segment": "electron",
+            "nu_measured": 0.842,
+            "T_top": 1.2339164391754132,
+            "top_absolute_error": 0.04108356082458675,
+            "oracle_absolute_error": 0.04108356082458675
+          },
+          {
+            "nu_published": 0.848,
+            "T_published": 1.05,
+            "segment": "electron",
+            "nu_measured": 0.848,
+            "T_top": 1.1680523953991067,
+            "top_absolute_error": 0.11805239539910661,
+            "oracle_absolute_error": 0.05746122434844869
+          },
+          {
+            "nu_published": 0.854,
+            "T_published": 0.6,
+            "segment": "electron",
+            "nu_measured": 0.854,
+            "T_top": 0.5465900539345465,
+            "top_absolute_error": 0.05340994606545346,
+            "oracle_absolute_error": 0.05340994606545346
+          },
+          {
+            "nu_published": 1.02,
+            "T_published": 0.725,
+            "segment": "hole",
+            "nu_measured": 1.02,
+            "T_top": 0.5010088431910972,
+            "top_absolute_error": 0.2239911568089028,
+            "oracle_absolute_error": 0.05296966092346478
+          },
+          {
+            "nu_published": 1.023,
+            "T_published": 1.825,
+            "segment": "hole",
+            "nu_measured": 1.023,
+            "T_top": 2.186498695579609,
+            "top_absolute_error": 0.3614986955796089,
+            "oracle_absolute_error": 0.14067568654159435
+          },
+          {
+            "nu_published": 1.028,
+            "T_published": 2.375,
+            "segment": "hole",
+            "nu_measured": 1.028,
+            "T_top": 2.198651273529488,
+            "top_absolute_error": 0.17634872647051214,
+            "oracle_absolute_error": 0.17634872647051214
+          },
+          {
+            "nu_published": 1.033,
+            "T_published": 2.8,
+            "segment": "hole",
+            "nu_measured": 1.033,
+            "T_top": 2.8023855466093615,
+            "top_absolute_error": 0.002385546609361633,
+            "oracle_absolute_error": 0.002385546609361633
+          },
+          {
+            "nu_published": 1.043,
+            "T_published": 3.125,
+            "segment": "hole",
+            "nu_measured": 1.043,
+            "T_top": 3.0834049332479796,
+            "top_absolute_error": 0.041595066752020404,
+            "oracle_absolute_error": 0.041595066752020404
+          },
+          {
+            "nu_published": 1.053,
+            "T_published": 3.65,
+            "segment": "hole",
+            "nu_measured": 1.053,
+            "T_top": 3.1038392681175933,
+            "top_absolute_error": 0.5461607318824067,
+            "oracle_absolute_error": 0.2959889303670944
+          }
+        ]
+      },
+      "overall": {
+        "top_mae_K": 0.36272898049608265,
+        "nearest_candidate_mae_K": 0.11964850803857054,
+        "anchor_recall_within_tolerance": 0.8666666666666667,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 4.317729083665339,
+        "zero_candidate_fraction": 0.099601593625498,
+        "anchor_count": 45,
+        "linecut_count": 1004
+      }
+    },
+    "stage_02_competitive_candidates": {
+      "103": {
+        "top_mae_K": 0.3845599183580483,
+        "top_median_absolute_error_K": 0.38337551793980673,
+        "nearest_candidate_mae_K": 0.2047427442704843,
+        "anchor_recall_within_tolerance": 0.6666666666666666,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 1.8087649402390438,
+        "median_candidates_per_linecut": 2.0,
+        "zero_candidate_fraction": 0.26294820717131473,
+        "linecut_count": 251,
+        "anchor_count": 12,
+        "comparisons": [
+          {
+            "nu_published": 0.832,
+            "T_published": 1.725,
+            "segment": "electron",
+            "nu_measured": 0.832,
+            "T_top": 1.7707297693573638,
+            "top_absolute_error": 0.045729769357363725,
+            "oracle_absolute_error": 0.045729769357363725
+          },
+          {
+            "nu_published": 0.842,
+            "T_published": 1.475,
+            "segment": "electron",
+            "nu_measured": 0.842,
+            "T_top": 0.7932004050970946,
+            "top_absolute_error": 0.6817995949029055,
+            "oracle_absolute_error": 0.11437554122053584
+          },
+          {
+            "nu_published": 0.85,
+            "T_published": 1.3,
+            "segment": "electron",
+            "nu_measured": 0.85,
+            "T_top": 1.1292384097553094,
+            "top_absolute_error": 0.17076159024469062,
+            "oracle_absolute_error": 0.09148038570779726
+          },
+          {
+            "nu_published": 0.858,
+            "T_published": 1.125,
+            "segment": "electron",
+            "nu_measured": 0.858,
+            "T_top": 0.805137930512277,
+            "top_absolute_error": 0.319862069487723,
+            "oracle_absolute_error": 0.03432862898143729
+          },
+          {
+            "nu_published": 0.864,
+            "T_published": 0.8,
+            "segment": "electron",
+            "nu_measured": 0.864,
+            "T_top": 1.4561281075091113,
+            "top_absolute_error": 0.6561281075091112,
+            "oracle_absolute_error": 0.14035559342646875
+          },
+          {
+            "nu_published": 0.87,
+            "T_published": 0.5,
+            "segment": "electron",
+            "nu_measured": 0.87,
+            "T_top": 0.47992461110809004,
+            "top_absolute_error": 0.020075388891909962,
+            "oracle_absolute_error": 0.020075388891909962
+          },
+          {
+            "nu_published": 1.068,
+            "T_published": 0.65,
+            "segment": "hole",
+            "nu_measured": 1.068,
+            "T_top": 0.605717988370779,
+            "top_absolute_error": 0.044282011629221074,
+            "oracle_absolute_error": 0.044282011629221074
+          },
+          {
+            "nu_published": 1.07,
+            "T_published": 1.225,
+            "segment": "hole",
+            "nu_measured": 1.07,
+            "T_top": 0.5982900911223202,
+            "top_absolute_error": 0.6267099088776799,
+            "oracle_absolute_error": 0.45810391525059524
+          },
+          {
+            "nu_published": 1.073,
+            "T_published": 1.65,
+            "segment": "hole",
+            "nu_measured": 1.073,
+            "T_top": 2.0968889663918904,
+            "top_absolute_error": 0.44688896639189046,
+            "oracle_absolute_error": 0.21671911653356535
+          },
+          {
+            "nu_published": 1.078,
+            "T_published": 2.425,
+            "segment": "hole",
+            "nu_measured": 1.078,
+            "T_top": 1.7819334379025904,
+            "top_absolute_error": 0.6430665620974094,
+            "oracle_absolute_error": 0.5303267706190631
+          },
+          {
+            "nu_published": 1.088,
+            "T_published": 3.15,
+            "segment": "hole",
+            "nu_measured": 1.088,
+            "T_top": 3.105660638710123,
+            "top_absolute_error": 0.04433936128987703,
+            "oracle_absolute_error": 0.04433936128987703
+          },
+          {
+            "nu_published": 1.098,
+            "T_published": 3.75,
+            "segment": "hole",
+            "nu_measured": 1.098,
+            "T_top": 2.8349243103832023,
+            "top_absolute_error": 0.9150756896167977,
+            "oracle_absolute_error": 0.716796448337977
+          }
+        ]
+      },
+      "99": {
+        "top_mae_K": 0.36941982292993814,
+        "top_median_absolute_error_K": 0.23981673835318307,
+        "nearest_candidate_mae_K": 0.09492650749779681,
+        "anchor_recall_within_tolerance": 0.9166666666666666,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 1.9362549800796813,
+        "median_candidates_per_linecut": 2.0,
+        "zero_candidate_fraction": 0.29880478087649404,
+        "linecut_count": 251,
+        "anchor_count": 12,
+        "comparisons": [
+          {
+            "nu_published": 0.832,
+            "T_published": 1.425,
+            "segment": "electron",
+            "nu_measured": 0.832,
+            "T_top": 1.0750149250671277,
+            "top_absolute_error": 0.34998507493287234,
+            "oracle_absolute_error": 0.09158105556414209
+          },
+          {
+            "nu_published": 0.842,
+            "T_published": 1.325,
+            "segment": "electron",
+            "nu_measured": 0.842,
+            "T_top": 1.0498554656080614,
+            "top_absolute_error": 0.27514453439193853,
+            "oracle_absolute_error": 0.03615882889146427
+          },
+          {
+            "nu_published": 0.85,
+            "T_published": 1.15,
+            "segment": "electron",
+            "nu_measured": 0.85,
+            "T_top": 1.2371360643049334,
+            "top_absolute_error": 0.08713606430493348,
+            "oracle_absolute_error": 0.08713606430493348
+          },
+          {
+            "nu_published": 0.856,
+            "T_published": 1.025,
+            "segment": "electron",
+            "nu_measured": 0.856,
+            "T_top": 0.8780566708725188,
+            "top_absolute_error": 0.1469433291274811,
+            "oracle_absolute_error": 0.03546475952177963
+          },
+          {
+            "nu_published": 0.866,
+            "T_published": 0.775,
+            "segment": "electron",
+            "nu_measured": 0.866,
+            "T_top": 0.7674376022411526,
+            "top_absolute_error": 0.007562397758847372,
+            "oracle_absolute_error": 0.007562397758847372
+          },
+          {
+            "nu_published": 0.874,
+            "T_published": 0.5,
+            "segment": "electron",
+            "nu_measured": 0.874,
+            "T_top": 0.5530414167879032,
+            "top_absolute_error": 0.053041416787903195,
+            "oracle_absolute_error": 0.053041416787903195
+          },
+          {
+            "nu_published": 1.063,
+            "T_published": 0.675,
+            "segment": "hole",
+            "nu_measured": 1.063,
+            "T_top": 0.6250463704449307,
+            "top_absolute_error": 0.04995362955506932,
+            "oracle_absolute_error": 0.04995362955506932
+          },
+          {
+            "nu_published": 1.065,
+            "T_published": 1.075,
+            "segment": "hole",
+            "nu_measured": 1.065,
+            "T_top": 1.2794889423144276,
+            "top_absolute_error": 0.2044889423144276,
+            "oracle_absolute_error": 0.09671232521104312
+          },
+          {
+            "nu_published": 1.068,
+            "T_published": 1.875,
+            "segment": "hole",
+            "nu_measured": 1.068,
+            "T_top": 0.9685727844637727,
+            "top_absolute_error": 0.9064272155362273,
+            "oracle_absolute_error": 0.005998784545393709
+          },
+          {
+            "nu_published": 1.073,
+            "T_published": 2.4,
+            "segment": "hole",
+            "nu_measured": 1.073,
+            "T_top": 0.8578547666095209,
+            "top_absolute_error": 1.542145233390479,
+            "oracle_absolute_error": 0.10400527436755214
+          },
+          {
+            "nu_published": 1.078,
+            "T_published": 3.075,
+            "segment": "hole",
+            "nu_measured": 1.078,
+            "T_top": 2.775819994171469,
+            "top_absolute_error": 0.2991800058285312,
+            "oracle_absolute_error": 0.060473522234886
+          },
+          {
+            "nu_published": 1.094,
+            "T_published": 3.825,
+            "segment": "hole",
+            "nu_measured": 1.094,
+            "T_top": 3.313969968769453,
+            "top_absolute_error": 0.5110300312305474,
+            "oracle_absolute_error": 0.5110300312305474
+          }
+        ]
+      },
+      "96": {
+        "top_mae_K": 0.5166707554770582,
+        "top_median_absolute_error_K": 0.32964683712124,
+        "nearest_candidate_mae_K": 0.23419419814103248,
+        "anchor_recall_within_tolerance": 0.7272727272727273,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 2.147410358565737,
+        "median_candidates_per_linecut": 2.0,
+        "zero_candidate_fraction": 0.2151394422310757,
+        "linecut_count": 251,
+        "anchor_count": 11,
+        "comparisons": [
+          {
+            "nu_published": 0.838,
+            "T_published": 1.6,
+            "segment": "electron",
+            "nu_measured": 0.838,
+            "T_top": 1.27035316287876,
+            "top_absolute_error": 0.32964683712124,
+            "oracle_absolute_error": 0.1198970654362157
+          },
+          {
+            "nu_published": 0.848,
+            "T_published": 1.425,
+            "segment": "electron",
+            "nu_measured": 0.848,
+            "T_top": 0.677312307425057,
+            "top_absolute_error": 0.747687692574943,
+            "oracle_absolute_error": 0.017857603203812467
+          },
+          {
+            "nu_published": 0.866,
+            "T_published": 0.975,
+            "segment": "electron",
+            "nu_measured": 0.866,
+            "T_top": 0.9732802900539338,
+            "top_absolute_error": 0.0017197099460661835,
+            "oracle_absolute_error": 0.0017197099460661835
+          },
+          {
+            "nu_published": 0.87,
+            "T_published": 0.775,
+            "segment": "electron",
+            "nu_measured": 0.87,
+            "T_top": 1.0516349152434659,
+            "top_absolute_error": 0.27663491524346584,
+            "oracle_absolute_error": 0.10217469130815349
+          },
+          {
+            "nu_published": 1.063,
+            "T_published": 0.575,
+            "segment": "hole",
+            "nu_measured": 1.063,
+            "T_top": 2.180642922385836,
+            "top_absolute_error": 1.605642922385836,
+            "oracle_absolute_error": 0.19102160118135458
+          },
+          {
+            "nu_published": 1.065,
+            "T_published": 0.875,
+            "segment": "hole",
+            "nu_measured": 1.065,
+            "T_top": 1.3406910510239516,
+            "top_absolute_error": 0.4656910510239516,
+            "oracle_absolute_error": 0.4656910510239516
+          },
+          {
+            "nu_published": 1.068,
+            "T_published": 1.375,
+            "segment": "hole",
+            "nu_measured": 1.068,
+            "T_top": 1.50938341213819,
+            "top_absolute_error": 0.13438341213818994,
+            "oracle_absolute_error": 0.13438341213818994
+          },
+          {
+            "nu_published": 1.073,
+            "T_published": 2,
+            "segment": "hole",
+            "nu_measured": 1.073,
+            "T_top": 2.2036063616404413,
+            "top_absolute_error": 0.20360636164044132,
+            "oracle_absolute_error": 0.20360636164044132
+          },
+          {
+            "nu_published": 1.078,
+            "T_published": 2.55,
+            "segment": "hole",
+            "nu_measured": 1.078,
+            "T_top": 2.9726361894937328,
+            "top_absolute_error": 0.42263618949373294,
+            "oracle_absolute_error": 0.17298718347103703
+          },
+          {
+            "nu_published": 1.084,
+            "T_published": 2.95,
+            "segment": "hole",
+            "nu_measured": 1.084,
+            "T_top": 3.056685995049275,
+            "top_absolute_error": 0.10668599504927467,
+            "oracle_absolute_error": 0.10668599504927467
+          },
+          {
+            "nu_published": 1.094,
+            "T_published": 3.75,
+            "segment": "hole",
+            "nu_measured": 1.094,
+            "T_top": 2.3609567763695005,
+            "top_absolute_error": 1.3890432236304995,
+            "oracle_absolute_error": 1.0601115051528605
+          }
+        ]
+      },
+      "87": {
+        "top_mae_K": 0.1591668916620244,
+        "top_median_absolute_error_K": 0.08573117073228004,
+        "nearest_candidate_mae_K": 0.08890614391308212,
+        "anchor_recall_within_tolerance": 0.9,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 2.589641434262948,
+        "median_candidates_per_linecut": 3.0,
+        "zero_candidate_fraction": 0.11952191235059761,
+        "linecut_count": 251,
+        "anchor_count": 10,
+        "comparisons": [
+          {
+            "nu_published": 0.838,
+            "T_published": 1.575,
+            "segment": "electron",
+            "nu_measured": 0.838,
+            "T_top": 1.5478569097717154,
+            "top_absolute_error": 0.02714309022828454,
+            "oracle_absolute_error": 0.02714309022828454
+          },
+          {
+            "nu_published": 0.842,
+            "T_published": 1.275,
+            "segment": "electron",
+            "nu_measured": 0.842,
+            "T_top": 1.2339164391754132,
+            "top_absolute_error": 0.04108356082458675,
+            "oracle_absolute_error": 0.04108356082458675
+          },
+          {
+            "nu_published": 0.848,
+            "T_published": 1.05,
+            "segment": "electron",
+            "nu_measured": 0.848,
+            "T_top": 1.1680523953991067,
+            "top_absolute_error": 0.11805239539910661,
+            "oracle_absolute_error": 0.05746122434844869
+          },
+          {
+            "nu_published": 0.854,
+            "T_published": 0.6,
+            "segment": "electron",
+            "nu_measured": 0.854,
+            "T_top": 0.5465900539345465,
+            "top_absolute_error": 0.05340994606545346,
+            "oracle_absolute_error": 0.05340994606545346
+          },
+          {
+            "nu_published": 1.02,
+            "T_published": 0.725,
+            "segment": "hole",
+            "nu_measured": 1.02,
+            "T_top": 0.5010088431910972,
+            "top_absolute_error": 0.2239911568089028,
+            "oracle_absolute_error": 0.05296966092346478
+          },
+          {
+            "nu_published": 1.023,
+            "T_published": 1.825,
+            "segment": "hole",
+            "nu_measured": 1.023,
+            "T_top": 2.186498695579609,
+            "top_absolute_error": 0.3614986955796089,
+            "oracle_absolute_error": 0.14067568654159435
+          },
+          {
+            "nu_published": 1.028,
+            "T_published": 2.375,
+            "segment": "hole",
+            "nu_measured": 1.028,
+            "T_top": 2.198651273529488,
+            "top_absolute_error": 0.17634872647051214,
+            "oracle_absolute_error": 0.17634872647051214
+          },
+          {
+            "nu_published": 1.033,
+            "T_published": 2.8,
+            "segment": "hole",
+            "nu_measured": 1.033,
+            "T_top": 2.8023855466093615,
+            "top_absolute_error": 0.002385546609361633,
+            "oracle_absolute_error": 0.002385546609361633
+          },
+          {
+            "nu_published": 1.043,
+            "T_published": 3.125,
+            "segment": "hole",
+            "nu_measured": 1.043,
+            "T_top": 3.0834049332479796,
+            "top_absolute_error": 0.041595066752020404,
+            "oracle_absolute_error": 0.041595066752020404
+          },
+          {
+            "nu_published": 1.053,
+            "T_published": 3.65,
+            "segment": "hole",
+            "nu_measured": 1.053,
+            "T_top": 3.1038392681175933,
+            "top_absolute_error": 0.5461607318824067,
+            "oracle_absolute_error": 0.2959889303670944
+          }
+        ]
+      },
+      "overall": {
+        "top_mae_K": 0.36272898049608265,
+        "nearest_candidate_mae_K": 0.15691619199781226,
+        "anchor_recall_within_tolerance": 0.8,
+        "recall_tolerance_K": 0.2,
+        "mean_candidates_per_linecut": 2.1205179282868527,
+        "zero_candidate_fraction": 0.2241035856573705,
+        "anchor_count": 45,
+        "linecut_count": 1004
+      }
+    }
+  }
+}

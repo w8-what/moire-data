@@ -6,7 +6,7 @@ and imports the existing adaptive smoother in read-only fashion.
 
 The extractor uses one linecut at a time. It does not use neighboring fillings,
 heatmap geometry, field identity, or published phase-boundary positions in any
-plausibility score. Published Figure 3 points are optionally drawn as gray
+plausibility score. Published Figure 3 points are optionally drawn as black
 reference markers only after scoring.
 
 ## Run
@@ -36,12 +36,15 @@ strict-cluster improvement and four-field paper comparison can be run with:
 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python crossover_analysis/improved_tcoh.py
 ```
 
-Its code, candidate JSON, validation metrics, and four figures live under
-`crossover_analysis/tcoh_improved/`.
+Its code, candidate JSON, validation metrics, and staged figures live under
+`crossover_analysis/paper_match_stages/`. Stage 1 shows the strict top-five
+baseline, Stage 2 applies the final candidate-retention rule, and Stage 3 uses
+the same candidates with a clearer visual hierarchy. No stage draws or finds a
+path.
 
 ## Candidate output
 
-Each linecut returns up to five candidates with:
+Each linecut returns zero to four candidates with:
 
 - `plausibility`: combined 0--1 local score;
 - `B`: baseline-fit quality, including PRESS leave-one-out prediction at the
@@ -49,11 +52,15 @@ Each linecut returns up to five candidates with:
 - `D`: persistent 10% departure strength;
 - `R`: agreement among fit windows within that same linecut;
 - `C`: power-law regime contrast;
+- a linecut-local temperature uncertainty and support interval;
 - the representative fit window and fit parameters.
 
-Scores do not sum to one. A top score of at least 0.65 is called
-`locally_supported`; otherwise the linecut remains `not_identifiable` while its
-lower-scoring candidates are retained.
+Scores do not sum to one. A candidate is retained only if its score is at least
+0.65 and no more than 0.10 below that linecut's best score. At most four are
+kept. If the best score is below 0.65, the linecut is `not_identifiable` and
+returns no candidate. A leave-one-field-out threshold study on the four paper
+fields motivated one universal rule; the published markers are never score
+features and no field-specific threshold is used.
 
 For the contrast term, one free power law is fit over the entire available
 departure side. This is the Occam choice: the extractor does not search for a
