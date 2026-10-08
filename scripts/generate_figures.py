@@ -121,16 +121,18 @@ def draw_heatmaps():
         name = f"{dataset["E"]}_mV/nm_Features"
         fig, axes = generate_layout(1, title=name)
 
-        draw_heatmap(fig, axes[0], dataset["nu"], dataset["T"], dataset["rho"], title="Original Features")
-        overlay_features_heatmap(axes[0], dataset["linecuts"], score_name="confidence")
+        # draw_heatmap(fig, axes[0], dataset["nu"], dataset["T"], dataset["rho"], title="Original Features")
+        # overlay_features_heatmap(axes[0], dataset["linecuts"], score_name="confidence")
 
-        draw_heatmap(fig, axes[1], dataset["nu"], dataset["T"], dataset["rho"], title="Refined Features")
-        overlay_features_heatmap(axes[1], dataset["linecuts"], feature_name="features_new", score_name="score_15")
+        draw_heatmap(fig, axes[0], dataset["nu"], dataset["T"], dataset["rho"], title="Extracted Features")
+        overlay_features_heatmap(axes[0], dataset["linecuts"], feature_name="features_new", score_name="score_15")
+        overlay_features_heatmap(axes[0], dataset["linecuts"], feature_name="features")
 
-        path = OUT / Path("heatmaps_comparison")
+
+        path = OUT / Path("new_tcoh")
         path.mkdir(exist_ok=True, parents=True)
         fig.savefig(path / Path(str(dataset["E"]) + ".png"))
 
 if __name__ == "__main__":
-    # draw_heatmaps()
-    draw_linecuts()
+    draw_heatmaps()
+    # draw_linecuts()

@@ -1,0 +1,1086 @@
+{
+  "source": {
+    "article": "https://www.nature.com/articles/s41586-025-10049-3",
+    "figure": "https://www.nature.com/articles/s41586-025-10049-3/figures/3",
+    "workbook": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-025-10049-3/MediaObjects/41586_2025_10049_MOESM4_ESM.xlsx",
+    "citation": "Y. Xia et al., Nature 650, 585-591 (2026)",
+    "panels": "e-h",
+    "description": "Published Figure 3 phase-diagram symbols. These points are the verification reference and are not inputs to feature scoring."
+  },
+  "fields_mV_nm": [
+    103,
+    99,
+    96,
+    87
+  ],
+  "features": [
+    "Tcoh",
+    "TN",
+    "Tprime"
+  ],
+  "segment_rule": "electron when nu < 1, hole when nu > 1. The workbook does not label the side; this split matches the disconnected branches already stored for Tcoh and T'.",
+  "rounding": "nu and T rounded to 3 decimal places, which reproduces annotations/crossover_labels.json for Tcoh and Tprime.",
+  "omitted": "Panels a-d are resistivity samples. Panels i-l are the T^2 coefficient A and Hall density n_H/N_M. Neither is a phase-boundary label.",
+  "absent_from_workbook": {
+    "87": [
+      "TN",
+      "Tprime"
+    ]
+  },
+  "count": 117,
+  "points": [
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 0.832,
+      "T_K": 1.725,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 0.842,
+      "T_K": 1.475,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 0.85,
+      "T_K": 1.3,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 0.858,
+      "T_K": 1.125,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 0.864,
+      "T_K": 0.8,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 0.87,
+      "T_K": 0.5,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 1.068,
+      "T_K": 0.65,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 1.07,
+      "T_K": 1.225,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 1.073,
+      "T_K": 1.65,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 1.078,
+      "T_K": 2.425,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 1.088,
+      "T_K": 3.15,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tcoh",
+      "nu": 1.098,
+      "T_K": 3.75,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.96,
+      "T_K": 1.1,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.962,
+      "T_K": 1.5,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.963,
+      "T_K": 1.7,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.965,
+      "T_K": 2.1,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.969,
+      "T_K": 2.4,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.975,
+      "T_K": 2.8,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.979,
+      "T_K": 3.05,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.986,
+      "T_K": 3.4,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.992,
+      "T_K": 3.6,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 0.998,
+      "T_K": 3.6,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.004,
+      "T_K": 3.4,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.01,
+      "T_K": 3.2,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.015,
+      "T_K": 2.8,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.018,
+      "T_K": 2.5,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.022,
+      "T_K": 2.3,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.026,
+      "T_K": 2.0,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.03,
+      "T_K": 1.5,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.034,
+      "T_K": 1.1,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "TN",
+      "nu": 1.038,
+      "T_K": 0.5,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tprime",
+      "nu": 0.888,
+      "T_K": 0.14,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tprime",
+      "nu": 0.898,
+      "T_K": 0.7,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tprime",
+      "nu": 0.908,
+      "T_K": 1.2,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tprime",
+      "nu": 0.918,
+      "T_K": 1.6,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tprime",
+      "nu": 0.928,
+      "T_K": 1.6,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tprime",
+      "nu": 0.938,
+      "T_K": 1.5,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 103,
+      "paper_E_mV_nm": -103,
+      "panel": "panel_e",
+      "feature": "Tprime",
+      "nu": 0.948,
+      "T_K": 1.3,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 0.832,
+      "T_K": 1.425,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 0.842,
+      "T_K": 1.325,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 0.85,
+      "T_K": 1.15,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 0.856,
+      "T_K": 1.025,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 0.866,
+      "T_K": 0.775,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 0.874,
+      "T_K": 0.5,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 1.063,
+      "T_K": 0.675,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 1.065,
+      "T_K": 1.075,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 1.068,
+      "T_K": 1.875,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 1.073,
+      "T_K": 2.4,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 1.078,
+      "T_K": 3.075,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tcoh",
+      "nu": 1.094,
+      "T_K": 3.825,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.967,
+      "T_K": 0.8,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.969,
+      "T_K": 1.0,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.971,
+      "T_K": 1.3,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.973,
+      "T_K": 1.7,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.974,
+      "T_K": 2.0,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.975,
+      "T_K": 2.3,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.977,
+      "T_K": 2.5,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.984,
+      "T_K": 2.8,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.988,
+      "T_K": 3.0,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.992,
+      "T_K": 3.0,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 0.996,
+      "T_K": 3.0,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.0,
+      "T_K": 2.8,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.004,
+      "T_K": 2.7,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.008,
+      "T_K": 2.5,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.012,
+      "T_K": 2.2,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.016,
+      "T_K": 2.0,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.02,
+      "T_K": 1.6,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.023,
+      "T_K": 1.3,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.025,
+      "T_K": 1.1,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.027,
+      "T_K": 0.9,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "TN",
+      "nu": 1.029,
+      "T_K": 0.7,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tprime",
+      "nu": 0.898,
+      "T_K": 0.14,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tprime",
+      "nu": 0.908,
+      "T_K": 1.0,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tprime",
+      "nu": 0.913,
+      "T_K": 1.5,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tprime",
+      "nu": 0.918,
+      "T_K": 1.7,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tprime",
+      "nu": 0.928,
+      "T_K": 1.7,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tprime",
+      "nu": 0.938,
+      "T_K": 1.8,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 99,
+      "paper_E_mV_nm": -99,
+      "panel": "panel_f",
+      "feature": "Tprime",
+      "nu": 0.948,
+      "T_K": 1.9,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 0.838,
+      "T_K": 1.6,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 0.848,
+      "T_K": 1.425,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 0.866,
+      "T_K": 0.975,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 0.87,
+      "T_K": 0.775,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 1.063,
+      "T_K": 0.575,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 1.065,
+      "T_K": 0.875,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 1.068,
+      "T_K": 1.375,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 1.073,
+      "T_K": 2.0,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 1.078,
+      "T_K": 2.55,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 1.084,
+      "T_K": 2.95,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tcoh",
+      "nu": 1.094,
+      "T_K": 3.75,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 0.988,
+      "T_K": 2.6,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 0.992,
+      "T_K": 2.6,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 0.996,
+      "T_K": 2.5,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 1.0,
+      "T_K": 2.2,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 1.004,
+      "T_K": 2.0,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 1.008,
+      "T_K": 1.7,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 1.011,
+      "T_K": 1.4,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 1.014,
+      "T_K": 1.1,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 1.016,
+      "T_K": 1.0,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 1.017,
+      "T_K": 0.7,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "TN",
+      "nu": 1.018,
+      "T_K": 0.5,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tprime",
+      "nu": 0.903,
+      "T_K": 0.14,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tprime",
+      "nu": 0.905,
+      "T_K": 0.9,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tprime",
+      "nu": 0.908,
+      "T_K": 1.3,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tprime",
+      "nu": 0.918,
+      "T_K": 1.9,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tprime",
+      "nu": 0.928,
+      "T_K": 2.1,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tprime",
+      "nu": 0.948,
+      "T_K": 2.0,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 96,
+      "paper_E_mV_nm": -96,
+      "panel": "panel_g",
+      "feature": "Tprime",
+      "nu": 0.968,
+      "T_K": 2.1,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 0.838,
+      "T_K": 1.575,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 0.842,
+      "T_K": 1.275,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 0.848,
+      "T_K": 1.05,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 0.854,
+      "T_K": 0.6,
+      "segment": "electron"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 1.02,
+      "T_K": 0.725,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 1.023,
+      "T_K": 1.825,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 1.028,
+      "T_K": 2.375,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 1.033,
+      "T_K": 2.8,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 1.043,
+      "T_K": 3.125,
+      "segment": "hole"
+    },
+    {
+      "field_mV_nm": 87,
+      "paper_E_mV_nm": -87,
+      "panel": "panel_h",
+      "feature": "Tcoh",
+      "nu": 1.053,
+      "T_K": 3.65,
+      "segment": "hole"
+    }
+  ]
+}
